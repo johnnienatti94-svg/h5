@@ -1,0 +1,108 @@
+/* ============================================
+   BottomNav Component Styles
+   ============================================ */
+
+.bottomNav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-fixed);
+  background: var(--color-nav-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid var(--color-nav-border);
+  box-shadow: var(--shadow-nav);
+  padding-bottom: var(--safe-area-bottom);
+  animation: slideUp 0.4s ease-out;
+}
+
+.bottomNavInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  height: var(--bottom-nav-height);
+  padding: 0 var(--space-2);
+}
+
+.navItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  padding: var(--space-1) 0;
+  text-decoration: none;
+  color: var(--color-nav-text);
+  transition: color var(--transition-fast), transform var(--transition-fast);
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.navItem:hover {
+  color: var(--color-nav-icon-active);
+}
+
+.navItem:active {
+  transform: scale(0.92);
+}
+
+.navItemActive {
+  color: var(--color-nav-text-active);
+}
+
+/* Active indicator dot */
+.navItemActive::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  animation: scaleIn 0.3s ease-out;
+}
+
+.navIcon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  transition: transform var(--transition-spring);
+}
+
+.navItemActive .navIcon {
+  transform: scale(1.1);
+}
+
+.navLabel {
+  font-size: 10px;
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.navItemActive .navLabel {
+  font-weight: var(--weight-semibold);
+}
+
+/* Ripple effect on tap */
+@keyframes ripple {
+  from {
+    opacity: 0.4;
+    transform: scale(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.5);
+  }
+}

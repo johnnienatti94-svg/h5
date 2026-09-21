@@ -1,0 +1,512 @@
+/* ==========================================================================
+   MeePro Customer Mobile Login — Modern Centered Design (Phone + OTP only)
+   ========================================================================== */
+
+.pageWrapper {
+  min-height: 100dvh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: #F8FAFC;
+  padding: 16px;
+  padding-bottom: calc(32px + var(--safe-area-bottom));
+}
+
+.mobileCard {
+  width: 100%;
+  max-width: 430px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto;
+}
+
+/* --- Brand Header --- */
+.brandHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.brandLogo {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  color: #0F172A;
+}
+
+.brandTagline {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #64748B;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* --- Banner Slider (430 × 260 proportional) --- */
+.bannerContainer {
+  width: 100%;
+  max-width: 430px;
+  margin-bottom: 20px;
+}
+
+.bannerCard {
+  position: relative;
+  width: 100%;
+  /* Exact 430:260 aspect ratio scaled proportionally to mobile screen */
+  aspect-ratio: 430 / 260;
+  max-height: 260px;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.15);
+  background: #1E293B;
+}
+
+.bannerSlide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+  color: #FFFFFF;
+}
+
+.bannerBadge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 10px;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  border-radius: 20px;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.bannerTitle {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.3;
+  margin-bottom: 6px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.bannerDesc {
+  font-size: 12px;
+  opacity: 0.9;
+  line-height: 1.4;
+  max-width: 320px;
+}
+
+.bannerDots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.bannerDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 10px;
+  background: #CBD5E1;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bannerDotActive {
+  background: #007849;
+  width: 20px;
+}
+
+/* --- Main Form Card (Modern Centered UI) --- */
+.formCard {
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 24px 20px;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06);
+  border: 1px solid #E2E8F0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.formHeader {
+  margin-bottom: 20px;
+}
+
+.formTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0F172A;
+  margin-bottom: 4px;
+}
+
+.formSubtitle {
+  font-size: 13px;
+  color: #64748B;
+  line-height: 1.4;
+}
+
+/* Input Section */
+.inputSection {
+  width: 100%;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.inputLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.requiredAsterisk {
+  color: #EF4444;
+}
+
+.phoneInputContainer {
+  width: 100%;
+  height: 50px;
+  background: #F8FAFC;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 12px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.phoneInputContainer:focus-within {
+  border-color: #007849;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 4px rgba(0, 120, 73, 0.12);
+}
+
+.phoneInputContainerError {
+  border-color: #EF4444;
+  background: #FEF2F2;
+}
+
+.countryBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 10px;
+  border-right: 1px solid #CBD5E1;
+  flex-shrink: 0;
+}
+
+.flagIcon {
+  font-size: 18px;
+}
+
+.countryCode {
+  font-size: 14px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.phoneInputField {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F172A;
+  outline: none;
+  letter-spacing: 0.5px;
+}
+
+.phoneInputField::placeholder {
+  color: #94A3B8;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+.errorText {
+  font-size: 11px;
+  color: #EF4444;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* PDPA Row */
+.pdpaWrapper {
+  width: 100%;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.pdpaLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.realCheckbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.customCheckbox {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 5px;
+  background: #FFFFFF;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  transition: all 0.15s ease;
+}
+
+.realCheckbox:checked + .customCheckbox {
+  background: #007849;
+  border-color: #007849;
+}
+
+.realCheckbox:checked + .customCheckbox::after {
+  content: '✓';
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.pdpaText {
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.policyBtn {
+  color: #007849;
+  font-weight: 700;
+  text-decoration: underline;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Bot Verification */
+.turnstileWrapper {
+  width: 100%;
+  margin-bottom: 18px;
+}
+
+.turnstileCard {
+  width: 100%;
+  height: 48px;
+  background: #F8FAFC;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.turnstileCard:hover {
+  border-color: #CBD5E1;
+}
+
+.turnstileCardVerified {
+  border-color: #007849;
+  background: #F0FDF4;
+}
+
+.turnstileBox {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #CBD5E1;
+  border-radius: 6px;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.turnstileCardVerified .turnstileBox {
+  background: #007849;
+  border-color: #007849;
+}
+
+.turnstileCheckmark {
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.turnstileSpinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #CBD5E1;
+  border-top-color: #007849;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.turnstileLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* Primary Action Button */
+.submitOtpBtn {
+  width: 100%;
+  height: 50px;
+  background: #007849;
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 800;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 120, 73, 0.3);
+  transition: all 0.2s ease;
+}
+
+.submitOtpBtn:hover:not(:disabled) {
+  background: #00633C;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 120, 73, 0.4);
+}
+
+.submitOtpBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.submitOtpBtn:disabled {
+  background: #CBD5E1;
+  color: #94A3B8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Security Notice */
+.securityBadge {
+  margin-top: 18px;
+  padding: 10px 12px;
+  background: rgba(0, 120, 73, 0.05);
+  border: 1px solid rgba(0, 120, 73, 0.15);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
+.securityBadgeText {
+  font-size: 11px;
+  color: #475569;
+  line-height: 1.4;
+}
+
+/* --- OTP Screen --- */
+.otpCard {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.otpGrid {
+  display: flex;
+  gap: 8px;
+  margin: 20px 0;
+  justify-content: center;
+}
+
+.otpCell {
+  width: 46px;
+  height: 54px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 800;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 12px;
+  background: #F8FAFC;
+  color: #0F172A;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.otpCell:focus {
+  border-color: #007849;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(0, 120, 73, 0.15);
+}
+
+.otpCellFilled {
+  border-color: #007849;
+  background: #F0FDF4;
+}
+
+.countdownText {
+  font-size: 12px;
+  color: #64748B;
+  margin-top: 10px;
+}
+
+.resendBtn {
+  font-size: 13px;
+  font-weight: 800;
+  color: #007849;
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.resendBtn:hover {
+  text-decoration: underline;
+}
+
+.backBtn {
+  margin-top: 18px;
+  font-size: 12px;
+  color: #64748B;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.backBtn:hover {
+  color: #0F172A;
+}
