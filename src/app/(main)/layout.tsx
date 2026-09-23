@@ -1,34 +1,16 @@
 'use client';
 
+import React from 'react';
 import TopNav from "@/components/layout/TopNav";
 import BottomNav from "@/components/layout/BottomNav";
 import MobileContainer from "@/components/layout/MobileContainer";
+import CartDrawer from "@/components/layout/CartDrawer";
+import CategoryDrawer from "@/components/layout/CategoryDrawer";
+import { CartProvider, useCart } from "@/context/CartContext";
 import { useAuthGuard } from "@/lib/auth";
 
-export default function MainLayout({ children }: { children: React.ReactNode }) {
-  const { isChecking } = useAuthGuard();
-
-  // Show nothing while checking auth (prevents flash of content)
-  if (isChecking) {
-    return (
-      <div style={{
-        minHeight: '100dvh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--color-bg)',
-      }}>
-        <div style={{
-          width: 40,
-          height: 40,
-          border: '3px solid var(--color-border)',
-          borderTopColor: 'var(--color-primary)',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }} />
-      </div>
-    );
-  }
+function MainLayoutContent({ children }: { children: React.ReactNode }) {
+  const { isDrawerOpen, setIsDrawerOpen } = useCart();
 
   return (
     <>
@@ -37,6 +19,49 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         {children}
       </MobileContainer>
       <BottomNav />
+      <CartDrawer />
+      <CategoryDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+      />
     </>
+  );
+}
+
+export default function MainLayout({ children }: { children: React.ReactNode }) {
+  const { isChecking } = useAuthGuard();
+
+  // Show loading spinner while verifying authentication
+  if (isChecking) {
+    return (
+      <div
+        style={{
+          minHeight: '100dvh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#0F172A',
+        }}
+      >
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            border: '3px solid #334155',
+            borderTopColor: '#007ACC',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <CartProvider>
+      <MainLayoutContent>
+        {children}
+      </MainLayoutContent>
+    </CartProvider>
   );
 }

@@ -1,3 +1,4 @@
+import React from 'react';
 import styles from './MobileContainer.module.css';
 
 interface MobileContainerProps {
@@ -6,8 +7,12 @@ interface MobileContainerProps {
 
 export default function MobileContainer({ children }: MobileContainerProps) {
   return (
-    <main className={styles.container} id="main-content">
-      {children}
-    </main>
+    <div className={styles.outerWrapper}>
+      <div className={styles.container} id="mobile-app-root">
+        <main className={styles.content} id="main-content">
+          {children}
+        </main>
+      </div>
+    </div>
   );
 }

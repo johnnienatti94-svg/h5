@@ -1,5 +1,6 @@
 /* ============================================
-   BottomNav Component Styles
+   BottomNav Component Styles - E-Commerce Bar
+   User Requirement: Solid background (no blur/transparency)
    ============================================ */
 
 .bottomNav {
@@ -8,13 +9,11 @@
   left: 0;
   right: 0;
   z-index: var(--z-fixed);
-  background: var(--color-bottom-nav-bg);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-top: 1px solid var(--color-bottom-nav-border);
-  box-shadow: var(--shadow-nav);
+  background: #FFFFFF !important;
+  border-top: 1px solid #E2E8F0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
   padding-bottom: var(--safe-area-bottom);
-  animation: slideUp 0.4s ease-out;
+  width: 100%;
 }
 
 .bottomNavInner {
@@ -24,7 +23,8 @@
   max-width: var(--max-content-width);
   margin: 0 auto;
   height: var(--bottom-nav-height);
-  padding: 0 var(--space-2);
+  padding: 0 8px;
+  background: #FFFFFF;
 }
 
 .navItem {
@@ -34,56 +34,70 @@
   justify-content: center;
   gap: 2px;
   flex: 1;
-  height: 100%;
+  height: 52px;
   min-width: 0;
-  padding: var(--space-1) 0;
+  padding: 4px 6px;
   text-decoration: none;
-  color: var(--color-bottom-nav-icon);
-  transition: color var(--transition-fast), transform var(--transition-fast);
+  color: #64748B;
+  border-radius: 10px;
+  transition: all 0.15s ease;
   position: relative;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  background: transparent;
 }
 
 .navItem:hover {
-  color: var(--color-bottom-nav-active);
+  color: #007ACC;
 }
 
 .navItem:active {
   transform: scale(0.92);
 }
 
+/* Active Tab with Solid Background Pill */
 .navItemActive {
-  color: var(--color-bottom-nav-active);
+  color: #007ACC;
+  background: #EFF6FF !important;
+  font-weight: 700;
 }
 
-/* Active indicator dot */
-.navItemActive::before {
-  content: '';
-  position: absolute;
-  top: 4px;
-  width: 4px;
-  height: 4px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary);
-  animation: scaleIn 0.3s ease-out;
+.iconWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .navIcon {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  transition: transform var(--transition-spring);
+  font-size: 24px;
+  line-height: 1;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .navItemActive .navIcon {
-  transform: scale(1.1);
+  color: #007ACC;
+  transform: scale(1.08);
+}
+
+.tabBadge {
+  position: absolute;
+  top: -4px;
+  right: -10px;
+  background: #FF6E00;
+  color: #FFFFFF;
+  font-size: 8px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(255, 110, 0, 0.4);
 }
 
 .navLabel {
   font-size: 10px;
-  font-weight: var(--weight-medium);
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -92,17 +106,6 @@
 }
 
 .navItemActive .navLabel {
-  font-weight: var(--weight-semibold);
-}
-
-/* Ripple effect on tap */
-@keyframes ripple {
-  from {
-    opacity: 0.4;
-    transform: scale(0);
-  }
-  to {
-    opacity: 0;
-    transform: scale(2.5);
-  }
+  font-weight: 700;
+  color: #007ACC;
 }
