@@ -24,6 +24,10 @@ import {
   Sliders,
   Code2,
   Sparkles,
+  Image as ImageIcon,
+  RefreshCw,
+  Layers,
+  Tag,
 } from 'lucide-react';
 import { AnyWidget } from '@/types/widget';
 import {
@@ -33,8 +37,72 @@ import {
 } from '@/lib/homepageWidgets';
 import { WIDGET_CATALOG, WidgetCatalogItem } from '@/lib/widgetCatalogPresets';
 import { validateWidgetConfig } from '@/lib/widgetSchemas';
+import { ALL_PRODUCTS } from '@/lib/productsData';
 import WidgetRenderer from '@/components/home/WidgetRenderer';
 import styles from './VisualPageBuilder.module.css';
+
+export const BANNER_IMAGE_PRESETS = [
+  {
+    name: '📱 iPhone 16 Pro',
+    url: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=1200&q=80',
+    title: 'iPhone 16 Pro Max เปิดตัวแล้ววันนี้',
+    tag: 'โปรเปิดตัวสุดเอ็กซ์คลูซีฟ',
+    bgColor: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 50%, #2563EB 100%)',
+  },
+  {
+    name: '⚡ Galaxy S25',
+    url: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=1200&q=80',
+    title: 'Galaxy S25 Ultra รับส่วนลดสูงสุด ฿8,000',
+    tag: 'Flash Deal ประจำสัปดาห์',
+    bgColor: 'linear-gradient(135deg, #1E1B4B 0%, #4338CA 50%, #6366F1 100%)',
+  },
+  {
+    name: '💻 MacBook Pro',
+    url: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=1200&q=80',
+    title: 'แล็ปท็อป & แท็บเล็ต ผ่อน 0% ทุกรุ่น',
+    tag: 'Back to School & Work',
+    bgColor: 'linear-gradient(135deg, #064E3B 0%, #059669 50%, #10B981 100%)',
+  },
+  {
+    name: '📲 iPad Air M2',
+    url: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=1200&q=80',
+    title: 'iPad สำหรับการเรียนรู้และทำงาน',
+    tag: 'ผ่อน 0% นาน 10 เดือน',
+    bgColor: 'linear-gradient(135deg, #312E81 0%, #4F46E5 100%)',
+  },
+  {
+    name: '⌚ Apple Watch',
+    url: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=1200&q=80',
+    title: 'สมาร์ตวอทช์สายสุขภาพและกีฬา',
+    tag: 'ลดสูงสุด 20%',
+    bgColor: 'linear-gradient(135deg, #7C2D12 0%, #EA580C 100%)',
+  },
+  {
+    name: '🎧 AirPods Pro',
+    url: 'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?auto=format&fit=crop&w=1200&q=80',
+    title: 'หูฟังตัดเสียงระดับพรีเมียม',
+    tag: 'พร้อมโค้ดลดเพิ่ม',
+    bgColor: 'linear-gradient(135deg, #134E4A 0%, #0D9488 100%)',
+  },
+  {
+    name: '🎮 Gaming Setup',
+    url: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80',
+    title: 'สมรภูมิเกมมิ่ง ลดเดือดสะเทือนวงการ',
+    tag: 'Gaming Gear Sale',
+    bgColor: 'linear-gradient(135deg, #4C0519 0%, #BE123C 100%)',
+  },
+];
+
+export const CATEGORY_ICON_OPTIONS = [
+  { value: 'smartphone', label: '📱 สมาร์ทโฟน' },
+  { value: 'tablet', label: '📲 แท็บเล็ต' },
+  { value: 'laptop', label: '💻 แล็ปท็อป' },
+  { value: 'watch', label: '⌚ สมาร์ทวอทช์' },
+  { value: 'audio', label: '🎧 หูฟัง & ลำโพง' },
+  { value: 'accessory', label: '🔌 อุปกรณ์เสริม' },
+  { value: 'gamepad', label: '🎮 เกมมิ่ง' },
+  { value: 'camera', label: '📷 กล้องถ่ายภาพ' },
+];
 
 interface Props {
   role?: 'admin' | 'staff';
@@ -248,12 +316,262 @@ export default function VisualPageBuilder({
     }
   };
 
+  // --- Visual Banner Handlers ---
+  const handleUpdateBannerSlide = (slideIdx: number, field: string, value: any) => {
+    if (!selectedWidget) return;
+    const currentConfig = { ...(selectedWidget.config || {}) };
+    const currentBanners = [
+      ...((selectedWidget as any).banners || currentConfig.banners || []),
+    ];
+    if (!currentBanners[slideIdx]) return;
+    currentBanners[slideIdx] = {
+      ...currentBanners[slideIdx],
+      [field]: value,
+    };
+    const newConfig = { ...currentConfig, banners: currentBanners };
+    setInspectorConfigJson(JSON.stringify(newConfig, null, 2));
+    validateInspectorConfig(selectedWidget.type, newConfig);
+    const updated = widgets.map((w) =>
+      w.id === selectedWidget.id
+        ? { ...w, config: newConfig, banners: currentBanners }
+        : w
+    );
+    setWidgets(updated as any);
+    setHasUnsavedChanges(true);
+    setPageStatus('draft');
+  };
+
+  const handleAddBannerSlide = () => {
+    if (!selectedWidget) return;
+    const currentConfig = { ...(selectedWidget.config || {}) };
+    const currentBanners = [
+      ...((selectedWidget as any).banners || currentConfig.banners || []),
+    ];
+    const newSlide = {
+      id: `b-${Date.now()}`,
+      imageUrl: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=1200&q=80',
+      title: 'แคมเปญใหม่สุดพิเศษ MeePro',
+      tag: 'โปรโมชั่นพิเศษ',
+      linkUrl: '/catalog',
+      bgColor: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 50%, #2563EB 100%)',
+      textColor: '#FFFFFF',
+    };
+    const newBanners = [...currentBanners, newSlide];
+    const newConfig = { ...currentConfig, banners: newBanners };
+    setInspectorConfigJson(JSON.stringify(newConfig, null, 2));
+    validateInspectorConfig(selectedWidget.type, newConfig);
+    const updated = widgets.map((w) =>
+      w.id === selectedWidget.id
+        ? { ...w, config: newConfig, banners: newBanners }
+        : w
+    );
+    setWidgets(updated as any);
+    setHasUnsavedChanges(true);
+    setPageStatus('draft');
+    showToast('เพิ่มสไลด์แบนเนอร์ใหม่เรียบร้อย');
+  };
+
+  const handleRemoveBannerSlide = (slideIdx: number) => {
+    if (!selectedWidget) return;
+    const currentConfig = { ...(selectedWidget.config || {}) };
+    const currentBanners = [
+      ...((selectedWidget as any).banners || currentConfig.banners || []),
+    ];
+    if (currentBanners.length <= 1) {
+      showToast('ต้องมีแบนเนอร์อย่างน้อย 1 สไลด์', 'error');
+      return;
+    }
+    const newBanners = currentBanners.filter((_, idx) => idx !== slideIdx);
+    const newConfig = { ...currentConfig, banners: newBanners };
+    setInspectorConfigJson(JSON.stringify(newConfig, null, 2));
+    validateInspectorConfig(selectedWidget.type, newConfig);
+    const updated = widgets.map((w) =>
+      w.id === selectedWidget.id
+        ? { ...w, config: newConfig, banners: newBanners }
+        : w
+    );
+    setWidgets(updated as any);
+    setHasUnsavedChanges(true);
+    setPageStatus('draft');
+  };
+
+  const handleSelectPresetBanner = (slideIdx: number, preset: (typeof BANNER_IMAGE_PRESETS)[0]) => {
+    if (!selectedWidget) return;
+    const currentConfig = { ...(selectedWidget.config || {}) };
+    const currentBanners = [
+      ...((selectedWidget as any).banners || currentConfig.banners || []),
+    ];
+    if (!currentBanners[slideIdx]) return;
+    currentBanners[slideIdx] = {
+      ...currentBanners[slideIdx],
+      imageUrl: preset.url,
+      title: preset.title,
+      tag: preset.tag,
+      bgColor: preset.bgColor,
+    };
+    const newConfig = { ...currentConfig, banners: currentBanners };
+    setInspectorConfigJson(JSON.stringify(newConfig, null, 2));
+    validateInspectorConfig(selectedWidget.type, newConfig);
+    const updated = widgets.map((w) =>
+      w.id === selectedWidget.id
+        ? { ...w, config: newConfig, banners: currentBanners }
+        : w
+    );
+    setWidgets(updated as any);
+    setHasUnsavedChanges(true);
+    setPageStatus('draft');
+    showToast(`นำเข้าภาพ "${preset.name}" สำเร็จ`);
+  };
+
+  // --- Visual Category Handlers ---
+  const handleUpdateCategory = (catIdx: number, field: string, value: any) => {
+    if (!selectedWidget) return;
+    const currentConfig = { ...(selectedWidget.config || {}) };
+    const currentCategories = [
+      ...((selectedWidget as any).categories || currentConfig.categories || []),
+    ];
+    if (!currentCategories[catIdx]) return;
+    currentCategories[catIdx] = {
+      ...currentCategories[catIdx],
+      [field]: value,
+    };
+    const newConfig = { ...currentConfig, categories: currentCategories };
+    setInspectorConfigJson(JSON.stringify(newConfig, null, 2));
+    validateInspectorConfig(selectedWidget.type, newConfig);
+    const updated = widgets.map((w) =>
+      w.id === selectedWidget.id
+        ? { ...w, config: newConfig, categories: currentCategories }
+        : w
+    );
+    setWidgets(updated as any);
+    setHasUnsavedChanges(true);
+    setPageStatus('draft');
+  };
+
+  const handleAddCategory = () => {
+    if (!selectedWidget) return;
+    const currentConfig = { ...(selectedWidget.config || {}) };
+    const currentCategories = [
+      ...((selectedWidget as any).categories || currentConfig.categories || []),
+    ];
+    const newCat = {
+      id: `c-${Date.now()}`,
+      name: 'หมวดหมู่ใหม่',
+      icon: 'smartphone',
+      iconBg: 'rgba(37, 99, 235, 0.12)',
+      linkUrl: '/catalog',
+      badge: '',
+    };
+    const newCategories = [...currentCategories, newCat];
+    const newConfig = { ...currentConfig, categories: newCategories };
+    setInspectorConfigJson(JSON.stringify(newConfig, null, 2));
+    validateInspectorConfig(selectedWidget.type, newConfig);
+    const updated = widgets.map((w) =>
+      w.id === selectedWidget.id
+        ? { ...w, config: newConfig, categories: newCategories }
+        : w
+    );
+    setWidgets(updated as any);
+    setHasUnsavedChanges(true);
+    setPageStatus('draft');
+    showToast('เพิ่มหมวดหมู่ใหม่เรียบร้อย');
+  };
+
+  const handleRemoveCategory = (catIdx: number) => {
+    if (!selectedWidget) return;
+    const currentConfig = { ...(selectedWidget.config || {}) };
+    const currentCategories = [
+      ...((selectedWidget as any).categories || currentConfig.categories || []),
+    ];
+    if (currentCategories.length <= 1) {
+      showToast('ต้องมีหมวดหมู่อย่างน้อย 1 รายการ', 'error');
+      return;
+    }
+    const newCategories = currentCategories.filter((_, idx) => idx !== catIdx);
+    const newConfig = { ...currentConfig, categories: newCategories };
+    setInspectorConfigJson(JSON.stringify(newConfig, null, 2));
+    validateInspectorConfig(selectedWidget.type, newConfig);
+    const updated = widgets.map((w) =>
+      w.id === selectedWidget.id
+        ? { ...w, config: newConfig, categories: newCategories }
+        : w
+    );
+    setWidgets(updated as any);
+    setHasUnsavedChanges(true);
+    setPageStatus('draft');
+  };
+
+  // --- Visual Product Showcase Handlers ---
+  const handleSyncCatalogProducts = () => {
+    if (!selectedWidget) return;
+    const currentConfig = { ...(selectedWidget.config || {}) };
+    const syncedProducts = ALL_PRODUCTS.slice(0, 6).map((p) => ({
+      id: p.id,
+      name: p.name,
+      imageUrl: p.imageUrl,
+      originalPrice: p.originalPrice,
+      promoPrice: p.promoPrice,
+      discountPercent: p.discountPercent,
+      installmentMonths: p.installmentMonths,
+      badge: p.badge || `ลด ${p.discountPercent}%`,
+      inStock: p.inStock,
+    }));
+    const newConfig = { ...currentConfig, products: syncedProducts };
+    setInspectorConfigJson(JSON.stringify(newConfig, null, 2));
+    validateInspectorConfig(selectedWidget.type, newConfig);
+    const updated = widgets.map((w) =>
+      w.id === selectedWidget.id
+        ? { ...w, config: newConfig, products: syncedProducts }
+        : w
+    );
+    setWidgets(updated as any);
+    setHasUnsavedChanges(true);
+    setPageStatus('draft');
+    showToast('⚡ ซิงค์สินค้าจากฐานข้อมูล Catalog สำเร็จ (6 รายการ)');
+  };
+
+  const handleUpdateProduct = (prodIdx: number, field: string, value: any) => {
+    if (!selectedWidget) return;
+    const currentConfig = { ...(selectedWidget.config || {}) };
+    const currentProducts = [
+      ...((selectedWidget as any).products || currentConfig.products || []),
+    ];
+    if (!currentProducts[prodIdx]) return;
+    currentProducts[prodIdx] = {
+      ...currentProducts[prodIdx],
+      [field]: value,
+    };
+    const newConfig = { ...currentConfig, products: currentProducts };
+    setInspectorConfigJson(JSON.stringify(newConfig, null, 2));
+    validateInspectorConfig(selectedWidget.type, newConfig);
+    const updated = widgets.map((w) =>
+      w.id === selectedWidget.id
+        ? { ...w, config: newConfig, products: currentProducts }
+        : w
+    );
+    setWidgets(updated as any);
+    setHasUnsavedChanges(true);
+    setPageStatus('draft');
+  };
+
   // 5. Draft & Publish Workflow (Spec Sec 9)
   const handleSaveDraft = async () => {
     saveHomepageWidgets(widgets);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('meepro_widgets_updated'));
+    }
+    try {
+      await fetch(`/api/cms/pages/${pageId}/widgets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ widgets }),
+      });
+    } catch {
+      // Offline fallback
+    }
     setHasUnsavedChanges(false);
     setLastSavedAt(new Date().toLocaleTimeString('th-TH'));
-    showToast('บันทึกแบบร่าง (Draft) เรียบร้อย');
+    showToast('บันทึกแบบร่าง (Draft) และส่งข้อมูลไปยังหน้าร้านเรียบร้อย');
   };
 
   const handlePublishNow = async () => {
@@ -264,6 +582,18 @@ export default function VisualPageBuilder({
 
     if (confirm('คุณต้องการเผยแพร่ (Publish) หน้าแรกสู่ระบบ Live ให้ลูกค้าเห็นทันทีหรือไม่? ระบบจะสร้าง Snapshot Revision โดยอัตโนมัติ')) {
       saveHomepageWidgets(widgets);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('meepro_widgets_updated'));
+      }
+      try {
+        await fetch(`/api/cms/pages/${pageId}/publish`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ widgets }),
+        });
+      } catch {
+        // Offline fallback
+      }
 
       const newRev: RevisionItem = {
         id: `rev-${Date.now()}`,
@@ -280,7 +610,7 @@ export default function VisualPageBuilder({
       setHasUnsavedChanges(false);
       setPageStatus('published');
       setLastSavedAt(new Date().toLocaleTimeString('th-TH'));
-      showToast('🚀 เผยแพร่หน้าแรก (Publish Live) สำเร็จเรียบร้อย!');
+      showToast('🚀 เผยแพร่หน้าแรก (Publish Live) สำเร็จสู่หน้าร้านเรียบร้อย!');
     }
   };
 
@@ -751,6 +1081,329 @@ export default function VisualPageBuilder({
                     }}
                     rows={12}
                   />
+                </div>
+              ) : selectedWidget.type === 'HERO_BANNER' || selectedWidget.type === 'BANNER_CAROUSEL' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                      <ImageIcon size={14} color="#38BDF8" />
+                      <span>ภาพแบนเนอร์ & สไลด์โชว์</span>
+                    </label>
+                    <button
+                      type="button"
+                      className={styles.subtleBtn}
+                      onClick={handleAddBannerSlide}
+                    >
+                      <Plus size={12} />
+                      <span>เพิ่มภาพสไลด์</span>
+                    </button>
+                  </div>
+
+                  {/* List of Banner Slides */}
+                  {(((selectedWidget as any).banners || selectedWidget.config?.banners || []) as any[]).map((slide: any, sIdx: number) => (
+                    <div key={slide.id || sIdx} className={styles.customizerCard}>
+                      <div className={styles.slideHeader}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#38BDF8', background: '#0F172A', padding: '2px 8px', borderRadius: '4px' }}>
+                            #{sIdx + 1}
+                          </span>
+                          {slide.imageUrl && (
+                            <img
+                              src={slide.imageUrl}
+                              alt="thumb"
+                              className={styles.thumbnailPreview}
+                            />
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className={styles.dangerBtn}
+                          onClick={() => handleRemoveBannerSlide(sIdx)}
+                          title="ลบสไลด์นี้"
+                        >
+                          <Trash2 size={12} />
+                          <span>ลบ</span>
+                        </button>
+                      </div>
+
+                      {/* Image URL input */}
+                      <div className={styles.formGroup} style={{ margin: 0 }}>
+                        <label className={styles.formLabel} style={{ fontSize: '10px' }}>URL รูปภาพแบนเนอร์ (Picture URL)</label>
+                        <input
+                          type="text"
+                          className={styles.formInput}
+                          value={slide.imageUrl || ''}
+                          onChange={(e) => handleUpdateBannerSlide(sIdx, 'imageUrl', e.target.value)}
+                          placeholder="https://images.unsplash.com/..."
+                          style={{ fontSize: '11px' }}
+                        />
+                      </div>
+
+                      {/* Quick Presets for Picture */}
+                      <div>
+                        <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600 }}>🖼️ เลือกรูปภาพตัวอย่างยอดนิยม:</span>
+                        <div className={styles.presetChips}>
+                          {BANNER_IMAGE_PRESETS.map((preset) => (
+                            <button
+                              key={preset.name}
+                              type="button"
+                              className={styles.presetChip}
+                              onClick={() => handleSelectPresetBanner(sIdx, preset)}
+                            >
+                              {preset.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Slide Title */}
+                      <div className={styles.formGroup} style={{ margin: 0 }}>
+                        <label className={styles.formLabel} style={{ fontSize: '10px' }}>ข้อความหัวข้อสไลด์ (Headline)</label>
+                        <input
+                          type="text"
+                          className={styles.formInput}
+                          value={slide.title || ''}
+                          onChange={(e) => handleUpdateBannerSlide(sIdx, 'title', e.target.value)}
+                          placeholder="ระบุข้อความโปรโมชั่น..."
+                          style={{ fontSize: '11px' }}
+                        />
+                      </div>
+
+                      {/* Slide Tag / Subtitle */}
+                      <div className={styles.formGroup} style={{ margin: 0 }}>
+                        <label className={styles.formLabel} style={{ fontSize: '10px' }}>แท็กข้อความเด่น (Tag Pill)</label>
+                        <input
+                          type="text"
+                          className={styles.formInput}
+                          value={slide.tag || ''}
+                          onChange={(e) => handleUpdateBannerSlide(sIdx, 'tag', e.target.value)}
+                          placeholder="เช่น โปรเปิดตัว, Flash Deal..."
+                          style={{ fontSize: '11px' }}
+                        />
+                      </div>
+
+                      {/* Link URL */}
+                      <div className={styles.formGroup} style={{ margin: 0 }}>
+                        <label className={styles.formLabel} style={{ fontSize: '10px' }}>ลิงก์ปลายทาง (Action Link)</label>
+                        <input
+                          type="text"
+                          className={styles.formInput}
+                          value={slide.linkUrl || ''}
+                          onChange={(e) => handleUpdateBannerSlide(sIdx, 'linkUrl', e.target.value)}
+                          placeholder="/catalog หรือ /promotion"
+                          style={{ fontSize: '11px' }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : selectedWidget.type === 'CATEGORY_GRID' || selectedWidget.type === 'CATEGORY_NAV' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                      <Layers size={14} color="#A855F7" />
+                      <span>รายการหมวดหมู่สินค้า</span>
+                    </label>
+                    <button
+                      type="button"
+                      className={styles.subtleBtn}
+                      onClick={handleAddCategory}
+                    >
+                      <Plus size={12} />
+                      <span>เพิ่มหมวดหมู่</span>
+                    </button>
+                  </div>
+
+                  {(((selectedWidget as any).categories || selectedWidget.config?.categories || []) as any[]).map((cat: any, cIdx: number) => (
+                    <div key={cat.id || cIdx} className={styles.customizerCard}>
+                      <div className={styles.slideHeader}>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#A855F7', background: '#0F172A', padding: '2px 8px', borderRadius: '4px' }}>
+                          #{cIdx + 1} {cat.name}
+                        </span>
+                        <button
+                          type="button"
+                          className={styles.dangerBtn}
+                          onClick={() => handleRemoveCategory(cIdx)}
+                          title="ลบหมวดหมู่นี้"
+                        >
+                          <Trash2 size={12} />
+                          <span>ลบ</span>
+                        </button>
+                      </div>
+
+                      {/* Category Name */}
+                      <div className={styles.formGroup} style={{ margin: 0 }}>
+                        <label className={styles.formLabel} style={{ fontSize: '10px' }}>ชื่อหมวดหมู่ (Category Name)</label>
+                        <input
+                          type="text"
+                          className={styles.formInput}
+                          value={cat.name || ''}
+                          onChange={(e) => handleUpdateCategory(cIdx, 'name', e.target.value)}
+                          placeholder="เช่น สมาร์ทโฟน, แท็บเล็ต"
+                          style={{ fontSize: '11px' }}
+                        />
+                      </div>
+
+                      {/* Icon Picker */}
+                      <div className={styles.formGroup} style={{ margin: 0 }}>
+                        <label className={styles.formLabel} style={{ fontSize: '10px' }}>ไอคอนหมวดหมู่ (Modern Vector Icon)</label>
+                        <select
+                          className={styles.formInput}
+                          value={cat.icon || 'smartphone'}
+                          onChange={(e) => handleUpdateCategory(cIdx, 'icon', e.target.value)}
+                          style={{ fontSize: '11px' }}
+                        >
+                          {CATEGORY_ICON_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Badge Pill & Link */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <div className={styles.formGroup} style={{ margin: 0 }}>
+                          <label className={styles.formLabel} style={{ fontSize: '10px' }}>ป้ายกำกับ (Badge)</label>
+                          <input
+                            type="text"
+                            className={styles.formInput}
+                            value={cat.badge || ''}
+                            onChange={(e) => handleUpdateCategory(cIdx, 'badge', e.target.value)}
+                            placeholder="HOT, NEW, 0%..."
+                            style={{ fontSize: '11px' }}
+                          />
+                        </div>
+                        <div className={styles.formGroup} style={{ margin: 0 }}>
+                          <label className={styles.formLabel} style={{ fontSize: '10px' }}>ลิงก์ Action (Link URL)</label>
+                          <input
+                            type="text"
+                            className={styles.formInput}
+                            value={cat.linkUrl || ''}
+                            onChange={(e) => handleUpdateCategory(cIdx, 'linkUrl', e.target.value)}
+                            placeholder="/catalog?category=..."
+                            style={{ fontSize: '11px' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : selectedWidget.type === 'PRODUCT_SHOWCASE' || selectedWidget.type === 'PRODUCT_GRID' || selectedWidget.type === 'FLASH_SALE_GRID' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className={styles.formLabel} style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                      <Tag size={14} color="#10B981" />
+                      <span>รายการสินค้าใน Showcase</span>
+                    </label>
+                  </div>
+
+                  {/* One-click Catalog Sync Button */}
+                  <button
+                    type="button"
+                    className={styles.syncBtn}
+                    onClick={handleSyncCatalogProducts}
+                  >
+                    <RefreshCw size={14} />
+                    <span>ซิงค์สินค้าจากฐานข้อมูลแคตตาล็อก Live</span>
+                  </button>
+
+                  {/* Product list */}
+                  {(((selectedWidget as any).products || selectedWidget.config?.products || []) as any[]).map((prod: any, pIdx: number) => (
+                    <div key={prod.id || pIdx} className={styles.customizerCard}>
+                      <div className={styles.slideHeader}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#10B981', background: '#0F172A', padding: '2px 8px', borderRadius: '4px' }}>
+                            #{pIdx + 1}
+                          </span>
+                          {prod.imageUrl && prod.imageUrl.startsWith('http') && (
+                            <img
+                              src={prod.imageUrl}
+                              alt="thumb"
+                              className={styles.thumbnailPreview}
+                            />
+                          )}
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#F8FAFC' }}>
+                            {prod.name}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Product Name */}
+                      <div className={styles.formGroup} style={{ margin: 0 }}>
+                        <label className={styles.formLabel} style={{ fontSize: '10px' }}>ชื่อสินค้า (Product Name)</label>
+                        <input
+                          type="text"
+                          className={styles.formInput}
+                          value={prod.name || ''}
+                          onChange={(e) => handleUpdateProduct(pIdx, 'name', e.target.value)}
+                          style={{ fontSize: '11px' }}
+                        />
+                      </div>
+
+                      {/* Product Image URL */}
+                      <div className={styles.formGroup} style={{ margin: 0 }}>
+                        <label className={styles.formLabel} style={{ fontSize: '10px' }}>URL รูปภาพสินค้า (Product Picture)</label>
+                        <input
+                          type="text"
+                          className={styles.formInput}
+                          value={prod.imageUrl || ''}
+                          onChange={(e) => handleUpdateProduct(pIdx, 'imageUrl', e.target.value)}
+                          placeholder="https://..."
+                          style={{ fontSize: '11px' }}
+                        />
+                      </div>
+
+                      {/* Pricing */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <div className={styles.formGroup} style={{ margin: 0 }}>
+                          <label className={styles.formLabel} style={{ fontSize: '10px' }}>ราคาโปร (฿)</label>
+                          <input
+                            type="number"
+                            className={styles.formInput}
+                            value={prod.promoPrice || 0}
+                            onChange={(e) => handleUpdateProduct(pIdx, 'promoPrice', Number(e.target.value))}
+                            style={{ fontSize: '11px' }}
+                          />
+                        </div>
+                        <div className={styles.formGroup} style={{ margin: 0 }}>
+                          <label className={styles.formLabel} style={{ fontSize: '10px' }}>ราคาเต็ม (฿)</label>
+                          <input
+                            type="number"
+                            className={styles.formInput}
+                            value={prod.originalPrice || 0}
+                            onChange={(e) => handleUpdateProduct(pIdx, 'originalPrice', Number(e.target.value))}
+                            style={{ fontSize: '11px' }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Badge & Installment */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <div className={styles.formGroup} style={{ margin: 0 }}>
+                          <label className={styles.formLabel} style={{ fontSize: '10px' }}>ป้ายโปรโมชั่น (Badge)</label>
+                          <input
+                            type="text"
+                            className={styles.formInput}
+                            value={prod.badge || ''}
+                            onChange={(e) => handleUpdateProduct(pIdx, 'badge', e.target.value)}
+                            placeholder="ลด ฿3,000..."
+                            style={{ fontSize: '11px' }}
+                          />
+                        </div>
+                        <div className={styles.formGroup} style={{ margin: 0 }}>
+                          <label className={styles.formLabel} style={{ fontSize: '10px' }}>ผ่อน 0% (เดือน)</label>
+                          <input
+                            type="number"
+                            className={styles.formInput}
+                            value={prod.installmentMonths || 10}
+                            onChange={(e) => handleUpdateProduct(pIdx, 'installmentMonths', Number(e.target.value))}
+                            style={{ fontSize: '11px' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

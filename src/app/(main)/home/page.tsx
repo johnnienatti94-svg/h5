@@ -20,9 +20,20 @@ function HomeContent() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const loaded = getHomepageWidgets();
-    setWidgets(loaded);
-    setIsLoaded(true);
+    const load = () => {
+      const loaded = getHomepageWidgets();
+      setWidgets(loaded);
+      setIsLoaded(true);
+    };
+    load();
+
+    const handleUpdate = () => load();
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('meepro_widgets_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('meepro_widgets_updated', handleUpdate);
+    };
   }, []);
 
   const handleUpdateWidgets = (updated: AnyWidget[]) => {

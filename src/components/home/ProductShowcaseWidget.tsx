@@ -65,7 +65,15 @@ export default function ProductShowcaseWidget({ widget }: Props) {
                 <div key={product.id} className={styles.productCard}>
                   <div className={styles.productMedia}>
                     {product.badge && <span className={styles.productBadge}>{product.badge}</span>}
-                    <span>{product.imageUrl}</span>
+                    {product.imageUrl && (product.imageUrl.startsWith('http') || product.imageUrl.startsWith('/')) ? (
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '10px' }}
+                      />
+                    ) : (
+                      <span style={{ fontSize: '36px' }}>{product.imageUrl || '📦'}</span>
+                    )}
                   </div>
 
                   <div className={styles.productContent}>

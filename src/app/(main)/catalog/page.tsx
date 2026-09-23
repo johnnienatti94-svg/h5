@@ -167,7 +167,15 @@ function CatalogContent() {
             >
               <div className={styles.cardMedia}>
                 {p.badge && <span className={styles.discountBadge}>{p.badge}</span>}
-                <span>{p.imageUrl}</span>
+                {p.imageUrl && (p.imageUrl.startsWith('http') || p.imageUrl.startsWith('/')) ? (
+                  <img
+                    src={p.imageUrl}
+                    alt={p.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }}
+                  />
+                ) : (
+                  <span style={{ fontSize: '38px' }}>{p.imageUrl || '📦'}</span>
+                )}
               </div>
 
               <div className={styles.cardBody}>

@@ -20,16 +20,16 @@ export const DEFAULT_HOMEPAGE_WIDGETS: AnyWidget[] = [
     banners: [
       {
         id: "b-1",
-        imageUrl: "",
+        imageUrl: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=1200&q=80",
         title: "iPhone 16 Pro Max เปิดตัวแล้ววันนี้",
         tag: "โปรเปิดตัวสุดเอ็กซ์คลูซีฟ",
-        linkUrl: "/catalog",
+        linkUrl: "/catalog?category=smartphone",
         bgColor: "linear-gradient(135deg, #0F172A 0%, #1E3A8A 50%, #2563EB 100%)",
         textColor: "#FFFFFF",
       },
       {
         id: "b-2",
-        imageUrl: "",
+        imageUrl: "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=1200&q=80",
         title: "Galaxy S25 Ultra รับส่วนลดสูงสุด ฿8,000",
         tag: "Flash Deal ประจำสัปดาห์",
         linkUrl: "/promotion",
@@ -38,7 +38,7 @@ export const DEFAULT_HOMEPAGE_WIDGETS: AnyWidget[] = [
       },
       {
         id: "b-3",
-        imageUrl: "",
+        imageUrl: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=1200&q=80",
         title: "แล็ปท็อป & แท็บเล็ต ผ่อน 0% ทุกรุ่น",
         tag: "Back to School & Work",
         linkUrl: "/promotion",
@@ -57,7 +57,7 @@ export const DEFAULT_HOMEPAGE_WIDGETS: AnyWidget[] = [
       {
         id: "c-1",
         name: "สมาร์ทโฟน",
-        icon: "📱",
+        icon: "smartphone",
         iconBg: "rgba(37, 99, 235, 0.12)",
         linkUrl: "/catalog?category=smartphone",
         badge: "HOT",
@@ -65,35 +65,35 @@ export const DEFAULT_HOMEPAGE_WIDGETS: AnyWidget[] = [
       {
         id: "c-2",
         name: "แท็บเล็ต",
-        icon: "📲",
+        icon: "tablet",
         iconBg: "rgba(124, 58, 237, 0.12)",
         linkUrl: "/catalog?category=tablet",
       },
       {
         id: "c-3",
         name: "แล็ปท็อป",
-        icon: "💻",
+        icon: "laptop",
         iconBg: "rgba(14, 165, 233, 0.12)",
         linkUrl: "/catalog?category=laptop",
       },
       {
         id: "c-4",
         name: "สมาร์ทวอทช์",
-        icon: "⌚",
+        icon: "watch",
         iconBg: "rgba(249, 115, 22, 0.12)",
         linkUrl: "/catalog?category=watch",
       },
       {
         id: "c-5",
         name: "หูฟัง & ลำโพง",
-        icon: "🎧",
+        icon: "audio",
         iconBg: "rgba(16, 185, 129, 0.12)",
         linkUrl: "/catalog?category=audio",
       },
       {
         id: "c-6",
         name: "อุปกรณ์เสริม",
-        icon: "🔌",
+        icon: "accessory",
         iconBg: "rgba(236, 72, 153, 0.12)",
         linkUrl: "/catalog?category=accessory",
         badge: "ใหม่",
@@ -301,7 +301,32 @@ export function getHomepageWidgets(): AnyWidget[] {
     if (!raw) return DEFAULT_HOMEPAGE_WIDGETS;
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed.sort((a, b) => a.sortOrder - b.sortOrder);
+      // Migrate any empty banner images so banners are never blank
+      const migrated = parsed.map((w: any) => {
+        if (w.type === 'HERO_BANNER' || w.type === 'BANNER_CAROUSEL') {
+          const banners = w.banners || w.config?.banners;
+          if (Array.isArray(banners)) {
+            const fallbackImages = [
+              'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=1200&q=80',
+              'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=1200&q=80',
+              'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=1200&q=80',
+            ];
+            const updatedBanners = banners.map((b: any, i: number) => {
+              if (!b.imageUrl || b.imageUrl.trim() === '') {
+                return { ...b, imageUrl: fallbackImages[i % fallbackImages.length] };
+              }
+              return b;
+            });
+            return {
+              ...w,
+              banners: updatedBanners,
+              config: { ...(w.config || {}), banners: updatedBanners },
+            };
+          }
+        }
+        return w;
+      });
+      return migrated.sort((a, b) => a.sortOrder - b.sortOrder);
     }
   } catch (err) {
     console.error("Failed to load widgets from storage:", err);
