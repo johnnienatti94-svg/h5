@@ -1,401 +1,437 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import styles from './login.module.css';
 import PrivacyPolicyModal from '@/components/auth/PrivacyPolicyModal';
 
-type AuthStep = 'phone' | 'otp';
-
-// Format phone: 0891234567 → 089-123-4567
-function formatPhone(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 10);
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
-}
-
-// Mask phone: 0891234567 → 089-xxx-4567
-function maskPhone(phone: string): string {
-  if (phone.length < 10) return phone;
-  return `${phone.slice(0, 3)}-xxx-${phone.slice(6)}`;
-}
-
-// Banner items: 430 × 260 proportional
-const banners = [
-  {
-    id: 1,
-    tag: 'MeePro Flagship',
-    title: 'ยินดีต้อนรับสู่ MeePro',
-    desc: 'แหล่งรวมสมาร์ทโฟนและสินค้าไอที ครบจบในที่เดียว',
-    gradient: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 50%, #3B82F6 100%)',
-  },
-  {
-    id: 2,
-    tag: 'Special Offer',
-    title: 'โปรโมชั่นผ่อนสบาย 0%',
-    desc: 'ผ่อน 0% สูงสุด 10 เดือน ผ่านบัตรเครดิตชั้นนำ',
-    gradient: 'linear-gradient(135deg, #064E3B 0%, #059669 50%, #10B981 100%)',
-  },
-  {
-    id: 3,
-    tag: 'MeePro Care',
-    title: 'บริการครบครันทุกสาขา',
-    desc: 'ทดลองเครื่องจริง ตรวจเช็คสภาพ และบริการหลังการขาย',
-    gradient: 'linear-gradient(135deg, #1E1B4B 0%, #4338CA 50%, #6366F1 100%)',
-  },
-];
+const CAPTCHA_LIST = ['7K9B2', '4M3X8', '9P2Q1', '6W8Y4', '5R7T9'];
 
 export default function LoginPage() {
   const router = useRouter();
+  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [phone, setPhone] = useState('');
+  const [captcha, setCaptcha] = useState('');
+  const [captchaIndex, setCaptchaIndex] = useState(0);
+  const [policyViewed, setPolicyViewed] = useState(false);
+  const [consent, setConsent] = useState(false);
+  const [showPolicy, setShowPolicy] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [cooldown, setCooldown] = useState(60);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Authentication step
-  const [step, setStep] = useState<AuthStep>('phone');
+  const currentCaptcha = CAPTCHA_LIST[captchaIndex];
 
-  // Phone input state
-  const [phoneRaw, setPhoneRaw] = useState('');
-  const [phoneError, setPhoneError] = useState('');
-
-  // PDPA consent state
-  const [pdpaAccepted, setPdpaAccepted] = useState(false);
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-
-  // Turnstile state
-  const [turnstileVerified, setTurnstileVerified] = useState(false);
-  const [turnstileLoading, setTurnstileLoading] = useState(false);
-
-  // OTP state
-  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
-  const [otpError, setOtpError] = useState('');
-  const [otpSuccess, setOtpSuccess] = useState('');
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  // Banner slider state
-  const [activeBanner, setActiveBanner] = useState(0);
-
-  // Auto-slide banner
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveBanner((prev) => (prev + 1) % banners.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+    if (step !== 'otp' || cooldown <= 0) return;
+    const timer = window.setTimeout(() => setCooldown((v) => v - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [step, cooldown]);
 
-  // Countdown timer
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [resendCooldown]);
+  const handleRefreshCaptcha = () => {
+    setCaptchaIndex((prev) => (prev + 1) % CAPTCHA_LIST.length);
+    setCaptcha('');
+  };
 
-  const phoneDigits = phoneRaw.replace(/\D/g, '');
-  const isPhoneValid = phoneDigits.length === 10 && phoneDigits.startsWith('0');
-  const canRequestOtp = isPhoneValid && pdpaAccepted && turnstileVerified;
+  const isPhoneValid = /^0[689]\d{8}$/.test(phone.replace(/\D/g, ''));
+  const isCaptchaValid = captcha.trim().toUpperCase() === currentCaptcha;
+  const isReady = isPhoneValid && isCaptchaValid && consent;
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.replace(/\D/g, '').slice(0, 10);
-    setPhoneRaw(raw);
-    setPhoneError('');
-    if (raw.length === 10 && !raw.startsWith('0')) {
-      setPhoneError('หมายเลขโทรศัพท์ต้องขึ้นต้นด้วย 0');
+  const requestOtp = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const cleanPhone = phone.replace(/\D/g, '');
+      const response = await fetch('/api/sms/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cleanPhone }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'ไม่สามารถส่งรหัส OTP ได้');
+      }
+      setCooldown(result.cooldownRemaining || 60);
+      setStep('otp');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleTurnstileClick = () => {
-    if (turnstileVerified) return;
-    setTurnstileLoading(true);
-    setTimeout(() => {
-      setTurnstileLoading(false);
-      setTurnstileVerified(true);
-    }, 900);
-  };
-
-  const handleRequestOtp = () => {
-    if (!canRequestOtp) return;
-    setStep('otp');
-    setOtpDigits(['', '', '', '', '', '']);
-    setOtpError('');
-    setOtpSuccess('');
-    setResendCooldown(60);
-    setTimeout(() => otpRefs.current[0]?.focus(), 100);
-  };
-
-  const handleOtpChange = useCallback(
-    (index: number, value: string) => {
-      if (!/^\d*$/.test(value)) return;
-      const newDigits = [...otpDigits];
-      if (value.length > 1) {
-        const pasted = value.slice(0, 6).split('');
-        pasted.forEach((d, i) => {
-          if (index + i < 6) newDigits[index + i] = d;
-        });
-        setOtpDigits(newDigits);
-        const next = Math.min(index + pasted.length, 5);
-        otpRefs.current[next]?.focus();
-      } else {
-        newDigits[index] = value;
-        setOtpDigits(newDigits);
-        if (value && index < 5) {
-          otpRefs.current[index + 1]?.focus();
-        }
+  const verifyOtp = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const cleanPhone = phone.replace(/\D/g, '');
+      const response = await fetch('/api/sms/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cleanPhone, code: otp }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'รหัส OTP ไม่ถูกต้อง');
       }
-      setOtpError('');
-      if (newDigits.every((d) => d !== '')) {
-        verifyOtpCode(newDigits.join(''));
-      }
-    },
-    [otpDigits]
-  );
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
+      localStorage.setItem(
+        'meepro_auth',
+        JSON.stringify({
+          phone: cleanPhone,
+          phone_verified: true,
+          phone_verified_at: new Date().toISOString(),
+        })
+      );
+      router.replace('/home');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'เกิดข้อผิดพลาดในการตรวจสอบรหัส OTP');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const verifyOtpCode = (code: string) => {
-    setIsVerifying(true);
-    setOtpError('');
-    setTimeout(() => {
-      setIsVerifying(false);
-      if (code === '123456' || code.length === 6) {
-        setOtpSuccess('✓ ยืนยันรหัส OTP สำเร็จ');
-        localStorage.setItem(
-          'meepro_auth',
-          JSON.stringify({
-            phone: formatPhone(phoneDigits),
-            phone_verified: true,
-            phone_verified_at: new Date().toISOString(),
-          })
-        );
-        setTimeout(() => router.replace('/home'), 500);
-      } else {
-        setOtpError('รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่ (รหัสทดสอบ: 123456)');
-      }
-    }, 600);
+  const resendOtp = async () => {
+    setCooldown(60);
+    setOtp('');
+    await requestOtp();
+  };
+
+  const formatPhoneDisplay = (val: string) => {
+    const raw = val.replace(/\D/g, '');
+    if (raw.length <= 3) return raw;
+    if (raw.length <= 6) return `${raw.slice(0, 3)}-${raw.slice(3)}`;
+    return `${raw.slice(0, 3)}-${raw.slice(3, 6)}-${raw.slice(6, 10)}`;
+  };
+
+  const maskPhone = (val: string) => {
+    const raw = val.replace(/\D/g, '');
+    if (raw.length === 10) {
+      return `${raw.slice(0, 3)}-xxx-${raw.slice(6)}`;
+    }
+    return val;
   };
 
   return (
-    <div className={styles.pageWrapper}>
-      <div className={styles.mobileCard}>
-        {/* Brand Header */}
-        <header className={styles.brandHeader}>
-          <span className={styles.brandLogo}>MEEPRO</span>
-          <span className={styles.brandTagline}>Mobile Customer Store</span>
+    <main className="flex min-h-dvh items-start justify-center bg-[#E5E7EB] sm:items-center sm:p-4 select-none">
+      {/* Stitch 375x812px Mobile Frame Canvas */}
+      <article
+        className="w-full max-w-[375px] min-h-[812px] bg-[#F8FAFC] flex flex-col relative overflow-hidden shadow-2xl sm:rounded-[36px] border border-[#E2E8F0]"
+        aria-label="การยืนยันตัวตน MeePro"
+      >
+        {/* Top App Bar (MeePro Brand Orange Navigation Anchor - Stitch Screen 01) */}
+        <header className="w-full bg-[#FF6E00] h-14 flex items-center justify-center px-4 z-30 shadow-sm relative shrink-0">
+          <div className="flex items-center justify-center tracking-tight">
+            <span className="text-[20px] text-white font-extrabold tracking-tight">
+              MeePro
+            </span>
+          </div>
         </header>
 
-        {/* Banner Card — 430 × 260 proportional */}
-        <div className={styles.bannerContainer}>
-          <div className={styles.bannerCard}>
-            {banners.map((banner, index) => (
-              <div
-                key={banner.id}
-                className={styles.bannerSlide}
-                style={{
-                  background: banner.gradient,
-                  opacity: index === activeBanner ? 1 : 0,
-                  transform: index === activeBanner ? 'scale(1)' : 'scale(0.96)',
-                  transition: 'opacity 0.6s ease, transform 0.6s ease',
-                }}
-              >
-                <span className={styles.bannerBadge}>{banner.tag}</span>
-                <h2 className={styles.bannerTitle}>{banner.title}</h2>
-                <p className={styles.bannerDesc}>{banner.desc}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Dots Indicator */}
-          <div className={styles.bannerDots}>
-            {banners.map((_, index) => (
-              <button
-                key={index}
-                className={`${styles.bannerDot} ${index === activeBanner ? styles.bannerDotActive : ''}`}
-                onClick={() => setActiveBanner(index)}
-                aria-label={`ไปยังแบนเนอร์ ${index + 1}`}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Modern Centered Card */}
-        <div className={styles.formCard}>
+        {/* Scrollable Content Canvas */}
+        <div className="flex-1 overflow-y-auto px-4 pt-4 pb-6 flex flex-col justify-between">
           {step === 'phone' ? (
-            <>
-              {/* Centered Heading */}
-              <div className={styles.formHeader}>
-                <h1 className={styles.formTitle}>เข้าสู่ระบบ / ลงทะเบียน</h1>
-                <p className={styles.formSubtitle}>
-                  กรอกหมายเลขโทรศัพท์เพื่อรับรหัส OTP สำหรับเข้าใช้งาน
-                </p>
-              </div>
+            <div className="flex-1 flex flex-col justify-between">
+              <div>
+                {/* 1. Promotional Banner Card (Stitch Screen 01) */}
+                <div className="w-full rounded-[18px] bg-gradient-to-r from-[#FFF4EC] to-[#FFF0E6] border border-[#FED7AA] p-3.5 mb-4 shadow-xs relative overflow-hidden">
+                  <div className="flex items-center justify-between gap-2 relative z-10">
+                    <div className="flex-1 pr-1">
+                      <span className="inline-flex items-center gap-1 bg-[#FF6E00] text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider mb-1.5 shadow-xs">
+                        <span className="material-symbols-outlined text-[12px]">bolt</span>
+                        โปรโมชั่นพิเศษ
+                      </span>
+                      <h2 className="text-[15px] font-bold text-[#0F172A] leading-tight">
+                        ผ่อนง่าย อนุมัติไว
+                      </h2>
+                      <p className="text-[11px] text-[#64748B] font-medium mt-0.5">
+                        เริ่มต้นดาวน์น้อย พร้อมรับเครื่องทันที
+                      </p>
+                      <div className="flex items-center gap-1 mt-2 text-[11px] font-semibold text-[#FF6E00]">
+                        <span>สมัครง่ายใน 3 นาที</span>
+                        <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                      </div>
+                    </div>
 
-              {/* Phone Input with Red Asterisk */}
-              <div className={styles.inputSection}>
-                <label className={styles.inputLabel}>
-                  <span>เบอร์โทรศัพท์มือถือ</span>
-                  <span className={styles.requiredAsterisk}>*</span>
-                </label>
+                    {/* Smartphone Illustration Box */}
+                    <div className="w-18 h-18 rounded-xl bg-white/90 p-1 shrink-0 shadow-xs border border-orange-100 flex items-center justify-center text-[#FF6E00]">
+                      <span className="material-symbols-outlined text-[40px]">smartphone</span>
+                    </div>
+                  </div>
+
+                  {/* Decorative Background Circles */}
+                  <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-[#FF6E00]/10 pointer-events-none" />
+                  <div className="absolute right-12 -top-6 w-16 h-16 rounded-full bg-[#FF6E00]/5 pointer-events-none" />
+                </div>
+
+                {/* 2. Form Heading Area */}
+                <div className="mb-4">
+                  <h1 className="text-[24px] font-bold text-[#0F172A] tracking-tight">
+                    เข้าสู่ระบบ / ลงทะเบียน
+                  </h1>
+                  <p className="text-[13px] text-[#64748B] mt-0.5">
+                    กรุณากรอกเบอร์มือถือ
+                  </p>
+                </div>
+
+                {/* 3. Phone Number Input Section */}
+                <div className="space-y-1.5 mb-3.5">
+                  <label className="block text-[13px] text-[#0F172A] font-semibold">
+                    หมายเลขโทรศัพท์มือถือ
+                  </label>
+                  <div className="flex items-center rounded-xl bg-white border border-[#E2E8F0] focus-within:border-[#007ACC] focus-within:ring-1 focus-within:ring-[#007ACC] transition-all h-[50px] shadow-xs overflow-hidden">
+                    <div className="flex items-center gap-1 pl-3.5 pr-2.5 h-full border-r border-[#E2E8F0] bg-slate-50/70 text-[#0F172A]">
+                      <span className="text-[13px] font-semibold text-slate-700">+66</span>
+                      <span className="material-symbols-outlined text-[#64748B] text-[16px]">expand_more</span>
+                    </div>
+                    <input
+                      id="phone-input"
+                      type="tel"
+                      inputMode="numeric"
+                      autoComplete="tel-national"
+                      maxLength={12}
+                      value={formatPhoneDisplay(phone)}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      placeholder="08x-xxx-xxxx"
+                      className="w-full h-full bg-transparent border-none px-3 text-[16px] font-semibold text-[#0F172A] placeholder:text-slate-400 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* 4. CAPTCHA Verification Area */}
+                <div className="space-y-1.5 mb-3.5">
+                  <label className="block text-[13px] text-[#0F172A] font-semibold">
+                    รหัสความปลอดภัย (CAPTCHA)
+                  </label>
+                  <div className="grid grid-cols-12 gap-2">
+                    <div className="col-span-7">
+                      <input
+                        id="captcha-input"
+                        type="text"
+                        maxLength={5}
+                        value={captcha}
+                        onChange={(e) => setCaptcha(e.target.value.slice(0, 5).toUpperCase())}
+                        placeholder="กรอกรหัส 5 ตัว"
+                        className="w-full h-[50px] rounded-xl bg-white border border-[#E2E8F0] px-3 text-[14px] font-semibold text-[#0F172A] placeholder:text-slate-400 focus:border-[#007ACC] focus:ring-1 focus:ring-[#007ACC] focus:outline-none transition-all uppercase tracking-wider"
+                      />
+                    </div>
+                    <div className="col-span-5 flex items-center justify-between bg-white rounded-xl border border-[#E2E8F0] px-2.5 h-[50px] shadow-xs">
+                      <div className="flex items-center justify-center flex-1 h-9 rounded-lg bg-slate-100 border border-slate-200/80 px-2 overflow-hidden select-none">
+                        <span className="text-[16px] tracking-[2px] text-slate-800 font-extrabold italic select-none line-through decoration-slate-400">
+                          {currentCaptcha}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRefreshCaptcha}
+                        className="ml-1.5 p-1 text-[#64748B] hover:text-[#007ACC] active:scale-90 transition-transform rounded-lg focus:outline-none"
+                        title="เปลี่ยนรหัส"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">refresh</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. Privacy Policy Link */}
+                <div className="mb-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowPolicy(true)}
+                    className="group inline-flex items-center gap-1.5 text-[#007ACC] hover:text-[#0061A3] active:scale-98 transition-all text-[13px] font-semibold text-left focus:outline-none"
+                  >
+                    <span className="material-symbols-outlined text-[18px] text-[#007ACC] group-hover:translate-x-0.5 transition-transform">
+                      open_in_new
+                    </span>
+                    <span className="underline underline-offset-4 decoration-[#007ACC]/40">
+                      ดูนโยบายการคุ้มครองข้อมูลส่วนบุคคล
+                    </span>
+                  </button>
+                </div>
+
+                {/* 6. Consent Checkbox Component (Disabled Until Viewed - Stitch Screen 01 to 04) */}
                 <div
-                  className={`${styles.phoneInputContainer} ${
-                    phoneError ? styles.phoneInputContainerError : ''
+                  className={`rounded-xl border border-[#E2E8F0] bg-white p-3 mb-1.5 shadow-xs transition-all ${
+                    consent ? 'ring-1 ring-[#007ACC]/50' : ''
                   }`}
                 >
-                  <div className={styles.countryBadge}>
-                    <span className={styles.flagIcon}>🇹🇭</span>
-                    <span className={styles.countryCode}>+66</span>
-                  </div>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    placeholder="0xx-xxx-xxxx"
-                    value={formatPhone(phoneRaw)}
-                    onChange={handlePhoneChange}
-                    className={styles.phoneInputField}
-                    autoComplete="tel"
-                  />
-                </div>
-                {phoneError && <div className={styles.errorText}>{phoneError}</div>}
-              </div>
-
-              {/* PDPA Consent Checkbox */}
-              <div className={styles.pdpaWrapper}>
-                <label className={styles.pdpaLabel}>
-                  <input
-                    type="checkbox"
-                    checked={pdpaAccepted}
-                    onChange={(e) => setPdpaAccepted(e.target.checked)}
-                    className={styles.realCheckbox}
-                  />
-                  <span className={styles.customCheckbox} />
-                  <span className={styles.pdpaText}>
-                    ข้าพเจ้ายอมรับ{' '}
-                    <button
-                      type="button"
-                      className={styles.policyBtn}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setShowPrivacyModal(true);
-                      }}
+                  <label
+                    className={`flex items-start gap-2.5 select-none ${
+                      policyViewed ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      disabled={!policyViewed}
+                      checked={consent}
+                      onChange={(e) => setConsent(e.target.checked)}
+                      className="w-5 h-5 rounded border-slate-300 text-[#007ACC] focus:ring-0 mt-0.5 accent-[#007ACC] disabled:opacity-40"
+                    />
+                    <span
+                      className={`text-[12px] leading-snug ${
+                        policyViewed ? 'text-[#0F172A] font-medium' : 'text-slate-400 font-normal'
+                      }`}
                     >
-                      นโยบายความเป็นส่วนตัว
-                    </button>
+                      ฉันได้อ่านและเข้าใจนโยบายการคุ้มครองข้อมูลส่วนบุคคลแล้ว
+                    </span>
+                  </label>
+                </div>
+
+                {/* Helper status text */}
+                <div className="flex items-center gap-1 px-1 text-[11px] mb-2">
+                  <span
+                    className={`material-symbols-outlined text-[14px] ${
+                      policyViewed ? 'text-[#16A365]' : 'text-slate-400'
+                    }`}
+                  >
+                    {policyViewed ? 'check_circle' : 'info'}
                   </span>
-                </label>
-              </div>
-
-              {/* Turnstile Bot Checkbox */}
-              <div className={styles.turnstileWrapper}>
-                <div
-                  className={`${styles.turnstileCard} ${
-                    turnstileVerified ? styles.turnstileCardVerified : ''
-                  }`}
-                  onClick={handleTurnstileClick}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <div className={styles.turnstileBox}>
-                    {turnstileLoading && <div className={styles.turnstileSpinner} />}
-                    {turnstileVerified && (
-                      <span className={styles.turnstileCheckmark}>✓</span>
-                    )}
-                  </div>
-                  <span className={styles.turnstileLabel}>
-                    {turnstileVerified
-                      ? 'ยืนยันตัวตนสำเร็จ (คุณไม่ใช่โปรแกรมอัตโนมัติ)'
-                      : 'ฉันไม่ใช่โปรแกรมอัตโนมัติ'}
-                  </span>
+                  <p className={policyViewed ? 'text-[#16A365] font-medium' : 'text-[#64748B]'}>
+                    {policyViewed
+                      ? 'อ่านนโยบายแล้ว — สามารถเลือกช่องยอมรับได้'
+                      : 'กรุณาดูนโยบายก่อน จึงจะสามารถเลือกช่องด้านบนได้'}
+                  </p>
                 </div>
               </div>
 
-              {/* Primary Green Action Button */}
-              <button
-                type="button"
-                className={styles.submitOtpBtn}
-                disabled={!canRequestOtp}
-                onClick={handleRequestOtp}
-              >
-                กดรับ OTP
-              </button>
-            </>
-          ) : (
-            /* OTP Verification Screen */
-            <div className={styles.otpCard}>
-              <h2 className={styles.formTitle}>กรอกรหัส OTP</h2>
-              <p className={styles.formSubtitle}>
-                รหัส OTP 6 หลัก ถูกส่งไปยัง <strong>{maskPhone(phoneDigits)}</strong>
-              </p>
+              {/* Action Button & Security Footnote */}
+              <div className="mt-4 pt-2">
+                {error && (
+                  <p className="mb-2 text-center text-xs text-red-600 font-medium" role="alert">
+                    {error}
+                  </p>
+                )}
 
-              <div className={styles.otpGrid}>
-                {otpDigits.map((digit, index) => (
-                  <input
-                    key={index}
-                    ref={(el) => {
-                      otpRefs.current[index] = el;
-                    }}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                    className={`${styles.otpCell} ${digit ? styles.otpCellFilled : ''}`}
-                  />
-                ))}
-              </div>
-
-              {otpError && <div className={styles.errorText}>{otpError}</div>}
-              {otpSuccess && (
-                <div style={{ color: '#007849', fontSize: '13px', fontWeight: 700, margin: '8px 0' }}>
-                  {otpSuccess}
-                </div>
-              )}
-
-              {resendCooldown > 0 ? (
-                <div className={styles.countdownText}>
-                  ส่งรหัสใหม่อีกครั้งได้ใน {resendCooldown} วินาที
-                </div>
-              ) : (
                 <button
                   type="button"
-                  onClick={() => setResendCooldown(60)}
-                  className={styles.resendBtn}
+                  disabled={!isReady || loading}
+                  onClick={requestOtp}
+                  className={`w-full h-[50px] rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all shadow-xs ${
+                    isReady && !loading
+                      ? 'bg-[#007ACC] hover:bg-[#0061A3] text-white active:scale-98 cursor-pointer'
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  }`}
                 >
-                  ส่งรหัส OTP อีกครั้ง
+                  <span>{loading ? 'กำลังส่ง...' : 'กดรับ OTP'}</span>
+                  <span className="material-symbols-outlined text-[18px]">lock_open</span>
                 </button>
-              )}
 
-              <button
-                type="button"
-                onClick={() => setStep('phone')}
-                className={styles.backBtn}
-              >
-                ← เปลี่ยนหมายเลขโทรศัพท์
-              </button>
+                <div className="flex items-center justify-center gap-1.5 mt-3 text-[#64748B]">
+                  <span className="material-symbols-outlined text-[14px] text-[#16A365]">verified</span>
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    ความปลอดภัยระดับธนาคาร ระบบเข้ารหัส 256-bit
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Stitch Screen 05: OTP Verification Form */
+            <div className="flex-1 flex flex-col justify-between pt-4">
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setStep('phone')}
+                  className="flex items-center gap-1 text-xs text-[#007ACC] font-semibold mb-4 hover:underline"
+                >
+                  <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                  <span>เปลี่ยนหมายเลขโทรศัพท์</span>
+                </button>
+
+                <div className="text-center mb-6">
+                  <h1 className="text-[24px] font-bold text-[#0F172A]">รหัส OTP</h1>
+                  <p className="text-[13px] text-[#64748B] mt-1">
+                    เราได้ทำการส่งรหัสยืนยัน 6 หลัก ไปยังหมายเลข
+                  </p>
+                  <p className="text-[18px] font-bold text-[#007ACC] mt-1">
+                    {maskPhone(phone)}
+                  </p>
+                </div>
+
+                {/* 6 Digit Split Box */}
+                <div
+                  className="flex justify-center gap-2 mb-6 cursor-pointer"
+                  onClick={() => document.getElementById('hidden-otp-input')?.focus()}
+                >
+                  <input
+                    id="hidden-otp-input"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="sr-only"
+                    autoFocus
+                  />
+                  {Array.from({ length: 6 }, (_, i) => {
+                    const char = otp[i] || '';
+                    const isCurrent = i === otp.length;
+                    return (
+                      <div
+                        key={i}
+                        className={`w-11 h-13 rounded-xl border-2 flex items-center justify-center text-[22px] font-bold transition-all bg-white ${
+                          isCurrent
+                            ? 'border-[#007ACC] ring-2 ring-[#007ACC]/20'
+                            : char
+                            ? 'border-[#0F172A] text-[#0F172A]'
+                            : 'border-[#E2E8F0] text-slate-300'
+                        }`}
+                      >
+                        {char}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Resend OTP Row */}
+                <div className="flex items-center justify-between text-xs px-2 mb-4">
+                  <button
+                    type="button"
+                    disabled={cooldown > 0 || loading}
+                    onClick={resendOtp}
+                    className="flex items-center gap-1 font-semibold text-[#007ACC] disabled:opacity-40 disabled:cursor-not-allowed hover:underline"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">refresh</span>
+                    <span>รับรหัส OTP อีกครั้ง</span>
+                  </button>
+                  <span className="text-[#64748B] font-medium">{cooldown} วินาที</span>
+                </div>
+              </div>
+
+              <div>
+                {error && (
+                  <p className="mb-2 text-center text-xs text-red-600 font-medium" role="alert">
+                    {error}
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  disabled={otp.length !== 6 || loading}
+                  onClick={verifyOtp}
+                  className={`w-full h-[50px] rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all shadow-xs ${
+                    otp.length === 6 && !loading
+                      ? 'bg-[#007ACC] hover:bg-[#0061A3] text-white active:scale-98 cursor-pointer'
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  <span>{loading ? 'กำลังยืนยัน...' : 'ยืนยัน'}</span>
+                  <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                </button>
+              </div>
             </div>
           )}
-
-          {/* Security Custody Badge (Spec Sec 8) */}
-          <div className={styles.securityBadge}>
-            <span style={{ fontSize: '16px' }}>🛡️</span>
-            <div className={styles.securityBadgeText}>
-              ข้อมูลของคุณจะถูกจัดเก็บอย่างปลอดภัย และได้รับการดูแลตามนโยบายความเป็นส่วนตัว
-            </div>
-          </div>
         </div>
-      </div>
 
-      {/* Privacy Policy Bottom Sheet Modal */}
-      <PrivacyPolicyModal
-        isOpen={showPrivacyModal}
-        onClose={() => setShowPrivacyModal(false)}
-        onAccept={() => {
-          setPdpaAccepted(true);
-          setShowPrivacyModal(false);
-        }}
-      />
-    </div>
+        {/* PDPA Privacy Policy Modal (Stitch Screen 02) */}
+        {showPolicy && (
+          <PrivacyPolicyModal
+            onAccept={() => {
+              setPolicyViewed(true);
+              setShowPolicy(false);
+            }}
+          />
+        )}
+      </article>
+    </main>
   );
 }

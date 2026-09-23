@@ -29,7 +29,8 @@ export default function TopNav() {
 
         {/* Logo */}
         <div className={styles.logoContainer}>
-          <span className={styles.logoText}>MEEPRO</span>
+          <img src="/logo.jpg" alt="มีโปรโฟน" className={styles.logoImg} />
+          <span className={styles.logoText}>มีโปรโฟน</span>
         </div>
 
         {/* Right spacer for centering */}

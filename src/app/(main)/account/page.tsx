@@ -4,43 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAuthUser, clearAuth } from '@/lib/auth';
 import PrivacyPolicyModal from '@/components/auth/PrivacyPolicyModal';
-import styles from './account.module.css';
-
-interface MockOrder {
-  id: string;
-  item: string;
-  price: string;
-  date: string;
-  status: string;
-  icon: string;
-}
-
-const MOCK_ORDERS: MockOrder[] = [
-  {
-    id: "ORD-2026-8812",
-    item: "iPhone 16 Pro 128GB (ผ่อน 0% 10 เดือน)",
-    price: "฿36,900",
-    date: "18 ก.ย. 2569",
-    status: "กำลังจัดส่งโดย MeePro Express",
-    icon: "📱",
-  },
-  {
-    id: "ORD-2026-7731",
-    item: "Anker Prime 6-in-1 GaN Charging Station",
-    price: "฿3,490",
-    date: "05 ส.ค. 2569",
-    status: "จัดส่งสำเร็จแล้ว",
-    icon: "🔌",
-  },
-];
+import Link from 'next/link';
 
 export default function AccountPage() {
   const router = useRouter();
-  const [phone, setPhone] = useState('089-123-4567');
+  const [phone, setPhone] = useState('081-234-5678');
   const [showPolicyModal, setShowPolicyModal] = useState(false);
-  const [showOrdersModal, setShowOrdersModal] = useState(false);
-  const [showCouponsModal, setShowCouponsModal] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [logoutStep, setLogoutStep] = useState<'idle' | 'confirm' | 'loading' | 'success'>('idle');
+  const [logoutTime, setLogoutTime] = useState('');
 
   useEffect(() => {
     const user = getAuthUser();
@@ -49,203 +20,285 @@ export default function AccountPage() {
     }
   }, []);
 
-  const handleLogout = () => {
-    if (confirm('คุณต้องการออกจากระบบ MeePro หรือไม่?')) {
-      clearAuth();
-      router.replace('/login');
-    }
+  const handleStartLogout = () => {
+    setLogoutStep('confirm');
   };
 
-  // Format display phone: 089-xxx-4567
+  const handleConfirmLogout = () => {
+    setLogoutStep('loading');
+    const now = new Date();
+    const timeStr = `วันนี้ เวลา ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} น.`;
+    setLogoutTime(timeStr);
+
+    setTimeout(() => {
+      clearAuth();
+      setLogoutStep('success');
+    }, 1200);
+  };
+
+  const handleFinishLogout = () => {
+    router.replace('/login');
+  };
+
   const displayPhone = phone.length >= 10
-    ? `${phone.slice(0, 3)}-xxx-${phone.slice(-4)}`
+    ? `${phone.slice(0, 3)}-${phone.slice(3, 6)}-${phone.slice(6)}`
     : phone;
 
-  return (
-    <div className={styles.accountContainer}>
-      {/* Profile Header Card */}
-      <div className={styles.profileCard}>
-        <div className={styles.profileHeader}>
-          <div className={styles.avatar}>👤</div>
-          <div>
-            <div className={styles.userPhone}>
-              <span>{displayPhone}</span>
-              <span className={styles.verifiedBadge}>✓ ยืนยันแล้ว</span>
+  // Screen 14: Full Logout Success View
+  if (logoutStep === 'success') {
+    return (
+      <div className="w-full max-w-[390px] mx-auto px-4 py-4 pb-20 animate-fade-in flex flex-col justify-between min-h-[600px]">
+        {/* Central Feedback Card */}
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-sm flex flex-col items-center text-center mt-2">
+          {/* Animated Success Badge */}
+          <div className="relative flex items-center justify-center my-3">
+            <div className="absolute w-20 h-20 rounded-full bg-emerald-500/10 animate-pulse" />
+            <div className="relative w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center border-2 border-[#16A365]/30">
+              <span className="material-symbols-outlined text-[#16A365] text-[36px]">check_circle</span>
             </div>
-            <div className={styles.memberTier}>⭐ MeePro Gold Member</div>
+          </div>
+
+          <h1 className="text-[22px] font-bold text-[#0F172A] mt-2 mb-1">
+            ออกจากระบบสำเร็จ
+          </h1>
+          <p className="text-[13px] text-[#64748B] px-2 leading-relaxed">
+            คุณได้ออกจากระบบ MeePro เรียบร้อยแล้ว ข้อมูลบัญชีและเซสชันการเงินของคุณได้รับการปกป้องอย่างปลอดภัย
+          </p>
+
+          {/* Session Summary Box */}
+          <div className="w-full bg-[#F8FAFC] rounded-xl p-3.5 mt-5 border border-[#E2E8F0] text-left space-y-2.5">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-[11px] text-[#64748B] shrink-0 pt-0.5">บัญชีที่ออกจากระบบ</span>
+              <span className="text-[12px] font-semibold text-[#0F172A] text-right">{displayPhone}</span>
+            </div>
+            <div className="h-[1px] w-full bg-[#E2E8F0]" />
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-[#64748B]">เวลาที่ดำเนินการ</span>
+              <span className="text-[12px] font-semibold text-[#0F172A]">{logoutTime || 'วันนี้'}</span>
+            </div>
+            <div className="h-[1px] w-full bg-[#E2E8F0]" />
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-[#64748B]">สถานะความปลอดภัย</span>
+              <div className="flex items-center gap-1 text-[#16A365]">
+                <span className="material-symbols-outlined text-[14px]">verified_user</span>
+                <span className="text-[11px] font-bold">เซสชันถูกยกเลิกแล้ว (ปลอดภัย 100%)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Security Alert Note */}
+          <div className="mt-4 flex items-center gap-2 text-left bg-slate-50 p-2.5 rounded-lg border border-[#E2E8F0] w-full">
+            <span className="material-symbols-outlined text-[#007ACC] text-[18px] shrink-0">lock</span>
+            <p className="text-[11px] text-[#64748B]">
+              เพื่อความปลอดภัยสูงสุด กรุณาปิดแท็บนี้หรือแอปพลิเคชันหากใช้งานบนอุปกรณ์สาธารณะ
+            </p>
+          </div>
+
+          {/* CTA */}
+          <div className="w-full mt-6">
+            <button
+              type="button"
+              onClick={handleFinishLogout}
+              className="w-full h-12 bg-[#007ACC] hover:bg-[#0061A3] text-white rounded-xl text-[14px] font-semibold flex items-center justify-center gap-2 shadow-sm active:scale-98 transition-all"
+            >
+              <span>กลับสู่หน้าเข้าสู่ระบบ</span>
+              <span className="material-symbols-outlined text-[18px]">login</span>
+            </button>
           </div>
         </div>
 
-        <div className={styles.statsGrid}>
-          <div className={styles.statItem}>
-            <span className={styles.statVal}>450</span>
-            <span className={styles.statLabel}>พอยท์สะสม</span>
-          </div>
-          <div className={styles.statItem} onClick={() => setShowCouponsModal(true)} style={{ cursor: 'pointer' }}>
-            <span className={styles.statVal} style={{ color: 'var(--color-accent)' }}>3</span>
-            <span className={styles.statLabel}>คูปองของฉัน</span>
-          </div>
-          <div className={styles.statItem} onClick={() => setShowOrdersModal(true)} style={{ cursor: 'pointer' }}>
-            <span className={styles.statVal}>2</span>
-            <span className={styles.statLabel}>คำสั่งซื้อ</span>
-          </div>
-        </div>
+        {/* Footer */}
+        <footer className="mt-6 pt-2 text-center text-[11px] text-[#64748B]">
+          <p>MeePro Financial Services & Commercial Network</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">เวอร์ชันระบบ 2.4.0 • มาตรฐานความปลอดภัย ISO/IEC 27001</p>
+        </footer>
       </div>
+    );
+  }
 
-      {/* Security Statement (Spec Sec 8) */}
-      <div className={styles.securityNotice}>
-        <span style={{ fontSize: '18px' }}>🛡️</span>
-        <div className={styles.securityNoticeText}>
-          <strong>ความปลอดภัยของข้อมูล:</strong> ข้อมูลของคุณจะถูกจัดเก็บอย่างปลอดภัย และได้รับการดูแลตามนโยบายความเป็นส่วนตัว
+  return (
+    <div className="w-full max-w-[390px] mx-auto px-4 py-4 pb-24 space-y-4">
+      {/* 1. Profile Header Card (Stitch Screen 11) */}
+      <section className="bg-white rounded-2xl p-4 border border-[#E2E8F0] shadow-sm flex items-center gap-3.5">
+        <div className="relative w-14 h-14 rounded-full overflow-hidden bg-blue-50 border-2 border-[#007ACC] shrink-0 flex items-center justify-center text-[#007ACC]">
+          <span className="material-symbols-outlined text-[32px]">person</span>
         </div>
-      </div>
-
-      {/* Menu Group 1: Shopping & Orders */}
-      <div className={styles.menuGroup}>
-        <div className={styles.menuGroupTitle}>การสั่งซื้อ & สิทธิประโยชน์</div>
-
-        <button className={styles.menuItem} onClick={() => setShowOrdersModal(true)}>
-          <div className={styles.menuItemLeft}>
-            <span className={styles.menuIcon}>📦</span>
-            <span>ประวัติคำสั่งซื้อ & ติดตามพัสดุ</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-[15px] font-bold text-[#0F172A] truncate">ลูกค้า MeePro</h2>
+            <span className="material-symbols-outlined text-[#007ACC] text-[18px]">verified</span>
           </div>
-          <span className={styles.menuArrow}>›</span>
-        </button>
-
-        <button className={styles.menuItem} onClick={() => setShowCouponsModal(true)}>
-          <div className={styles.menuItemLeft}>
-            <span className={styles.menuIcon}>🎟️</span>
-            <span>คูปองส่วนลดของฉัน (3 ใบ)</span>
+          <p className="text-xs text-[#64748B] truncate">{displayPhone} • บัญชียืนยันตัวตนแล้ว</p>
+          <div className="mt-1 inline-flex items-center gap-1 bg-blue-50/70 px-2 py-0.5 rounded text-[11px] font-semibold text-[#007ACC]">
+            <span>⭐ MeePro Member Tier Gold</span>
           </div>
-          <span className={styles.menuArrow}>›</span>
-        </button>
+        </div>
+      </section>
+
+      {/* 2. Quick Financial Overview Widget */}
+      <section className="bg-white rounded-2xl p-4 border border-[#E2E8F0] shadow-sm">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-xs text-[#64748B] font-medium">คะแนนสะสม & วงเงินพร้อมใช้</span>
+          <Link href="/billing" className="text-xs text-[#007ACC] font-semibold hover:underline">
+            ดูบิลของฉัน
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#E2E8F0]">
+          <div>
+            <span className="text-[11px] text-[#64748B] block">แต้มสะสม MeePoints</span>
+            <span className="text-[18px] font-bold text-[#0F172A]">
+              1,240 <span className="text-xs font-normal text-[#64748B]">แต้ม</span>
+            </span>
+          </div>
+          <div className="border-l border-[#E2E8F0] pl-3">
+            <span className="text-[11px] text-[#64748B] block">วงเงินพร้อมใช้</span>
+            <span className="text-[18px] font-bold text-[#007ACC]">฿15,000</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Account Settings Menu Section */}
+      <section className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm divide-y divide-[#E2E8F0] overflow-hidden">
+        <div className="px-4 py-2.5 bg-[#F8FAFC]">
+          <span className="text-xs font-semibold text-[#64748B]">การตั้งค่าและความปลอดภัย</span>
+        </div>
 
         <button
-          className={styles.menuItem}
-          onClick={() => alert('บริการสัญญาผ่อนชำระ: สัญญาผ่อนปกติ ไม่มีค้างชำระ')}
+          type="button"
+          onClick={() => alert('แก้ไขข้อมูลส่วนตัว')}
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors text-left"
         >
-          <div className={styles.menuItemLeft}>
-            <span className={styles.menuIcon}>📄</span>
-            <span>สัญญาผ่อนชำระ MeePro 0%</span>
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#64748B] text-xl">person_outline</span>
+            <span className="text-[13px] font-semibold text-[#0F172A]">ข้อมูลส่วนตัว</span>
           </div>
-          <span className={styles.menuArrow}>›</span>
+          <span className="material-symbols-outlined text-[#94A3B8] text-lg">chevron_right</span>
         </button>
-      </div>
 
-      {/* Menu Group 2: Settings & Privacy */}
-      <div className={styles.menuGroup}>
-        <div className={styles.menuGroupTitle}>การตั้งค่า & ความเป็นส่วนตัว</div>
-
-        <div className={styles.menuItem}>
-          <div className={styles.menuItemLeft}>
-            <span className={styles.menuIcon}>🔔</span>
-            <span>การแจ้งเตือนโปรโมชั่นและสถานะคำสั่งซื้อ</span>
+        <Link
+          href="/billing"
+          className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#64748B] text-xl">receipt_long</span>
+            <span className="text-[13px] font-semibold text-[#0F172A]">บิลและประวัติการผ่อนชำระ</span>
           </div>
-          <input
-            type="checkbox"
-            checked={notificationsEnabled}
-            onChange={(e) => setNotificationsEnabled(e.target.checked)}
-            style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
-          />
+          <span className="material-symbols-outlined text-[#94A3B8] text-lg">chevron_right</span>
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => alert('การตั้งค่า PIN ความปลอดภัย')}
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors text-left"
+        >
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#64748B] text-xl">lock</span>
+            <span className="text-[13px] font-semibold text-[#0F172A]">รหัส PIN และความปลอดภัย</span>
+          </div>
+          <span className="material-symbols-outlined text-[#94A3B8] text-lg">chevron_right</span>
+        </button>
+      </section>
+
+      {/* 4. Support & About Section */}
+      <section className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm divide-y divide-[#E2E8F0] overflow-hidden">
+        <div className="px-4 py-2.5 bg-[#F8FAFC]">
+          <span className="text-xs font-semibold text-[#64748B]">บริการและความช่วยเหลือ</span>
         </div>
 
-        <button className={styles.menuItem} onClick={() => setShowPolicyModal(true)}>
-          <div className={styles.menuItemLeft}>
-            <span className={styles.menuIcon}>📜</span>
-            <span>นโยบายความเป็นส่วนตัว (PDPA Privacy Policy)</span>
+        <Link
+          href="/about"
+          className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#64748B] text-xl">info</span>
+            <span className="text-[13px] font-semibold text-[#0F172A]">เกี่ยวกับ MeePro</span>
           </div>
-          <span className={styles.menuArrow}>›</span>
+          <span className="material-symbols-outlined text-[#94A3B8] text-lg">chevron_right</span>
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => setShowPolicyModal(true)}
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors text-left"
+        >
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#64748B] text-xl">policy</span>
+            <span className="text-[13px] font-semibold text-[#0F172A]">นโยบายความเป็นส่วนตัว (PDPA)</span>
+          </div>
+          <span className="material-symbols-outlined text-[#94A3B8] text-lg">chevron_right</span>
         </button>
+
+        {/* Logout Trigger Row */}
+        <button
+          type="button"
+          onClick={handleStartLogout}
+          className="w-full flex items-center justify-between px-4 py-3.5 bg-red-50/50 hover:bg-red-50 transition-colors text-left"
+        >
+          <div className="flex items-center gap-3 text-[#DC3345]">
+            <span className="material-symbols-outlined text-xl">logout</span>
+            <span className="text-[13px] font-bold">ออกจากระบบ</span>
+          </div>
+          <span className="material-symbols-outlined text-[#DC3345] text-lg">chevron_right</span>
+        </button>
+      </section>
+
+      {/* Version */}
+      <div className="text-center pt-1 pb-4">
+        <p className="text-[11px] text-[#64748B]">MeePro เวอร์ชัน 2.4.0 (Build 382)</p>
       </div>
 
-      {/* Logout Button */}
-      <button className={styles.logoutBtn} onClick={handleLogout}>
-        <span>🚪</span>
-        <span>ออกจากระบบ</span>
-      </button>
-
-      {/* PDPA Privacy Policy Modal */}
-      <PrivacyPolicyModal
-        isOpen={showPolicyModal}
-        onClose={() => setShowPolicyModal(false)}
-      />
-
-      {/* Orders Bottom Sheet Modal */}
-      {showOrdersModal && (
-        <div className={styles.simpleModalOverlay} onClick={() => setShowOrdersModal(false)}>
-          <div className={styles.simpleModalSheet} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700 }}>📦 ประวัติคำสั่งซื้อของคุณ</h3>
-              <button
-                onClick={() => setShowOrdersModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}
-              >
-                ✕
-              </button>
+      {/* MODAL 1: SCREEN 12 (LOGOUT CONFIRMATION) */}
+      {logoutStep === 'confirm' && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="w-full max-w-[327px] bg-white rounded-2xl p-6 border border-[#E2E8F0] shadow-2xl flex flex-col items-center animate-scale-up">
+            <div className="w-16 h-16 rounded-full bg-red-50 border border-red-100 flex items-center justify-center mb-4 text-[#DC3345]">
+              <span className="material-symbols-outlined text-3xl">power_settings_new</span>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {MOCK_ORDERS.map((ord) => (
-                <div
-                  key={ord.id}
-                  style={{
-                    padding: '12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--color-border)',
-                    background: 'var(--color-bg-secondary)',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--color-text-tertiary)' }}>
-                    <span>{ord.id}</span>
-                    <span>{ord.date}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '8px 0' }}>
-                    <span style={{ fontSize: '24px' }}>{ord.icon}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 600 }}>{ord.item}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
-                    <span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>{ord.price}</span>
-                    <span style={{ color: 'var(--color-success)', fontWeight: 600, fontSize: '11px' }}>
-                      ● {ord.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
+            <h3 className="text-[18px] font-bold text-[#0F172A] text-center mb-2">
+              ยืนยันการออกจากระบบ
+            </h3>
+
+            <p className="text-[13px] text-[#64748B] text-center px-1 leading-relaxed mb-6">
+              คุณต้องการออกจากระบบ MeePro ใช่หรือไม่? หากออกจากระบบ คุณจะต้องเข้าสู่ระบบใหม่ด้วยเบอร์โทรศัพท์และรหัส OTP
+            </p>
+
+            <div className="w-full flex flex-col space-y-2">
+              <button
+                type="button"
+                onClick={handleConfirmLogout}
+                className="w-full py-3.5 px-4 bg-[#DC3345] hover:brightness-95 text-white font-bold text-sm rounded-xl shadow-sm active:scale-98 transition-transform flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-xl">logout</span>
+                <span>ออกจากระบบ</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLogoutStep('idle')}
+                className="w-full py-3.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm rounded-xl active:scale-98 transition-all flex items-center justify-center"
+              >
+                <span>ยกเลิก</span>
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Coupons Bottom Sheet Modal */}
-      {showCouponsModal && (
-        <div className={styles.simpleModalOverlay} onClick={() => setShowCouponsModal(false)}>
-          <div className={styles.simpleModalSheet} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700 }}>🎟️ คูปองส่วนลดที่ใช้ได้</h3>
-              <button
-                onClick={() => setShowCouponsModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ padding: '10px', border: '1px dashed var(--color-primary)', borderRadius: '8px', background: 'var(--color-bg-secondary)' }}>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-primary)' }}>ส่วนลด ฿500</div>
-                <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>ขั้นต่ำ ฿15,000 • โค้ด: MEEPRO500</div>
-              </div>
-              <div style={{ padding: '10px', border: '1px dashed var(--color-primary)', borderRadius: '8px', background: 'var(--color-bg-secondary)' }}>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-primary)' }}>ส่วนลด ฿1,000</div>
-                <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>ขั้นต่ำ ฿30,000 • โค้ด: FLAGSHIP1K</div>
-              </div>
-              <div style={{ padding: '10px', border: '1px dashed var(--color-primary)', borderRadius: '8px', background: 'var(--color-bg-secondary)' }}>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-primary)' }}>ส่วนลด 10% อุปกรณ์เสริม</div>
-                <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>ลดสูงสุด ฿800 • โค้ด: AUDIO10</div>
-              </div>
-            </div>
+      {/* MODAL 2: SCREEN 13 (LOGGING OUT LOADING STATE) */}
+      {logoutStep === 'loading' && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-[280px] bg-white rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center space-y-3">
+            <div className="w-12 h-12 border-3 border-[#007ACC]/30 border-t-[#007ACC] rounded-full animate-spin" />
+            <h4 className="text-[16px] font-bold text-[#0F172A]">กำลังออกจากระบบ...</h4>
+            <p className="text-xs text-[#64748B]">กำลังบันทึกและยกเลิกเซสชันของคุณอย่างปลอดภัย</p>
           </div>
         </div>
+      )}
+
+      {/* Privacy Policy Modal */}
+      {showPolicyModal && (
+        <PrivacyPolicyModal onAccept={() => setShowPolicyModal(false)} />
       )}
     </div>
   );
