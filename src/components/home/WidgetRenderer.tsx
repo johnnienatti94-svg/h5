@@ -23,6 +23,20 @@ import SpacerDividerWidget from '@/components/widgets/SpacerDividerWidget';
 import FooterWidget from '@/components/widgets/FooterWidget';
 import CustomEmbedWidget from '@/components/widgets/CustomEmbedWidget';
 
+// Phase 5: Product Browsing & Promotion Widgets
+import ProductGridWidget from '@/components/widgets/ProductGridWidget';
+import ProductCarouselWidget from '@/components/widgets/ProductCarouselWidget';
+import FeaturedProductWidget from '@/components/widgets/FeaturedProductWidget';
+import CollectionTilesWidget from '@/components/widgets/CollectionTilesWidget';
+import TabbedProductsWidget from '@/components/widgets/TabbedProductsWidget';
+import RecentlyViewedWidget from '@/components/widgets/RecentlyViewedWidget';
+import RecommendedProductsWidget from '@/components/widgets/RecommendedProductsWidget';
+import SaleDealSectionWidget from '@/components/widgets/SaleDealSectionWidget';
+import CountdownTimerWidget from '@/components/widgets/CountdownTimerWidget';
+import CouponVoucherBlockWidget from '@/components/widgets/CouponVoucherBlockWidget';
+import BundleOfferWidget from '@/components/widgets/BundleOfferWidget';
+import ShoppableImageWidget from '@/components/widgets/ShoppableImageWidget';
+
 interface Props {
   widgets: AnyWidget[];
 }
@@ -61,6 +75,34 @@ export default function WidgetRenderer({ widgets }: Props) {
             return <ImageWithTextWidget key={widget.id} widget={widget} />;
           case 'CTA_BUTTON':
             return <CtaButtonWidget key={widget.id} widget={widget} />;
+
+          // Phase 5: Product Browsing
+          case 'PRODUCT_GRID':
+            return <ProductGridWidget key={widget.id} widget={widget} />;
+          case 'PRODUCT_CAROUSEL':
+            return <ProductCarouselWidget key={widget.id} widget={widget} />;
+          case 'FEATURED_PRODUCT':
+            return <FeaturedProductWidget key={widget.id} widget={widget} />;
+          case 'COLLECTION_TILES':
+            return <CollectionTilesWidget key={widget.id} widget={widget} />;
+          case 'TABBED_PRODUCTS':
+            return <TabbedProductsWidget key={widget.id} widget={widget} />;
+          case 'RECENTLY_VIEWED':
+            return <RecentlyViewedWidget key={widget.id} widget={widget} />;
+          case 'RECOMMENDED_PRODUCTS':
+            return <RecommendedProductsWidget key={widget.id} widget={widget} />;
+
+          // Phase 5: Promotions & Urgency
+          case 'SALE_DEAL_SECTION':
+            return <SaleDealSectionWidget key={widget.id} widget={widget} />;
+          case 'COUNTDOWN_TIMER':
+            return <CountdownTimerWidget key={widget.id} widget={widget} />;
+          case 'COUPON_VOUCHER_BLOCK':
+            return <CouponVoucherBlockWidget key={widget.id} widget={widget} />;
+          case 'BUNDLE_OFFER':
+            return <BundleOfferWidget key={widget.id} widget={widget} />;
+          case 'SHOPPABLE_IMAGE':
+            return <ShoppableImageWidget key={widget.id} widget={widget} />;
 
           // Existing / Foundational
           case 'CUSTOMER_GREETING':

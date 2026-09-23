@@ -285,3 +285,71 @@ export const ALL_PRODUCTS: DetailedProduct[] = [
     },
   },
 ];
+
+/**
+ * Resolves authoritative products based on CMS widget dataSource configuration
+ * (Specification Section 6)
+ */
+export function resolveProductsFromDataSource(dataSource?: {
+  type?: string;
+  targetId?: string;
+  query?: string;
+  limit?: number;
+  sortBy?: string;
+}): DetailedProduct[] {
+  if (!dataSource) return ALL_PRODUCTS.slice(0, 6);
+
+  let filtered = [...ALL_PRODUCTS];
+  const { type = 'manual', targetId, query, limit = 6, sortBy = 'default' } = dataSource;
+
+  switch (type) {
+    case 'category':
+      if (targetId && targetId !== 'all') {
+        filtered = filtered.filter((p) => p.category === targetId);
+      }
+      break;
+    case 'brand':
+      if (targetId && targetId !== 'all') {
+        filtered = filtered.filter((p) => p.brand.toLowerCase() === targetId.toLowerCase());
+      }
+      break;
+    case 'promotion':
+    case 'flash_sale':
+      filtered = filtered.filter((p) => p.isFlashSale || p.discountPercent >= 10);
+      break;
+    case 'search_query':
+      if (query) {
+        const q = query.toLowerCase();
+        filtered = filtered.filter(
+          (p) =>
+            p.name.toLowerCase().includes(q) ||
+            p.brand.toLowerCase().includes(q) ||
+            p.categoryName.toLowerCase().includes(q)
+        );
+      }
+      break;
+    case 'recommended':
+    case 'trending':
+      filtered = filtered.sort((a, b) => b.discountPercent - a.discountPercent);
+      break;
+    case 'manual':
+    default:
+      if (targetId) {
+        const ids = targetId.split(',').map((s) => s.trim());
+        filtered = filtered.filter((p) => ids.includes(p.id));
+      }
+      break;
+  }
+
+  // Sorting
+  if (sortBy === 'price_asc') {
+    filtered.sort((a, b) => a.promoPrice - b.promoPrice);
+  } else if (sortBy === 'price_desc') {
+    filtered.sort((a, b) => b.promoPrice - a.promoPrice);
+  } else if (sortBy === 'popularity') {
+    filtered.sort((a, b) => b.discountPercent - a.discountPercent);
+  }
+
+  return filtered.slice(0, limit);
+}
+
