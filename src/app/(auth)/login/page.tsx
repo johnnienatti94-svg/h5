@@ -96,6 +96,19 @@ export default function LoginPage() {
     await requestOtp();
   };
 
+  const handleDevBypass = () => {
+    const cleanPhone = phone.replace(/\D/g, '') || '0812345678';
+    localStorage.setItem(
+      'meepro_auth',
+      JSON.stringify({
+        phone: cleanPhone,
+        phone_verified: true,
+        phone_verified_at: new Date().toISOString(),
+      })
+    );
+    router.replace('/home');
+  };
+
   const formatPhoneDisplay = (val: string) => {
     const raw = val.replace(/\D/g, '');
     if (raw.length <= 3) return raw;
@@ -321,6 +334,18 @@ export default function LoginPage() {
                     ความปลอดภัยระดับธนาคาร ระบบเข้ารหัส 256-bit
                   </span>
                 </div>
+
+                {/* 1-Click Dev Bypass Button */}
+                <div className="mt-3 pt-2.5 border-t border-dashed border-[#E2E8F0] flex justify-center">
+                  <button
+                    type="button"
+                    onClick={handleDevBypass}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold active:scale-98 transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[16px] text-amber-600">bolt</span>
+                    <span>⚡ Dev Bypass (ข้ามหน้าล็อกอิน)</span>
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -417,6 +442,18 @@ export default function LoginPage() {
                   <span>{loading ? 'กำลังยืนยัน...' : 'ยืนยัน'}</span>
                   <span className="material-symbols-outlined text-[18px]">check_circle</span>
                 </button>
+
+                {/* 1-Click Dev Bypass Button */}
+                <div className="mt-3 pt-2.5 border-t border-dashed border-[#E2E8F0] flex justify-center">
+                  <button
+                    type="button"
+                    onClick={handleDevBypass}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold active:scale-98 transition-all"
+                  >
+                    <span className="material-symbols-outlined text-[16px] text-amber-600">bolt</span>
+                    <span>⚡ Dev Bypass (ข้ามหน้าล็อกอิน)</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
