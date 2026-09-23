@@ -1,6 +1,9 @@
 /* Catalog Styles */
 .catalogContainer {
   padding-bottom: var(--space-8);
+  width: 100%;
+  max-width: var(--max-content-width, 1280px);
+  margin: 0 auto;
 }
 
 .searchHeader {
@@ -118,6 +121,40 @@
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-3);
   padding: 0 var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .productGrid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+    padding: 0 var(--space-6);
+  }
+  .categoryBar {
+    padding: var(--space-3) var(--space-6);
+  }
+  .filterControls {
+    padding: 0 var(--space-6) var(--space-3);
+  }
+  .resultsCount {
+    padding: 0 var(--space-6) var(--space-2);
+  }
+}
+
+@media (min-width: 1024px) {
+  .productGrid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-5);
+    padding: 0 var(--space-8);
+  }
+  .categoryBar {
+    padding: var(--space-3) var(--space-8);
+  }
+  .filterControls {
+    padding: 0 var(--space-8) var(--space-3);
+  }
+  .resultsCount {
+    padding: 0 var(--space-8) var(--space-2);
+  }
 }
 
 .productCard {

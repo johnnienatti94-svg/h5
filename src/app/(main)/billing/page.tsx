@@ -57,7 +57,7 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="w-full max-w-[390px] mx-auto px-4 py-4 pb-24">
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-[#0F172A] text-white text-xs px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 animate-bounce">
@@ -261,8 +261,8 @@ export default function BillingPage() {
 
       {/* Payment Sheet Modal */}
       {showPaymentModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end justify-center p-0 animate-fade-in">
-          <div className="w-full max-w-[390px] bg-white rounded-t-2xl p-5 shadow-2xl animate-slide-up">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+          <div className="w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl p-5 shadow-2xl animate-slide-up">
             <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
               <h3 className="font-bold text-[16px] text-[#0F172A]">เลือกช่องทางชำระเงิน</h3>
               <button

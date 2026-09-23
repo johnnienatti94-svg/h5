@@ -47,9 +47,9 @@ function HomeContent() {
   }
 
   return (
-    <div className="page-enter w-full max-w-[390px] mx-auto px-4 pt-3 pb-24">
+    <div className="page-enter w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-24">
       {/* 1. Segmented Service Switch (สวิตช์เลือกบริการ - Stitch Screen 06 & 07) */}
-      <section aria-label="สวิตช์เลือกบริการ" className="w-full mb-3">
+      <section aria-label="สวิตช์เลือกบริการ" className="w-full max-w-2xl mx-auto mb-3">
         <div className="w-full h-12 bg-white rounded-xl border border-[#E2E8F0] p-1 flex items-center shadow-xs">
           <button
             type="button"
@@ -80,7 +80,7 @@ function HomeContent() {
       {activeTab === 'installment' ? (
         <>
           {/* Quick Trust Banner from Stitch Screen 06 */}
-          <section className="w-full bg-white rounded-xl border border-[#E2E8F0] p-3 flex items-center space-x-3 shadow-xs mb-3">
+          <section className="w-full max-w-2xl mx-auto bg-white rounded-xl border border-[#E2E8F0] p-3 flex items-center space-x-3 shadow-xs mb-3">
             <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-[#007ACC] shrink-0">
               <span className="material-symbols-outlined text-[20px]">bolt</span>
             </div>

@@ -40,14 +40,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#0F172A',
+          background: '#F8FAFC',
         }}
       >
         <div
           style={{
             width: 40,
             height: 40,
-            border: '3px solid #334155',
+            border: '3px solid #E2E8F0',
             borderTopColor: '#007ACC',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',

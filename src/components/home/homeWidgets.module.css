@@ -549,7 +549,7 @@
 .builderFab {
   position: fixed;
   bottom: 80px;
-  right: calc(50% - 225px);
+  right: 24px;
   z-index: 90;
   background: linear-gradient(135deg, #2563EB, #1D4ED8);
   color: #FFFFFF;

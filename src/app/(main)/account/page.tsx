@@ -47,7 +47,7 @@ export default function AccountPage() {
   // Screen 14: Full Logout Success View
   if (logoutStep === 'success') {
     return (
-      <div className="w-full max-w-[390px] mx-auto px-4 py-4 pb-20 animate-fade-in flex flex-col justify-between min-h-[600px]">
+      <div className="w-full max-w-xl mx-auto px-4 sm:px-6 py-6 pb-20 animate-fade-in flex flex-col justify-between min-h-[600px]">
         {/* Central Feedback Card */}
         <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-sm flex flex-col items-center text-center mt-2">
           {/* Animated Success Badge */}
@@ -117,7 +117,7 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="w-full max-w-[390px] mx-auto px-4 py-4 pb-24 space-y-4">
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 space-y-4">
       {/* 1. Profile Header Card (Stitch Screen 11) */}
       <section className="bg-white rounded-2xl p-4 border border-[#E2E8F0] shadow-sm flex items-center gap-3.5">
         <div className="relative w-14 h-14 rounded-full overflow-hidden bg-blue-50 border-2 border-[#007ACC] shrink-0 flex items-center justify-center text-[#007ACC]">

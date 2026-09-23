@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 export default function AboutPage() {
   return (
-    <div className="w-full max-w-[390px] mx-auto px-4 py-4 pb-24 space-y-4">
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 space-y-4">
       {/* Page Title & Hierarchy Intro */}
       <section className="pt-2 pb-1">
         <div className="flex items-center justify-between">

@@ -1,19 +1,19 @@
 /* ============================================
-   MobileContainer Component Styles
-   Centered Mobile Simulator on Desktop & Full-bleed on Mobile
+   App Layout Container Styles
+   Responsive Mobile-First - No Fixed Mobile Canvas
    ============================================ */
 
 .outerWrapper {
   width: 100%;
   min-height: 100dvh;
   display: flex;
-  justify-content: center;
-  background-color: #0F172A;
+  flex-direction: column;
+  background-color: var(--color-canvas, #F8FAFC);
 }
 
 .container {
   width: 100%;
-  max-width: var(--max-content-width);
+  max-width: var(--max-content-width, 1280px);
   margin: 0 auto;
   min-height: 100dvh;
   background: var(--color-canvas, #F8FAFC);
@@ -27,13 +27,4 @@
   flex: 1;
   width: 100%;
   padding-bottom: calc(var(--bottom-nav-height, 64px) + var(--safe-area-bottom, 0px) + 24px);
-}
-
-/* On desktop viewports, elevate with sleek smartphone chassis style */
-@media (min-width: 481px) {
-  .container {
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
-    border-left: 1px solid #1E293B;
-    border-right: 1px solid #1E293B;
-  }
 }

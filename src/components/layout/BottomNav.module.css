@@ -20,10 +20,11 @@
   display: flex;
   align-items: center;
   justify-content: space-around;
-  max-width: var(--max-content-width);
+  width: 100%;
+  max-width: 600px;
   margin: 0 auto;
   height: var(--bottom-nav-height);
-  padding: 0 8px;
+  padding: 0 12px;
   background: #FFFFFF;
 }
 
