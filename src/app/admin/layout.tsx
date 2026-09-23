@@ -113,6 +113,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <span>สิทธิ์การใช้งาน (RBAC Matrix)</span>
         </Link>
         <Link
+          href="/admin/page-builder"
+          className={`${styles.navItem} ${pathname === '/admin/page-builder' ? styles.navItemActive : ''}`}
+        >
+          <span>🎨</span>
+          <span>จัดหน้าเว็บ (Visual Page Builder)</span>
+        </Link>
+        <Link
           href="/admin/logs"
           className={`${styles.navItem} ${pathname === '/admin/logs' ? styles.navItemActive : ''}`}
         >
