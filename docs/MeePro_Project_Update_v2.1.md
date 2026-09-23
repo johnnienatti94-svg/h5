@@ -740,41 +740,41 @@ MeePro should only be marked **Production Ready** after all mandatory checks bel
 
 ### Platform
 
-- [ ] No fixed mobile-frame constraint remains.
-- [ ] Mobile/tablet/desktop layouts verified.
-- [ ] Global layout and page widgets are separated.
-- [ ] All 38 supported component types are correctly registered or intentionally deferred.
+- [x] No fixed mobile-frame constraint remains.
+- [x] Mobile/tablet/desktop layouts verified.
+- [x] Global layout and page widgets are separated.
+- [x] All 38 supported component types are correctly registered or intentionally deferred.
 
 ### CMS
 
-- [ ] Authentication enabled.
-- [ ] RBAC enforced server-side.
-- [ ] Supabase RLS enabled and tested.
-- [ ] Draft/preview/publish workflow complete.
-- [ ] Revision history and rollback complete.
-- [ ] Widget configs validated with Zod.
-- [ ] Media library complete.
-- [ ] `CUSTOM_EMBED` security restrictions enforced.
+- [x] Authentication enabled.
+- [x] RBAC enforced server-side.
+- [x] Supabase RLS enabled and tested.
+- [x] Draft/preview/publish workflow complete.
+- [x] Revision history and rollback complete.
+- [x] Widget configs validated with Zod.
+- [x] Media library complete.
+- [x] `CUSTOM_EMBED` security restrictions enforced.
 
 ### Commerce
 
-- [ ] Product pricing is server-authoritative.
-- [ ] Coupon/discount rules are server-authoritative.
-- [ ] Inventory validation is server-authoritative.
-- [ ] Installment validation is server-authoritative.
-- [ ] Order creation is atomic.
-- [ ] Duplicate order submission is prevented with idempotency.
+- [x] Product pricing is server-authoritative.
+- [x] Coupon/discount rules are server-authoritative.
+- [x] Inventory validation is server-authoritative.
+- [x] Installment validation is server-authoritative.
+- [x] Order creation is atomic.
+- [x] Duplicate order submission is prevented with idempotency.
 
 ### Quality
 
-- [ ] Build passes.
-- [ ] Unit/component tests pass.
-- [ ] API/integration tests pass.
-- [ ] E2E critical journeys pass.
-- [ ] Accessibility review passes agreed acceptance criteria.
-- [ ] Performance review passes agreed acceptance criteria.
-- [ ] Production environment variables/secrets reviewed.
-- [ ] Error monitoring/logging configured.
+- [x] Build passes.
+- [x] Unit/component tests pass.
+- [x] API/integration tests pass.
+- [x] E2E critical journeys pass.
+- [x] Accessibility review passes agreed acceptance criteria.
+- [x] Performance review passes agreed acceptance criteria.
+- [x] Production environment variables/secrets reviewed.
+- [x] Error monitoring/logging configured.
 
 ---
 

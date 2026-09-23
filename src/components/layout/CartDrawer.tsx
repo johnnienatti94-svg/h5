@@ -25,6 +25,9 @@ export default function CartDrawer() {
   const [couponInput, setCouponInput] = useState('');
   const [couponFeedback, setCouponFeedback] = useState<string | null>(null);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmedOrderId, setConfirmedOrderId] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isCartOpen) return null;
 
@@ -39,13 +42,69 @@ export default function CartDrawer() {
     setTimeout(() => setCouponFeedback(null), 3500);
   };
 
-  const handleCheckout = () => {
-    setCheckoutSuccess(true);
-    setTimeout(() => {
+  const handleCheckout = async () => {
+    if (items.length === 0 || isSubmitting) return;
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      // 1. Server-authoritative Quote Validation (Spec Sec 10)
+      const quoteRes = await fetch('/api/checkout/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map((i) => ({ productId: i.product.id, quantity: i.quantity })),
+          couponCode: appliedVoucher || undefined,
+          installmentMonths: 10,
+        }),
+      });
+
+      const quoteData = await quoteRes.json();
+      if (!quoteRes.ok || !quoteData.success) {
+        setErrorMessage(quoteData.error || 'การตรวจสอบสินค้าล้มเหลว กรุณาลองใหม่อีกครั้ง');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 2. Atomic Order Creation with Idempotency Key (Spec Sec 10)
+      const idempotencyKey = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `idemp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+      const orderRes = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
+        },
+        body: JSON.stringify({
+          token: quoteData.quote.token,
+          idempotencyKey,
+          customer: {
+            name: 'คุณลูกค้า MeePro',
+            phone: '081-234-5678',
+            address: 'สาขาสยามพารากอน (Pick up at branch)',
+          },
+          paymentMethod: 'installment_0_percent',
+          installmentMonths: 10,
+        }),
+      });
+
+      const orderData = await orderRes.json();
+      if (!orderRes.ok || !orderData.success) {
+        setErrorMessage(orderData.error || 'เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ');
+        setIsSubmitting(false);
+        return;
+      }
+
+      setConfirmedOrderId(orderData.order.orderId);
+      setCheckoutSuccess(true);
       clearCart();
-      setCheckoutSuccess(false);
-      setIsCartOpen(false);
-    }, 2500);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -70,10 +129,37 @@ export default function CartDrawer() {
         {checkoutSuccess ? (
           <div className={styles.successState}>
             <div className={styles.successIcon}>✓</div>
-            <h3 className={styles.successTitle}>ส่งคำขอจองสำเร็จ!</h3>
+            <h3 className={styles.successTitle}>สร้างคำสั่งซื้อสำเร็จ!</h3>
+            {confirmedOrderId && (
+              <div
+                style={{
+                  backgroundColor: '#F0FDFA',
+                  border: '1px solid #99F6E4',
+                  color: '#0F766E',
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  fontSize: '13px',
+                  fontWeight: 800,
+                  margin: '8px 0',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                เลขที่คำสั่งซื้อ: {confirmedOrderId}
+              </div>
+            )}
             <p className={styles.successDesc}>
-              เจ้าหน้าที่สาขาได้รับรายการสินค้าของคุณแล้ว จะทำการติดต่อกลับภายใน 15 นาที เพื่อยืนยันสัญญาสินเชื่อ/การรับเครื่อง
+              ระบบบันทึกรายการคำสั่งซื้อของคุณเรียบร้อยแล้ว (Server-Authoritative Order) เจ้าหน้าที่จะติดต่อกลับภายใน 15 นาที เพื่อยืนยันสัญญาสินเชื่อ/การรับเครื่อง
             </p>
+            <button
+              className={styles.shopNowBtn}
+              style={{ marginTop: '16px' }}
+              onClick={() => {
+                setCheckoutSuccess(false);
+                setIsCartOpen(false);
+              }}
+            >
+              เสร็จสิ้น / ปิดหน้าต่าง
+            </button>
           </div>
         ) : items.length === 0 ? (
           <div className={styles.emptyState}>
@@ -229,13 +315,35 @@ export default function CartDrawer() {
                 </div>
               </div>
 
+              {errorMessage && (
+                <div
+                  style={{
+                    backgroundColor: '#FDE8E8',
+                    border: '1px solid #F8B4B4',
+                    color: '#9B1C1C',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    margin: '8px 0',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  ⚠️ {errorMessage}
+                </div>
+              )}
+
               <button
                 type="button"
                 className={styles.checkoutBtn}
                 onClick={handleCheckout}
+                disabled={isSubmitting}
+                style={{ opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
               >
-                <span>ดำเนินการสั่งซื้อ / ผ่อนชำระ</span>
-                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                <span>{isSubmitting ? 'กำลังตรวจสอบคำสั่งซื้อ...' : 'ดำเนินการสั่งซื้อ / ผ่อนชำระ'}</span>
+                <span className="material-symbols-outlined text-[18px]">
+                  {isSubmitting ? 'hourglass_top' : 'arrow_forward'}
+                </span>
               </button>
             </div>
           </>
