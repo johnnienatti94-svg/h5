@@ -21,6 +21,8 @@ import {
   X,
   ExternalLink,
   RotateCcw,
+  Sliders,
+  Code2,
   Sparkles,
 } from 'lucide-react';
 import { AnyWidget } from '@/types/widget';
@@ -51,27 +53,46 @@ interface RevisionItem {
   };
 }
 
+/**
+ * Normalizes widget config by pulling legacy root-level properties into config
+ */
+function normalizeWidget(w: AnyWidget): AnyWidget {
+  const existingConfig = w.config || {};
+  if (Object.keys(existingConfig).length === 0) {
+    const { id, type, title, subtitle, sortOrder, isActive, ...rest } = w as any;
+    if (Object.keys(rest).length > 0) {
+      return { ...w, config: rest };
+    }
+    const preset = WIDGET_CATALOG.find((c) => c.type.toUpperCase() === type.toUpperCase());
+    if (preset) {
+      return { ...w, config: JSON.parse(JSON.stringify(preset.defaultConfig)) };
+    }
+  }
+  return w;
+}
+
 export default function VisualPageBuilder({
   role = 'staff',
   pageId = 'p-home-001',
-  pageTitle = 'MeePro Mobile Homepage',
+  pageTitle = 'หน้าแรก MeePro (Homepage)',
 }: Props) {
   // 1. Core State
   const [widgets, setWidgets] = useState<AnyWidget[]>([]);
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
-  const [deviceMode, setDeviceMode] = useState<'mobile' | 'tablet' | 'desktop'>('mobile');
+  const [deviceMode, setDeviceMode] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const [pageStatus, setPageStatus] = useState<'draft' | 'published'>('published');
   const [lastSavedAt, setLastSavedAt] = useState<string>('เพิ่งบันทึก');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
   const [feedbackMessage, setFeedbackMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
-  // Modals
+  // Modals & Panels
   const [showCatalogModal, setShowCatalogModal] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState('');
   const [catalogCategory, setCatalogCategory] = useState<string>('all');
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [revisions, setRevisions] = useState<RevisionItem[]>([]);
   const [loadingRevisions, setLoadingRevisions] = useState(false);
+  const [editorTab, setEditorTab] = useState<'visual' | 'json'>('visual');
 
   // Selected widget inspector state
   const selectedWidget = useMemo(
@@ -79,25 +100,23 @@ export default function VisualPageBuilder({
     [widgets, selectedWidgetId]
   );
   const [inspectorTitle, setInspectorTitle] = useState('');
-  const [inspectorConfigJson, setInspectorConfigJson] = useState('');
+  const [inspectorConfigJson, setInspectorConfigJson] = useState('{}');
   const [inspectorValidation, setInspectorValidation] = useState<{ valid: boolean; error?: string }>({ valid: true });
 
-  // 2. Load Widgets on Mount
+  // 2. Load and Normalize Widgets on Mount
   useEffect(() => {
-    const loaded = getHomepageWidgets();
-    setWidgets(loaded);
-    if (loaded.length > 0) {
-      setSelectedWidgetId(loaded[0].id);
-    }
+    const rawLoaded = getHomepageWidgets();
+    const normalized = rawLoaded.map(normalizeWidget);
+    setWidgets(normalized);
   }, []);
 
   // Sync inspector when selected widget changes
   useEffect(() => {
     if (selectedWidget) {
       setInspectorTitle(selectedWidget.title || '');
-      const configStr = JSON.stringify(selectedWidget.config || {}, null, 2);
-      setInspectorConfigJson(configStr);
-      validateInspectorConfig(selectedWidget.type, selectedWidget.config || {});
+      const cfg = selectedWidget.config || {};
+      setInspectorConfigJson(JSON.stringify(cfg, null, 2));
+      validateInspectorConfig(selectedWidget.type, cfg);
     }
   }, [selectedWidgetId]);
 
@@ -171,7 +190,7 @@ export default function VisualPageBuilder({
       const filtered = widgets.filter((w) => w.id !== id).map((w, idx) => ({ ...w, sortOrder: idx + 1 }));
       setWidgets(filtered);
       if (selectedWidgetId === id) {
-        setSelectedWidgetId(filtered[0]?.id || null);
+        setSelectedWidgetId(null);
       }
       setHasUnsavedChanges(true);
       setPageStatus('draft');
@@ -187,7 +206,7 @@ export default function VisualPageBuilder({
       title: item.defaultTitle,
       sortOrder: widgets.length + 1,
       isActive: true,
-      config: item.defaultConfig,
+      config: JSON.parse(JSON.stringify(item.defaultConfig)),
     };
 
     const updated = [...widgets, newWidget];
@@ -223,7 +242,7 @@ export default function VisualPageBuilder({
       setHasUnsavedChanges(true);
       setPageStatus('draft');
       showToast('อัปเดต Widget และแสดงตัวอย่างเรียบร้อย');
-    } catch (err: any) {
+    } catch {
       setInspectorValidation({ valid: false, error: 'JSON Syntax Error: รูปแบบ JSON ไม่ถูกต้อง' });
       showToast('รูปแบบ JSON ไม่ถูกต้อง กรุณาตรวจสอบ', 'error');
     }
@@ -246,7 +265,6 @@ export default function VisualPageBuilder({
     if (confirm('คุณต้องการเผยแพร่ (Publish) หน้าแรกสู่ระบบ Live ให้ลูกค้าเห็นทันทีหรือไม่? ระบบจะสร้าง Snapshot Revision โดยอัตโนมัติ')) {
       saveHomepageWidgets(widgets);
 
-      // Create snapshot revision
       const newRev: RevisionItem = {
         id: `rev-${Date.now()}`,
         revision_number: (revisions.length || 0) + 1,
@@ -289,9 +307,6 @@ export default function VisualPageBuilder({
       if (rev.snapshot?.widgets && Array.isArray(rev.snapshot.widgets)) {
         setWidgets(rev.snapshot.widgets);
         saveHomepageWidgets(rev.snapshot.widgets);
-        if (rev.snapshot.widgets.length > 0) {
-          setSelectedWidgetId(rev.snapshot.widgets[0].id);
-        }
         setShowHistoryModal(false);
         setHasUnsavedChanges(false);
         setPageStatus('published');
@@ -303,8 +318,9 @@ export default function VisualPageBuilder({
   const handleResetDefaults = () => {
     if (confirm('คุณต้องการรีเซ็ตลำดับและ Widget ทั้งหมดกลับเป็นค่าเริ่มต้นตามระบบ MeePro หรือไม่?')) {
       const def = resetHomepageWidgets();
-      setWidgets(def);
-      setSelectedWidgetId(def[0]?.id || null);
+      const normalized = def.map(normalizeWidget);
+      setWidgets(normalized);
+      setSelectedWidgetId(null);
       setHasUnsavedChanges(false);
       setPageStatus('published');
       showToast('คืนค่า Widget เริ่มต้นเรียบร้อยแล้ว');
@@ -325,51 +341,49 @@ export default function VisualPageBuilder({
 
   return (
     <div className={styles.builderContainer}>
-      {/* 1. Top Bar */}
+      {/* 1. Header Toolbar */}
       <header className={styles.topBar}>
         <div className={styles.pageInfo}>
-          <h2 className={styles.pageTitle}>🎨 {pageTitle}</h2>
+          <div className={styles.brandIcon}>🎨</div>
+          <div>
+            <h2 className={styles.pageTitle}>{pageTitle}</h2>
+          </div>
           <span className={pageStatus === 'published' ? styles.statusBadgePublished : styles.statusBadgeDraft}>
             ● {pageStatus === 'published' ? 'PUBLISHED' : 'DRAFT'}
           </span>
           {hasUnsavedChanges && (
-            <span style={{ fontSize: '11px', color: '#EF4444', fontWeight: 700 }}>
-              * มีการแก้ไขที่ยังไม่ได้บันทึก
-            </span>
+            <span className={styles.unsavedText}>* มีการแก้ไขที่ยังไม่ได้บันทึก</span>
           )}
-          <span style={{ fontSize: '11px', color: '#94A3B8' }}>
-            บันทึกล่าสุด: {lastSavedAt}
-          </span>
         </div>
 
-        {/* Device Switcher */}
+        {/* Device Switcher (Mobile / Tablet / Desktop) */}
         <div className={styles.deviceSwitcher}>
           <button
             type="button"
             className={`${styles.deviceBtn} ${deviceMode === 'mobile' ? styles.deviceBtnActive : ''}`}
             onClick={() => setDeviceMode('mobile')}
-            title="มุมมองมือถือ (Mobile View - 390px)"
+            title="มุมมองมือถือ (Mobile — 390px)"
           >
-            <Smartphone size={15} />
-            <span>Mobile</span>
+            <Smartphone size={14} />
+            <span>Mobile (390px)</span>
           </button>
           <button
             type="button"
             className={`${styles.deviceBtn} ${deviceMode === 'tablet' ? styles.deviceBtnActive : ''}`}
             onClick={() => setDeviceMode('tablet')}
-            title="มุมมองแท็บเล็ต (Tablet View - 768px)"
+            title="มุมมองแท็บเล็ต (Tablet — 768px)"
           >
-            <Tablet size={15} />
-            <span>Tablet</span>
+            <Tablet size={14} />
+            <span>Tablet (768px)</span>
           </button>
           <button
             type="button"
             className={`${styles.deviceBtn} ${deviceMode === 'desktop' ? styles.deviceBtnActive : ''}`}
             onClick={() => setDeviceMode('desktop')}
-            title="มุมมองเดสก์ท็อป (Desktop View - 100%)"
+            title="มุมมองเดสก์ท็อป (Desktop Full Width)"
           >
-            <Monitor size={15} />
-            <span>Desktop</span>
+            <Monitor size={14} />
+            <span>Desktop (Full)</span>
           </button>
         </div>
 
@@ -381,7 +395,7 @@ export default function VisualPageBuilder({
             onClick={handleResetDefaults}
             title="คืนค่าเริ่มต้น"
           >
-            <RotateCcw size={14} />
+            <RotateCcw size={13} />
             <span>รีเซ็ต</span>
           </button>
           <button
@@ -390,15 +404,15 @@ export default function VisualPageBuilder({
             onClick={handleOpenHistory}
             title="ประวัติการแก้ไขและ Rollback"
           >
-            <History size={14} />
-            <span>ประวัติแก้ไข ({revisions.length})</span>
+            <History size={13} />
+            <span>ประวัติ ({revisions.length})</span>
           </button>
           <button
             type="button"
             className={styles.btnPrimary}
             onClick={handleSaveDraft}
           >
-            <Save size={14} />
+            <Save size={13} />
             <span>บันทึกแบบร่าง</span>
           </button>
           <button
@@ -407,16 +421,15 @@ export default function VisualPageBuilder({
             onClick={handlePublishNow}
             title={role === 'admin' ? 'เผยแพร่สู่ Production' : 'ต้องใช้สิทธิ์ Admin เพื่อ Publish'}
           >
-            <Send size={14} />
-            <span>เผยแพร่ (Publish)</span>
+            <Send size={13} />
+            <span>เผยแพร่ Live</span>
           </button>
           <Link
             href="/home"
             target="_blank"
             className={styles.btnSecondary}
-            style={{ textDecoration: 'none' }}
           >
-            <ExternalLink size={14} />
+            <ExternalLink size={13} />
             <span>ดูหน้าจริง</span>
           </Link>
         </div>
@@ -436,7 +449,7 @@ export default function VisualPageBuilder({
             borderRadius: '10px',
             fontSize: '13px',
             fontWeight: 700,
-            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)',
+            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
@@ -448,20 +461,20 @@ export default function VisualPageBuilder({
         </div>
       )}
 
-      {/* 2. Workspace: Left Sidebar + Center Canvas Preview + Right Inspector */}
+      {/* 2. Workspace: Sidebar (Left) + Spacious Canvas (Center) */}
       <div className={styles.workspace}>
-        {/* Left Sidebar: Widget Tree & Controls */}
+        {/* Left Sidebar: Widget Hierarchy Tree */}
         <aside className={styles.sidebar}>
           <div className={styles.sidebarHeader}>
-            <h3 className={styles.sidebarTitle}>โครงสร้าง Widgets ({widgets.length})</h3>
+            <h3 className={styles.sidebarTitle}>เลเยอร์ WIDGETS ({widgets.length})</h3>
             <button
               type="button"
               className={styles.btnPrimary}
-              style={{ padding: '6px 12px', fontSize: '11px' }}
+              style={{ padding: '5px 10px', fontSize: '11px' }}
               onClick={() => setShowCatalogModal(true)}
             >
-              <Plus size={14} />
-              <span>เพิ่ม Widget</span>
+              <Plus size={13} />
+              <span>เพิ่ม</span>
             </button>
           </div>
 
@@ -474,7 +487,8 @@ export default function VisualPageBuilder({
                   className={`${styles.widgetItem} ${isSelected ? styles.widgetItemSelected : ''} ${
                     !widget.isActive ? styles.widgetItemDisabled : ''
                   }`}
-                  onClick={() => setSelectedWidgetId(widget.id)}
+                  onClick={() => setSelectedWidgetId(isSelected ? null : widget.id)}
+                  title="คลิกเพื่อเปิดกล่องตั้งค่า Widget"
                 >
                   <div className={styles.widgetItemLeft}>
                     <span className={styles.sortIndex}>#{widget.sortOrder}</span>
@@ -492,7 +506,7 @@ export default function VisualPageBuilder({
                       onClick={(e) => handleToggleActive(widget.id, e)}
                       title={widget.isActive ? 'ปิดการแสดงผล' : 'เปิดการแสดงผล'}
                     >
-                      {widget.isActive ? <Eye size={14} color="#0D9488" /> : <EyeOff size={14} color="#94A3B8" />}
+                      {widget.isActive ? <Eye size={13} color="#10B981" /> : <EyeOff size={13} color="#64748B" />}
                     </button>
                     <button
                       type="button"
@@ -505,7 +519,7 @@ export default function VisualPageBuilder({
                       title="เลื่อนขึ้น"
                       style={{ opacity: idx === 0 ? 0.3 : 1 }}
                     >
-                      <ChevronUp size={14} />
+                      <ChevronUp size={13} />
                     </button>
                     <button
                       type="button"
@@ -518,7 +532,7 @@ export default function VisualPageBuilder({
                       title="เลื่อนลง"
                       style={{ opacity: idx === widgets.length - 1 ? 0.3 : 1 }}
                     >
-                      <ChevronDown size={14} />
+                      <ChevronDown size={13} />
                     </button>
                     <button
                       type="button"
@@ -543,44 +557,60 @@ export default function VisualPageBuilder({
           </div>
         </aside>
 
-        {/* Center: Live Device Canvas Preview */}
+        {/* Center: Full-Breathing Interactive Preview Canvas */}
         <main className={styles.canvasArea}>
-          <div
-            className={styles.deviceFrame}
-            style={{
-              width:
-                deviceMode === 'mobile'
-                  ? '390px'
-                  : deviceMode === 'tablet'
-                  ? '768px'
-                  : '100%',
-              maxWidth: deviceMode === 'desktop' ? '1200px' : undefined,
-            }}
-          >
-            {/* Bezel */}
-            {deviceMode !== 'desktop' && (
-              <div className={styles.deviceBezelTop}>
+          {deviceMode === 'mobile' && (
+            <div className={styles.mobileFrame}>
+              <div className={styles.mobileBezelTop}>
                 <span>9:41</span>
-                <div className={styles.deviceNotch} />
+                <div className={styles.mobileIsland} />
                 <span>5G 100%</span>
               </div>
-            )}
-
-            <div className={styles.deviceContent}>
-              <WidgetRenderer widgets={widgets} />
+              <div className={styles.frameContent}>
+                <WidgetRenderer widgets={widgets} />
+              </div>
             </div>
-          </div>
+          )}
+
+          {deviceMode === 'tablet' && (
+            <div className={styles.tabletFrame}>
+              <div className={styles.tabletBezelTop}>
+                <span>iPad Preview (768px)</span>
+              </div>
+              <div className={styles.frameContent}>
+                <WidgetRenderer widgets={widgets} />
+              </div>
+            </div>
+          )}
+
+          {deviceMode === 'desktop' && (
+            <div className={styles.desktopFrame}>
+              <div className={styles.browserHeader}>
+                <div className={styles.trafficLights}>
+                  <div className={styles.dotRed} />
+                  <div className={styles.dotYellow} />
+                  <div className={styles.dotGreen} />
+                </div>
+                <div className={styles.addressBar}>
+                  🔒 https://meepro.co.th/home
+                </div>
+              </div>
+              <div className={styles.frameContent}>
+                <WidgetRenderer widgets={widgets} />
+              </div>
+            </div>
+          )}
         </main>
 
-        {/* Right Sidebar: Widget Inspector */}
+        {/* 3. Slide-Over Inspector Drawer (Overlays smoothly without shrinking the canvas!) */}
         {selectedWidget && (
-          <aside className={styles.inspector}>
+          <aside className={styles.inspectorDrawer}>
             <div className={styles.inspectorHeader}>
               <div>
-                <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#0F172A' }}>
+                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#F8FAFC' }}>
                   ⚙️ ตั้งค่า Widget
                 </h4>
-                <span style={{ fontSize: '11px', color: '#64748B' }}>
+                <span style={{ fontSize: '11px', color: '#94A3B8' }}>
                   {selectedWidget.type} • ID: {selectedWidget.id}
                 </span>
               </div>
@@ -588,13 +618,62 @@ export default function VisualPageBuilder({
                 type="button"
                 className={styles.iconBtn}
                 onClick={() => setSelectedWidgetId(null)}
+                title="ปิดแถบตั้งค่า"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
             <div className={styles.inspectorBody}>
-              {/* Title Field */}
+              {/* Tab Switcher: Visual vs JSON */}
+              <div style={{ display: 'flex', gap: '4px', backgroundColor: '#0B0F19', padding: '3px', borderRadius: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditorTab('visual')}
+                  style={{
+                    flex: 1,
+                    padding: '6px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: editorTab === 'visual' ? '#2563EB' : 'transparent',
+                    color: editorTab === 'visual' ? '#FFFFFF' : '#94A3B8',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <Sliders size={13} />
+                  <span>ตั้งค่าทั่วไป</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditorTab('json')}
+                  style={{
+                    flex: 1,
+                    padding: '6px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: editorTab === 'json' ? '#2563EB' : 'transparent',
+                    color: editorTab === 'json' ? '#FFFFFF' : '#94A3B8',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <Code2 size={13} />
+                  <span>Config JSON</span>
+                </button>
+              </div>
+
+              {/* Title Input */}
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>ชื่อหัวข้อ Widget</label>
                 <input
@@ -609,36 +688,39 @@ export default function VisualPageBuilder({
               {/* Status Toggle */}
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>สถานะการแสดงผล</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleActive(selectedWidget.id)}
-                    style={{
-                      flex: 1,
-                      padding: '8px',
-                      borderRadius: '8px',
-                      border: '1px solid #CBD5E1',
-                      background: selectedWidget.isActive ? '#0D9488' : '#F1F5F9',
-                      color: selectedWidget.isActive ? '#FFFFFF' : '#475569',
-                      fontWeight: 700,
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {selectedWidget.isActive ? '✓ กำลังเปิดใช้งาน' : '○ ปิดการแสดงผล'}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleToggleActive(selectedWidget.id)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: selectedWidget.isActive ? '#0D9488' : '#334155',
+                    color: '#FFFFFF',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  {selectedWidget.isActive ? <Check size={16} /> : <EyeOff size={16} />}
+                  <span>{selectedWidget.isActive ? 'เปิดใช้งานบนหน้าเว็บ (Active)' : 'ปิดการแสดงผลชั่วคราว (Inactive)'}</span>
+                </button>
               </div>
 
-              {/* Zod Validation Status */}
+              {/* Validation Status */}
               <div>
                 <label className={styles.formLabel} style={{ marginBottom: '6px', display: 'block' }}>
-                  การตรวจสอบ Zod Schema (Runtime Validation)
+                  สถานะการตรวจสอบ Runtime Zod Schema
                 </label>
                 {inspectorValidation.valid ? (
                   <div className={styles.validationAlertValid}>
                     <Check size={14} />
-                    <span>Config ผ่านการตรวจสอบ Zod Runtime Schema แล้ว</span>
+                    <span>Config ถูกต้องตามระบบ Zod Runtime Schema</span>
                   </div>
                 ) : (
                   <div className={styles.validationAlertInvalid}>
@@ -648,34 +730,62 @@ export default function VisualPageBuilder({
                 )}
               </div>
 
-              {/* JSON Config Editor */}
-              <div className={styles.formGroup}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <label className={styles.formLabel}>พารามิเตอร์ Config (JSON)</label>
-                  <span style={{ fontSize: '10px', color: '#64748B' }}>Real-time update</span>
+              {/* Visual Fields or JSON Mode */}
+              {editorTab === 'json' ? (
+                <div className={styles.formGroup}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className={styles.formLabel}>พารามิเตอร์ Config (JSON)</label>
+                    <span style={{ fontSize: '10px', color: '#94A3B8' }}>Real-time update</span>
+                  </div>
+                  <textarea
+                    className={styles.jsonEditor}
+                    value={inspectorConfigJson}
+                    onChange={(e) => {
+                      setInspectorConfigJson(e.target.value);
+                      try {
+                        const parsed = JSON.parse(e.target.value);
+                        validateInspectorConfig(selectedWidget.type, parsed);
+                      } catch {
+                        setInspectorValidation({ valid: false, error: 'JSON Syntax Error: รูปแบบไม่ถูกต้อง' });
+                      }
+                    }}
+                    rows={12}
+                  />
                 </div>
-                <textarea
-                  className={styles.jsonEditor}
-                  value={inspectorConfigJson}
-                  onChange={(e) => {
-                    setInspectorConfigJson(e.target.value);
-                    try {
-                      const parsed = JSON.parse(e.target.value);
-                      validateInspectorConfig(selectedWidget.type, parsed);
-                    } catch {
-                      setInspectorValidation({ valid: false, error: 'JSON Syntax Error: รูปแบบไม่ถูกต้อง' });
-                    }
-                  }}
-                  rows={12}
-                />
-              </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>ID ประจำ Widget</label>
+                    <input
+                      type="text"
+                      className={styles.formInput}
+                      value={selectedWidget.id}
+                      disabled
+                      style={{ opacity: 0.6 }}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>ลำดับการแสดงผล (Sort Order)</label>
+                    <input
+                      type="number"
+                      className={styles.formInput}
+                      value={selectedWidget.sortOrder}
+                      disabled
+                      style={{ opacity: 0.6 }}
+                    />
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#94A3B8', margin: 0 }}>
+                    💡 สลับไปที่แท็บ <strong>"Config JSON"</strong> เพื่อแก้ไขพารามิเตอร์เชิงลึก (รูปภาพ, คูปองโค้ด, ลิงก์ Action, ข้อความแคมเปญ)
+                  </p>
+                </div>
+              )}
 
               {/* Apply Button */}
               <button
                 type="button"
                 className={styles.btnPrimary}
                 onClick={handleApplyInspector}
-                style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
+                style={{ width: '100%', justifyContent: 'center', padding: '12px', marginTop: 'auto' }}
               >
                 <span>บันทึกการตั้งค่า Widget</span>
               </button>
@@ -684,16 +794,16 @@ export default function VisualPageBuilder({
         )}
       </div>
 
-      {/* 3. Catalog Modal: Add New Widget */}
+      {/* 4. Catalog Modal: Add New Widget */}
       {showCatalogModal && (
         <div className={styles.modalBackdrop} onClick={() => setShowCatalogModal(false)}>
           <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#F8FAFC' }}>
                   ✨ คลัง Widget (Widget Catalog — Spec Sec 6 & 14)
                 </h3>
-                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748B' }}>
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#94A3B8' }}>
                   เลือกประเภท Widget เพื่อเพิ่มลงในหน้าแรกลูกค้า
                 </p>
               </div>
@@ -707,7 +817,7 @@ export default function VisualPageBuilder({
             </div>
 
             {/* Filter Bar */}
-            <div style={{ padding: '12px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ padding: '12px 20px', borderBottom: '1px solid #1F2937', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <input
                 type="text"
                 className={styles.formInput}
@@ -741,8 +851,8 @@ export default function VisualPageBuilder({
                   style={{
                     padding: '14px',
                     borderRadius: '12px',
-                    border: '1px solid #E2E8F0',
-                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #1F2937',
+                    backgroundColor: '#1E293B',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
@@ -752,18 +862,18 @@ export default function VisualPageBuilder({
                   }}
                   onClick={() => handleAddWidgetFromCatalog(item)}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#0D9488';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(13, 148, 136, 0.15)';
+                    e.currentTarget.style.borderColor = '#2563EB';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.2)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#E2E8F0';
+                    e.currentTarget.style.borderColor = '#1F2937';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                       <span style={{ fontSize: '20px' }}>{item.icon}</span>
-                      <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>
+                      <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#F8FAFC' }}>
                         {item.name}
                       </h4>
                     </div>
@@ -772,8 +882,8 @@ export default function VisualPageBuilder({
                         display: 'inline-block',
                         fontSize: '10px',
                         fontWeight: 700,
-                        color: '#0D9488',
-                        backgroundColor: '#F0FDFA',
+                        color: '#60A5FA',
+                        backgroundColor: 'rgba(37, 99, 235, 0.15)',
                         padding: '2px 6px',
                         borderRadius: '4px',
                         marginBottom: '6px',
@@ -782,7 +892,7 @@ export default function VisualPageBuilder({
                     >
                       {item.type}
                     </span>
-                    <p style={{ margin: 0, fontSize: '12px', color: '#64748B', lineHeight: 1.4 }}>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#94A3B8', lineHeight: 1.4 }}>
                       {item.description}
                     </p>
                   </div>
@@ -790,7 +900,7 @@ export default function VisualPageBuilder({
                   <button
                     type="button"
                     className={styles.btnPrimary}
-                    style={{ width: '100%', justifyContent: 'center', padding: '6px' }}
+                    style={{ width: '100%', justifyContent: 'center', padding: '8px' }}
                   >
                     <Plus size={14} />
                     <span>เพิ่ม Widget นี้</span>
@@ -802,16 +912,16 @@ export default function VisualPageBuilder({
         </div>
       )}
 
-      {/* 4. History & Rollback Modal (Spec Sec 9 & 14) */}
+      {/* 5. History & Rollback Modal */}
       {showHistoryModal && (
         <div className={styles.modalBackdrop} onClick={() => setShowHistoryModal(false)}>
           <div className={styles.modalCard} style={{ maxWidth: '640px' }} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#F8FAFC' }}>
                   ⏱️ ประวัติการเผยแพร่ & การย้อนกลับ (Revisions & Rollback)
                 </h3>
-                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748B' }}>
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#94A3B8' }}>
                   เลือกเวอร์ชัน Snapshot ย้อนหลังเพื่อกู้คืนหน้าเว็บกลับสู่สถานะนั้นทันที
                 </p>
               </div>
@@ -826,14 +936,14 @@ export default function VisualPageBuilder({
 
             <div className={styles.modalBody}>
               {loadingRevisions ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: '#64748B' }}>
+                <div style={{ textAlign: 'center', padding: '30px', color: '#94A3B8' }}>
                   กำลังโหลดข้อมูลประวัติ Revisions...
                 </div>
               ) : revisions.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: '#64748B' }}>
-                  <History size={36} color="#CBD5E1" style={{ margin: '0 auto 10px' }} />
+                <div style={{ textAlign: 'center', padding: '30px', color: '#94A3B8' }}>
+                  <History size={36} color="#475569" style={{ margin: '0 auto 10px' }} />
                   <p>ยังไม่มีประวัติการเผยแพร่ Snapshot ในระบบ</p>
-                  <p style={{ fontSize: '12px' }}>เมื่อกด "เผยแพร่ (Publish)" ระบบจะบันทึก Snapshot อัตโนมัติ</p>
+                  <p style={{ fontSize: '12px', color: '#64748B' }}>เมื่อกด "เผยแพร่ (Publish)" ระบบจะบันทึก Snapshot อัตโนมัติ</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -843,8 +953,8 @@ export default function VisualPageBuilder({
                       style={{
                         padding: '14px',
                         borderRadius: '12px',
-                        border: '1px solid #E2E8F0',
-                        backgroundColor: '#FFFFFF',
+                        border: '1px solid #1F2937',
+                        backgroundColor: '#1E293B',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -857,18 +967,18 @@ export default function VisualPageBuilder({
                               fontSize: '11px',
                               fontWeight: 800,
                               backgroundColor: '#0F172A',
-                              color: '#FFFFFF',
+                              color: '#60A5FA',
                               padding: '2px 8px',
                               borderRadius: '6px',
                             }}
                           >
                             REV #{rev.revision_number}
                           </span>
-                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#F8FAFC' }}>
                             {rev.note || 'Snapshot ประจำเวอร์ชัน'}
                           </span>
                         </div>
-                        <div style={{ fontSize: '11px', color: '#64748B' }}>
+                        <div style={{ fontSize: '11px', color: '#94A3B8' }}>
                           บันทึกเมื่อ: {new Date(rev.created_at).toLocaleString('th-TH')} • โดย: {rev.created_by}
                         </div>
                       </div>
@@ -877,7 +987,7 @@ export default function VisualPageBuilder({
                         type="button"
                         className={styles.btnSecondary}
                         onClick={() => handleRestoreRevision(rev)}
-                        style={{ borderColor: '#0D9488', color: '#0D9488', fontWeight: 700 }}
+                        style={{ borderColor: '#0D9488', color: '#2DD4BF', fontWeight: 700 }}
                       >
                         <RotateCcw size={14} />
                         <span>ย้อนกลับ (Restore)</span>

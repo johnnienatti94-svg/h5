@@ -86,15 +86,17 @@ export const stickyBottomNavSchema = z.object({
 // ============================================================================
 
 export const heroBannerSchema = z.object({
-  headline: z.string().max(120),
+  headline: z.string().max(120).optional(),
   subheadline: z.string().max(200).optional(),
   tag: z.string().max(40).optional(),
-  imageUrl: z.string(),
+  imageUrl: z.string().optional(),
   mobileImageUrl: z.string().optional(),
   ctaLabel: z.string().max(40).optional(),
   ctaHref: z.string().optional(),
   overlayColor: z.string().optional(),
-});
+  banners: z.array(z.any()).optional(),
+  autoSlideIntervalMs: z.number().optional(),
+}).passthrough();
 
 export const bannerCarouselSchema = z.object({
   autoPlayInterval: z.number().int().min(2000).max(15000).default(4000),
