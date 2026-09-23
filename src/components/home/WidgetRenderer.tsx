@@ -37,6 +37,18 @@ import CouponVoucherBlockWidget from '@/components/widgets/CouponVoucherBlockWid
 import BundleOfferWidget from '@/components/widgets/BundleOfferWidget';
 import ShoppableImageWidget from '@/components/widgets/ShoppableImageWidget';
 
+// Phase 6: Trust, Information & Engagement Widgets
+import ReviewsTestimonialsWidget from '@/components/widgets/ReviewsTestimonialsWidget';
+import TrustBadgesWidget from '@/components/widgets/TrustBadgesWidget';
+import PaymentOptionsWidget from '@/components/widgets/PaymentOptionsWidget';
+import ShippingReturnsWidget from '@/components/widgets/ShippingReturnsWidget';
+import FaqAccordionWidget from '@/components/widgets/FaqAccordionWidget';
+import StoreLocatorWidget from '@/components/widgets/StoreLocatorWidget';
+import SignupLeadFormWidget from '@/components/widgets/SignupLeadFormWidget';
+import SocialMediaFeedWidget from '@/components/widgets/SocialMediaFeedWidget';
+import FloatingChatButtonWidget from '@/components/widgets/FloatingChatButtonWidget';
+import PromoPopupModalWidget from '@/components/widgets/PromoPopupModalWidget';
+
 interface Props {
   widgets: AnyWidget[];
 }
@@ -103,6 +115,28 @@ export default function WidgetRenderer({ widgets }: Props) {
             return <BundleOfferWidget key={widget.id} widget={widget} />;
           case 'SHOPPABLE_IMAGE':
             return <ShoppableImageWidget key={widget.id} widget={widget} />;
+
+          // Phase 6: Trust, Information & Engagement
+          case 'REVIEWS_TESTIMONIALS':
+            return <ReviewsTestimonialsWidget key={widget.id} widget={widget} />;
+          case 'TRUST_BADGES':
+            return <TrustBadgesWidget key={widget.id} widget={widget} />;
+          case 'PAYMENT_OPTIONS':
+            return <PaymentOptionsWidget key={widget.id} widget={widget} />;
+          case 'SHIPPING_RETURNS':
+            return <ShippingReturnsWidget key={widget.id} widget={widget} />;
+          case 'FAQ_ACCORDION':
+            return <FaqAccordionWidget key={widget.id} widget={widget} />;
+          case 'STORE_LOCATOR':
+            return <StoreLocatorWidget key={widget.id} widget={widget} />;
+          case 'SIGNUP_LEAD_FORM':
+            return <SignupLeadFormWidget key={widget.id} widget={widget} />;
+          case 'SOCIAL_MEDIA_FEED':
+            return <SocialMediaFeedWidget key={widget.id} widget={widget} />;
+          case 'FLOATING_CHAT_BUTTON':
+            return <FloatingChatButtonWidget key={widget.id} widget={widget} />;
+          case 'PROMO_POPUP_MODAL':
+            return <PromoPopupModalWidget key={widget.id} widget={widget} />;
 
           // Existing / Foundational
           case 'CUSTOMER_GREETING':
