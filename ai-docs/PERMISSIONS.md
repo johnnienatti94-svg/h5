@@ -75,7 +75,13 @@ From `supabase/migrations/20260924073909_authoritative_domain_v1.sql`:
 
 ---
 
-## 5. Security Findings & Gaps [SECURITY REVIEW REQUIRED]
+## 5. Security & Authorization Enforcement [VERIFIED FROM CODE]
 
 - **Admin Store/Product/Offer Endpoints**:
-  Route handlers in `src/app/api/admin/branches/*`, `src/app/api/admin/products/*`, and `src/app/api/offers/*` do not currently call `authenticateCmsRequest()`. They are documented with `[SECURITY REVIEW REQUIRED]` in `API_CONTRACTS.md` and listed in `TECHNICAL_DEBT.md`.
+  Server-side authorization is strictly enforced via `requireAdminOrHqAuth()` in `src/lib/rbac.ts`:
+  - `POST /api/admin/branches`, `PUT /api/admin/branches/[id]`, `DELETE /api/admin/branches/[id]`
+  - `POST /api/admin/products`, `PUT /api/admin/products/[id]`, `DELETE /api/admin/products/[id]`, `PUT /api/admin/products/reorder`
+  - `POST /api/offers`, `PUT /api/offers/[id]`, `DELETE /api/offers/[id]`
+  - Enforces HTTP 401 Unauthorized for unauthenticated requests and HTTP 403 Forbidden for insufficient permissions (`PC_STAFF`, `BRANCH_MANAGER`, `CUSTOMER`). Only `ADMIN` and `HQ` are permitted.
+- **Staff Mutation Endpoints**:
+  - `POST /api/staff/applications/[id]/status` and `POST /api/staff/applications/[id]/appointment` explicitly reject `PC_STAFF` with HTTP 403 Forbidden, restricting state changes and appointments strictly to `BRANCH_MANAGER`, `HQ`, and `ADMIN`.

@@ -11,6 +11,13 @@ export async function POST(
     return NextResponse.json({ success: false, error: 'กรุณาเข้าสู่ระบบ' }, { status: 401 });
   }
 
+  if (staff.role === 'PC_STAFF') {
+    return NextResponse.json(
+      { success: false, error: 'Forbidden — PC_STAFF ไม่มีสิทธิ์นัดหมายรับเครื่อง' },
+      { status: 403 }
+    );
+  }
+
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
 

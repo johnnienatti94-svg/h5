@@ -5,6 +5,7 @@
 
 import 'server-only';
 
+import { NextResponse } from 'next/server';
 import { supabaseAdmin } from './supabaseAdmin';
 
 export type CmsRole = 'CUSTOMER' | 'PC_STAFF' | 'BRANCH_MANAGER' | 'HQ' | 'ADMIN';
@@ -87,11 +88,26 @@ export async function authenticateCmsRequest(req: Request): Promise<AuthContext 
       role: 'ADMIN',
     };
   }
+  if (token === 'dev-hq-token') {
+    return {
+      userId: 'staff-hq-001',
+      name: 'ศิริพร ฝ่ายการตลาดส่วนกลาง',
+      role: 'HQ',
+    };
+  }
   if (token === 'dev-manager-token') {
     return {
       userId: 'staff-bm-001',
       name: 'สมศักดิ์ ผู้จัดการสาขา',
       role: 'BRANCH_MANAGER',
+      assignedBranchId: '00000000-0000-4000-8000-000000000001',
+    };
+  }
+  if (token === 'dev-pcstaff-token') {
+    return {
+      userId: 'staff-pc-001',
+      name: 'กิตติพงษ์ พนักงานขาย',
+      role: 'PC_STAFF',
       assignedBranchId: '00000000-0000-4000-8000-000000000001',
     };
   }
@@ -158,5 +174,34 @@ export async function authenticateCmsRequest(req: Request): Promise<AuthContext 
   } catch {
     return null;
   }
+}
+
+/**
+ * Require ADMIN or HQ authorization for administrative mutation routes.
+ * Returns { auth } on success, or { errorResponse } with 401/403 status.
+ */
+export async function requireAdminOrHqAuth(
+  req: Request
+): Promise<{ auth: AuthContext; errorResponse?: never } | { auth?: never; errorResponse: NextResponse }> {
+  const auth = await authenticateCmsRequest(req);
+  if (!auth) {
+    return {
+      errorResponse: NextResponse.json(
+        { success: false, error: 'Unauthorized — Authentication required' },
+        { status: 401 }
+      ),
+    };
+  }
+
+  if (auth.role !== 'ADMIN' && auth.role !== 'HQ') {
+    return {
+      errorResponse: NextResponse.json(
+        { success: false, error: 'Forbidden — Requires ADMIN or HQ role' },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { auth };
 }
 

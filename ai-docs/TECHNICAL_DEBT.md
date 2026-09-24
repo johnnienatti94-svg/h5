@@ -7,11 +7,11 @@
 
 ## 1. HIGH RISK
 
-### Item 1.1: Admin REST Endpoints Lack In-Handler Authorization Guards [SECURITY REVIEW REQUIRED]
-- **Finding**: Route handlers `POST /api/admin/branches`, `PUT /api/admin/branches/[id]`, `DELETE /api/admin/branches/[id]`, `POST /api/admin/products`, `PUT /api/admin/products/[id]`, `PUT /api/admin/products/reorder`, and `POST /api/offers` do not contain explicit calls to `authenticateCmsRequest()` or role checks.
-- **Current State**: Anyone with network access to the API could invoke these mutations if no external reverse-proxy or middleware blocks them.
-- **Risk Level**: **HIGH**
-- **Recommendation**: Add `authenticateCmsRequest(request)` and verify `hasPermission(auth.role, '...')` or `auth.role === 'ADMIN'` across all `/api/admin/*` and mutation routes in a dedicated, separately reviewed security task. (Do NOT alter code during documentation tasks).
+### Item 1.1: Admin REST Endpoints Lack In-Handler Authorization Guards [RESOLVED]
+- **Finding**: Route handlers `POST /api/admin/branches`, `PUT /api/admin/branches/[id]`, `DELETE /api/admin/branches/[id]`, `POST /api/admin/products`, `PUT /api/admin/products/[id]`, `PUT /api/admin/products/reorder`, and `POST /api/offers` previously lacked explicit in-handler authorization guards.
+- **Current State**: **RESOLVED on branch `fix/admin-api-authorization`**. All administrative mutation endpoints now enforce server-side authentication and role-based authorization via `requireAdminOrHqAuth()`, rejecting unauthenticated calls with HTTP 401 and unauthorized roles (`PC_STAFF`, `BRANCH_MANAGER`, `CUSTOMER`) with HTTP 403. Verified with 27 automated security assertions in `scripts/verify-admin-authorization.mjs`.
+- **Risk Level**: **RESOLVED** (Previously HIGH)
+
 
 ### Item 1.2: Financial Rounding Satang Invariance
 - **Finding**: Installment calculators must strictly preserve integer satang accuracy. Any floating-point arithmetic introduces fractional satang errors over 10–24 month periods.

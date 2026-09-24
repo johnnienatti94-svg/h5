@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllBranches, createBranch } from '@/server/repositories/branchesStore';
+import { requireAdminOrHqAuth } from '@/lib/rbac';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +10,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const authCheck = await requireAdminOrHqAuth(request);
+  if (authCheck.errorResponse) return authCheck.errorResponse;
+
   try {
     const body = await request.json();
     const result = createBranch(body);

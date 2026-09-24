@@ -5,6 +5,42 @@
 
 ---
 
+## 2026-09-25 — Security Hardening: Admin API Server-Side Authorization
+### Requested
+- Investigate and fix high-priority authorization vulnerability where administrative mutation endpoints lacked server-side authorization guards.
+- Implement least-privilege server-side authorization reusing existing `src/lib/rbac.ts` and `src/server/auth/staffServerAuth.ts`.
+- Enforce HTTP 401 Unauthorized for unauthenticated calls and HTTP 403 Forbidden for unauthorized roles.
+- Protect `/api/admin/branches/*`, `/api/admin/products/*`, and `/api/offers/*` mutation routes.
+- Enforce `PC_STAFF` restriction on `/api/staff/applications/[id]/status` and `/api/staff/applications/[id]/appointment`.
+- Add dedicated automated security test suite and update relevant documentation.
+### Changed
+- `src/lib/rbac.ts`: Exported `requireAdminOrHqAuth()` helper and added development shortcuts for standard roles.
+- `src/server/auth/staffServerAuth.ts`: Added PC_STAFF development account and Bearer token resolution to `getCurrentStaff()`.
+- `src/app/api/admin/branches/route.ts`: Protected `POST` with `requireAdminOrHqAuth()`.
+- `src/app/api/admin/branches/[id]/route.ts`: Protected `PUT` and `DELETE` with `requireAdminOrHqAuth()`.
+- `src/app/api/admin/products/route.ts`: Protected `POST` with `requireAdminOrHqAuth()`.
+- `src/app/api/admin/products/[id]/route.ts`: Protected `PUT` and `DELETE` with `requireAdminOrHqAuth()`.
+- `src/app/api/admin/products/reorder/route.ts`: Protected `PUT` with `requireAdminOrHqAuth()`.
+- `src/app/api/offers/route.ts`: Protected `POST` with `requireAdminOrHqAuth()`.
+- `src/app/api/offers/[id]/route.ts`: Protected `PUT` and `DELETE` with `requireAdminOrHqAuth()`.
+- `src/app/api/staff/applications/[id]/status/route.ts`: Enforced `PC_STAFF` restriction (HTTP 403).
+- `src/app/api/staff/applications/[id]/appointment/route.ts`: Enforced `PC_STAFF` restriction (HTTP 403).
+- `scripts/verify-admin-authorization.mjs`: Added comprehensive 27-assertion security test suite.
+- `ai-docs/API_CONTRACTS.md`: Updated admin route contracts with authentication and authorization requirements.
+- `ai-docs/PERMISSIONS.md`: Documented server-side authorization enforcement in Section 5.
+- `ai-docs/TECHNICAL_DEBT.md`: Marked Item 1.1 as RESOLVED.
+- `ai-docs/CURRENT_STATUS.md`: Updated verification run and security governance status.
+- `ai-docs/CHANGELOG.md`: Logged security hardening milestone.
+### Tests Performed
+- `next build`: Passed (TypeScript 0 errors, 57 routes compiled)
+- `npm run lint`: Passed (0 errors, 92 pre-existing warnings)
+- `node scripts/verify-admin-authorization.mjs`: Passed (27/27 assertions, 100%)
+- `node scripts/verify-scenarios.mjs`: Passed (29/29 assertions, 100%)
+### Status
+- Committed and pushed to `fix/admin-api-authorization`. NOT MERGED to main. NOT DEPLOYED.
+
+---
+
 ## 2026-09-24 — Final Documentation-Only Accuracy & Migration Alignment Pass
 ### Requested
 - Correct PostgreSQL security helper names in `PERMISSIONS.md` and `DATABASE.md` to exact `private` schema functions (`private.current_staff_role()`, `private.is_staff()`, `private.is_hq_admin()`, `private.has_staff_capability(text)`, `private.can_access_branch(uuid)`).
