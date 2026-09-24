@@ -90,21 +90,6 @@ function HomeContent() {
       {/* 2. Tab Content */}
       {activeTab === 'installment' ? (
         <>
-          {/* Quick Trust Banner from Stitch Screen 06 */}
-          <section className="w-full max-w-2xl mx-auto bg-white rounded-xl border border-[#E2E8F0] p-3 flex items-center space-x-3 shadow-xs mb-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-[#007ACC] shrink-0">
-              <span className="material-symbols-outlined text-[20px]">bolt</span>
-            </div>
-            <div className="flex-1">
-              <p className="text-xs font-semibold text-[#0F172A] leading-snug">
-                ผ่อนสมาร์ตโฟนเครื่องใหม่ ดอกเบี้ยพิเศษ
-              </p>
-              <p className="text-[11px] text-[#16A365] font-medium flex items-center gap-1 mt-0.5">
-                <span className="material-symbols-outlined text-[13px]">verified</span>
-                อนุมัติไวใน 3 นาที รู้ผลทันที
-              </p>
-            </div>
-          </section>
 
           {/* Dynamic Widget Engine Renderer (Spec Sec 9, 11, 12, 13) */}
           <WidgetRenderer widgets={widgets} />
