@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.meeprochat.online"),
   title: "MeePro — ผ่อนมือถือ สมาร์ทโฟน แกดเจ็ต",
   description: "MeePro ร้านมือถือครบวงจร ผ่อน 0% ทุกรุ่น สมัครง่าย อนุมัติไว บริการหลังการขายครบ",
 };
