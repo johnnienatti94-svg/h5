@@ -126,6 +126,6 @@ meepro-app/
 ## 3. Data Flow & Execution Pipeline
 
 1. **Request Ingestion**: Requests pass through Next.js App Router edge runtime or Node.js server.
-2. **Authentication & Authorization**: Handled via `src/lib/rbac.ts` checking role hierarchy (`SUPER_ADMIN`, `BRANCH_MANAGER`, `SALES_ASSOCIATE`, `CUSTOMER`).
+2. **Authentication & Authorization**: Handled via `src/lib/rbac.ts` checking role hierarchy (`CUSTOMER`, `PC_STAFF`, `BRANCH_MANAGER`, `HQ`, `ADMIN`).
 3. **Repository Abstraction**: API routes communicate through unified repositories (`branchesStore`, `catalogStore`, `offersStore`, `cmsRepository`).
 4. **Resilient Persistence**: Repositories query Supabase PostgreSQL if configured; otherwise, they transparently fall back to initialized in-memory fixture stores to guarantee zero downtime during development and testing.

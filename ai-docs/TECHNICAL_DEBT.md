@@ -5,17 +5,19 @@
 
 ---
 
-## 1. LOW RISK
+## 1. HIGH RISK
 
-### Item 1.1: Standalone ESLint 9 Script Configuration
-- **Finding**: Running `npm run lint` directly runs `eslint .` without a modern ESLint Flat Config (`eslint.config.mjs`), which causes standalone command runs to hang scanning parent directories.
-- **Current State**: Next.js internal build-time checks pass cleanly without issue.
-- **Recommendation**: Create a lightweight `eslint.config.mjs` with `@next/eslint-plugin-next` flat config when convenient.
+### Item 1.1: Admin REST Endpoints Lack In-Handler Authorization Guards [SECURITY REVIEW REQUIRED]
+- **Finding**: Route handlers `POST /api/admin/branches`, `PUT /api/admin/branches/[id]`, `DELETE /api/admin/branches/[id]`, `POST /api/admin/products`, `PUT /api/admin/products/[id]`, `PUT /api/admin/products/reorder`, and `POST /api/offers` do not contain explicit calls to `authenticateCmsRequest()` or role checks.
+- **Current State**: Anyone with network access to the API could invoke these mutations if no external reverse-proxy or middleware blocks them.
+- **Risk Level**: **HIGH**
+- **Recommendation**: Add `authenticateCmsRequest(request)` and verify `hasPermission(auth.role, '...')` or `auth.role === 'ADMIN'` across all `/api/admin/*` and mutation routes in a dedicated, separately reviewed security task. (Do NOT alter code during documentation tasks).
 
-### Item 1.2: Unused Legacy Directory Stubs
-- **Finding**: Legacy redirects exist for `/branches` -> `/stores` to preserve canonical presentation.
-- **Current State**: Handled smoothly via HTTP 307 redirects.
-- **Recommendation**: Keep redirect indefinitely for SEO and old bookmarks.
+### Item 1.2: Financial Rounding Satang Invariance
+- **Finding**: Installment calculators must strictly preserve integer satang accuracy. Any floating-point arithmetic introduces fractional satang errors over 10–24 month periods.
+- **Current State**: Integer division with remainder pinning is correctly implemented.
+- **Risk Level**: **HIGH**
+- **Recommendation**: Require all future developers/agents to pass `verify-scenarios.mjs` before touching `currency.ts` or offer calculation logic.
 
 ---
 
@@ -28,9 +30,9 @@
 
 ---
 
-## 3. HIGH RISK
+## 3. LOW RISK
 
-### Item 3.1: Financial Rounding Satang Invariance
-- **Finding**: Installment calculators must strictly preserve integer satang accuracy. Any floating-point arithmetic introduces fractional satang errors over 10-24 month periods.
-- **Current State**: Integer division with remainder pinning is correctly implemented.
-- **Recommendation**: Require all future developers/agents to pass `verify-scenarios.mjs` before touching `currency.ts` or offer calculation logic.
+### Item 3.1: Legacy Route Redirect Overhead
+- **Finding**: Legacy redirect exists for `/branches` -> `/stores` to preserve canonical presentation.
+- **Current State**: Handled smoothly via HTTP 307 redirects.
+- **Recommendation**: Keep redirect indefinitely for SEO and old bookmarks.

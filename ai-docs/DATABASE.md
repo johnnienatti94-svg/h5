@@ -1,177 +1,129 @@
 # MeePro Database Specification & Schema
 
-> **Storage Engine:** PostgreSQL / Supabase  
-> **Documentation Target:** `/ai-docs/DATABASE.md`
+> **Authoritative Sources:**  
+> - `supabase/migrations/20260923213000_cms_v2_1_schema_and_rls.sql` [VERIFIED FROM MIGRATION]  
+> - `supabase/migrations/20260924073909_authoritative_domain_v1.sql` [VERIFIED FROM MIGRATION]  
+> **Target:** `/ai-docs/DATABASE.md`
 
 ---
 
-## 1. Entity-Relationship (ER) Diagram
+## 1. Domain Relationship Overview
+
+> ### ⚠️ SIMPLIFIED DOMAIN VIEW — NOT COMPLETE DATABASE SCHEMA
+> *(The production database contains over 30 tables across media, branches, catalog, underwriting, CMS, audit logging, and authorization. This diagram illustrates the primary operational relationships.)*
 
 ```mermaid
 erDiagram
-    BRANCHES ||--o{ BRANCH_VERSIONS : "has published versions"
-    BRANCHES ||--o{ STAFF_USERS : "assigned to"
+    BRANCHES ||--o{ BRANCH_VERSIONS : "has immutable versions"
+    BRANCHES ||--o{ STAFF_PROFILES : "assigned branch"
     BRANCHES ||--o{ APPLICATIONS : "pickup location"
 
-    PAGES ||--o{ PAGE_WIDGETS : "contains"
+    STAFF_PROFILES ||--o{ STAFF_CAPABILITIES : "possesses"
+    CUSTOMER_PROFILES ||--o{ APPLICATIONS : "submits"
+
+    CATEGORIES ||--o{ PRODUCTS : "groups"
+    BRANDS ||--o{ PRODUCTS : "manufactures"
+    PRODUCTS ||--|{ VARIANTS : "has SKUs"
+    PRODUCTS ||--o{ OFFERS : "eligible offers"
+    OFFERS ||--|{ OFFER_VERSIONS : "versioned terms"
+    OFFER_VERSIONS ||--o{ OFFER_VERSION_VARIANTS : "applies to"
+
+    APPLICATIONS ||--o{ APPLICATION_EVENTS : "state history"
+    APPLICATIONS ||--o{ APPLICATION_INTERNAL_NOTES : "staff notes"
+    APPLICATIONS ||--o| APPOINTMENTS : "pickup schedule"
+    APPLICATIONS ||--o{ CONSENT_RECORDS : "privacy/terms consent"
+
+    PAGES ||--o{ PAGE_WIDGETS : "layout blocks"
     PAGES ||--o{ PAGE_REVISIONS : "snapshots"
-    PAGE_WIDGETS }o--o| MEDIA_ASSETS : "references"
-
-    PRODUCTS ||--|{ PRODUCT_VARIANTS : "has variants"
-    PRODUCTS ||--o{ PRODUCT_OFFERS : "applies"
-    APPLICATIONS }o--|| PRODUCTS : "finances"
-    APPLICATIONS }o--|| PRODUCT_VARIANTS : "selected variant"
-
-    APPLICATIONS ||--o{ APPLICATION_AUDIT_LOG : "audited by"
+    PAGE_WIDGETS }o--o| MEDIA_ASSETS : "renders"
 
     BRANCHES {
         uuid id PK
-        string slug UK
-        string name
+        text slug UK
+        text draft_name
+        uuid published_version_id FK
         boolean is_active
         integer display_order
-        uuid published_version_id FK
     }
 
-    BRANCH_VERSIONS {
+    STAFF_PROFILES {
         uuid id PK
-        uuid branch_id FK
-        string name
-        string full_address
-        string province
-        string region
-        string display_phone
-        string normalized_phone
-        string google_maps_url
-        string opening_hours
-        timestamp published_at
-    }
-
-    PAGES {
-        string id PK
-        string slug UK
-        string name
-        string status
-        integer current_revision
-        string published_version_id
-        timestamp published_at
-    }
-
-    PAGE_WIDGETS {
-        string id PK
-        string page_id FK
-        string widget_type
-        integer sort_order
+        text employee_code UK
+        text role
+        uuid assigned_branch_id FK
         boolean is_active
-        jsonb config
     }
 
-    MEDIA_ASSETS {
-        string id PK
-        string storage_path
-        string public_url
-        string mime_type
-        integer width
-        integer height
-        string alt_text
-    }
-
-    PRODUCTS {
+    CUSTOMER_PROFILES {
         uuid id PK
-        string slug UK
-        string name
-        string brand_slug
-        string category_slug
-        string summary
-        text description
-        timestamp published_at
-    }
-
-    PRODUCT_VARIANTS {
-        string id PK
-        uuid product_id FK
-        string sku UK
-        string name
-        string condition
-        string storage_label
-        string color_label
-        integer cash_price_minor
-        boolean is_in_stock
+        text national_id_sha256
+        text mobile_phone_e164
+        text full_name
     }
 
     APPLICATIONS {
-        string id PK
-        string reference_no UK
-        string national_id
-        string customer_name
-        string phone_number
+        uuid id PK
+        text reference_code UK
+        uuid customer_id FK
         uuid branch_id FK
-        string status
-        integer loan_amount_minor
-        integer installment_months
-        string idempotency_key UK
-        timestamp created_at
+        text status
+        bigint total_payable_minor
+        text idempotency_key UK
     }
 ```
 
 ---
 
-## 2. Core Tables & Schemas
+## 2. Implemented Database Domains & Table Inventory [VERIFIED FROM MIGRATION]
 
-### A. Branches & Store Directory
-- `branches`: Root entity representing a physical branch location.
-  - `id` (UUID, PK)
-  - `slug` (VARCHAR, Unique, Normalized lowercase alphanumeric)
-  - `is_active` (BOOLEAN, Default: `true`)
-  - `display_order` (INTEGER)
-  - `published_version_id` (UUID, Foreign Key)
-- `branch_versions`: Immutable audit snapshots of branch details to protect historical records.
-  - `id` (UUID, PK)
-  - `branch_id` (UUID, FK -> `branches.id`)
-  - `name`, `full_address`, `province`, `region`
-  - `display_phone` (e.g. `02-255-9001`)
-  - `normalized_phone` (Thai E.164 format: `+6622559001`)
-  - `google_maps_url` (HTTPS URL)
-  - `opening_hours` (JSON array of strings)
-  - `directions` (TEXT)
+From `supabase/migrations/20260924073909_authoritative_domain_v1.sql` and `20260923213000_cms_v2_1_schema_and_rls.sql`:
 
-### B. CMS & Dynamic Page Builder
-- `pages`: Landing pages and storefront layouts.
-  - `id` (VARCHAR, PK)
-  - `slug` (VARCHAR, Unique, e.g. `home`, `promotions`)
-  - `name` (VARCHAR)
-  - `status` (ENUM: `draft`, `published`, `archived`)
-  - `current_revision` (INTEGER, Optimistic Concurrency Token)
-  - `published_version_id` (VARCHAR)
-- `page_widgets`: Modular content blocks attached to a page.
-  - `id` (VARCHAR, PK)
-  - `page_id` (VARCHAR, FK -> `pages.id`)
-  - `widget_type` (ENUM: 30 supported types e.g. `HERO_BANNER`, `CUSTOMER_GREETING`, `PRODUCT_GRID`)
-  - `sort_order` (INTEGER, Sequence)
-  - `is_active` (BOOLEAN)
-  - `config` (JSONB, Validated against Zod schema)
-- `media_assets`: Image and media library.
-  - `id` (VARCHAR, PK)
-  - `storage_path` (VARCHAR, S3/Supabase Storage path)
-  - `public_url` (VARCHAR)
-  - `mime_type` (`image/jpeg`, `image/png`, `image/webp`, `image/svg+xml`, `video/mp4`)
-  - `width` / `height` (INTEGER, Dimensions)
-  - `alt_text` (TEXT)
+### A. Profiles & Security Domain
+- `public.customer_profiles`: Customer personal record, normalized phone (`mobile_phone_e164`), and National ID hash.
+- `public.staff_profiles`: Internal staff records linked to `auth.users(id)` with assigned `role` (`PC_STAFF`, `BRANCH_MANAGER`, `HQ`, `ADMIN`), `assigned_branch_id`, and `employee_code`.
+- `public.staff_capabilities`: Granular authorization flags (e.g. `applications.review`, `catalog.manage`, `branches.publish`).
 
-### C. Financing Applications
-- `applications`: Digital financing contracts submitted by customers.
-  - `id` (VARCHAR, PK)
-  - `reference_no` (VARCHAR, Unique, e.g. `APP-202609-XXXX`)
-  - `idempotency_key` (VARCHAR, Unique, prevents duplicate requests)
-  - `status` (`DRAFT`, `SUBMITTED`, `UNDER_REVIEW`, `APPROVED`, `REJECTED`, `COLLECTED`, `CANCELLED`)
-  - `branch_id` (UUID, Pickup location)
-  - `total_price_minor` / `down_payment_minor` / `monthly_payment_minor`
-  - `installment_months` (INTEGER: 3, 6, 10, 12, 24)
+### B. Store & Branch Domain
+- `public.branches`: Branch root entity with draft fields (`draft_name`, `draft_full_address`, `draft_google_maps_url`, `draft_opening_hours`), `published_version_id`, and `is_active`.
+- `public.branch_versions`: Immutable published snapshots (`name`, `full_address`, `province`, `region`, `display_phone`, `normalized_phone`, `google_maps_url`, `published_at`).
+
+### C. Catalog & Offer Domain
+- `public.categories`: Device classifications (`smartphone`, `tablet`, `laptop`, `audio`, etc.).
+- `public.brands`: Device manufacturers (`Apple`, `Samsung`, `Xiaomi`, etc.).
+- `public.products`: Core device records (`slug`, `brand_id`, `category_id`, `summary`, `description`).
+- `public.variants`: Device SKUs (`sku`, `product_id`, `storage_label`, `color_label`, `cash_price_minor`, `condition` (`new`/`used`)).
+- `public.product_media`: Association between products/variants and `media_assets`.
+- `public.branch_availability`: Per-branch stock inventory status (`in_stock`, `low_stock`, `out_of_stock`).
+- `public.offers`: Installment campaign headers.
+- `public.offer_versions`: Versioned financing terms (`down_payment_minor`, `installment_count`, `installment_amount_minor`, `fees_total_minor`, `total_payable_minor`, `valid_from`, `valid_until`).
+- `public.offer_version_variants`: Many-to-many link binding specific offer versions to eligible device variants.
+- Supporting catalog entities: `services`, `promotions`, `collections`, `collection_variants`, `articles`, `faqs`, `reviews`.
+
+### D. Digital Financing Application Domain
+- `public.applications`: Loan and installment requests (`reference_code`, `customer_id`, `branch_id`, `status`, `idempotency_key`, `total_payable_minor`).
+  - Authoritative status values: `DRAFT`, `SUBMITTED`, `UNDER_REVIEW`, `NEEDS_INFO`, `APPROVED`, `REJECTED`, `APPOINTMENT_SET`, `COMPLETED`, `CANCELLED`.
+- `public.application_events`: Immutable state audit trail tracking transitions, actors (`CUSTOMER`, `STAFF`, `SYSTEM`), and timestamps.
+- `public.application_internal_notes`: Branch and underwriting staff notes.
+- `public.appointments`: Scheduled in-store customer pickup appointments (`starts_at`, `status`).
+- `public.appointment_change_requests`: Rescheduling requests from customer or staff.
+- `public.consent_records`: Verifiable consent audit records for privacy policy, terms, and marketing.
+- `public.notifications`: Applicant notification dispatches (SMS/in-app).
+
+### E. CMS & Media Domain
+- `public.pages`: Landing pages and storefront layouts (`slug`, `status`, `current_revision`).
+- `public.page_widgets`: Widget blocks attached to pages with JSONB configs.
+- `public.page_revisions`: Snapshot revisions for rollback.
+- `public.media_assets`: Media library assets (`storage_path`, `public_url`, `mime_type`, `width`, `height`, `alt_text`, `visibility`).
+- Supporting publication entities: `page_drafts`, `page_versions`, `site_settings`, `site_settings_versions`, `publish_jobs`, `audit_events`.
 
 ---
 
-## 3. Row-Level Security (RLS) Principles
+## 3. RLS Functions & Security Helpers [VERIFIED FROM MIGRATION]
 
-1. **Customer Anonymity**: Public storefront read queries can only access `is_active = true` and `status = 'published'` records.
-2. **Staff Authorization Scoping**: Branch Managers can only query applications assigned to their own `branch_id`.
-3. **Admin Exclusivity**: Modifying system configuration, roles, and publishing revisions requires `SUPER_ADMIN` or `MANAGE_CMS` permissions.
+The migration implements authoritative security functions:
+1. `public.current_staff_user()`: Resolves authenticated caller to `staff_profiles` row.
+2. `public.staff_has_capability(capability_name text)`: Validates whether the staff user possesses explicit permissions in `staff_capabilities`.
+3. Branch-scoping RLS rules on `applications`:
+   - Anonymous access: completely disabled.
+   - Customer access: `auth.uid() = customer_id`.
+   - Staff access: scoped to `assigned_branch_id` unless staff possesses global underwriting capability.

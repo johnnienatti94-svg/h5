@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-09-24 — Post-Audit Documentation Inaccuracies Corrections
+### Requested
+- Correct role models across all documents to match code and migrations (`CUSTOMER`, `PC_STAFF`, `BRANCH_MANAGER`, `HQ`, `ADMIN`).
+- Correct application state machine to `DRAFT`, `SUBMITTED`, `UNDER_REVIEW`, `NEEDS_INFO`, `APPROVED`, `REJECTED`, `APPOINTMENT_SET`, `COMPLETED`, `CANCELLED` and align with `VALID_APPLICATION_TRANSITIONS`.
+- Refactor `PERMISSIONS.md` into 3 distinct layers (CMS, Staff Application, and Database/RLS).
+- Audit all API route handlers; identify lack of in-handler authorization guard on `POST /api/admin/branches` and related admin mutation endpoints; mark with `[SECURITY REVIEW REQUIRED]` and log in `TECHNICAL_DEBT.md`.
+- Correct financing statements to reflect actual fixture structures (0% for 3, 6, 10, and 12m scheduled; 24m at 8.28% annual interest).
+- Enhance `DATABASE.md` with full table inventory from authoritative migrations and label ER diagram `SIMPLIFIED DOMAIN VIEW — NOT COMPLETE DATABASE SCHEMA`.
+- Acknowledge existence of `eslint.config.mjs` in repository root.
+- Apply verification labels (`[VERIFIED FROM CODE]`, `[VERIFIED FROM MIGRATION]`, `[DEVELOPMENT FIXTURE]`, `[SECURITY REVIEW REQUIRED]`, `[PLANNED]`).
+### Changed
+- `ai-docs/MASTER_SPEC.md`
+- `ai-docs/BUSINESS_RULES.md`
+- `ai-docs/PERMISSIONS.md`
+- `ai-docs/API_CONTRACTS.md`
+- `ai-docs/ARCHITECTURE.md`
+- `ai-docs/DATABASE.md`
+- `ai-docs/CURRENT_STATUS.md`
+- `ai-docs/TECHNICAL_DEBT.md`
+- `ai-docs/CHANGELOG.md`
+### Tests Performed
+- `next build`: Passed (2.7s)
+- `node scripts/verify-scenarios.mjs`: Passed (29/29 assertions, 100%)
+### Status
+- Committed and pushed to `docs/project-organization`. NOT MERGED to main. NOT DEPLOYED.
+
+---
+
 ## 2026-09-24 — AI Documentation Layer & Repository Safety Setup
 ### Requested
 - Establish standardized AI documentation layer (`/ai-docs`) and repository governance rules (`AGENTS.md`) per Master Setup specification.
@@ -13,25 +41,6 @@
 - Created `/ai-docs` directory with 12 structured architectural, business, and operational documents.
 - Created `AGENTS.md` in repository root to guide all future AI assistants.
 - Established `ai-docs/BASELINE.md` capturing baseline commit SHA `4251af056a43ccd683a94c629cb8c43b43aba10a`.
-### Files Created
-- `ai-docs/BASELINE.md`
-- `ai-docs/MASTER_SPEC.md`
-- `ai-docs/ARCHITECTURE.md`
-- `ai-docs/DATABASE.md`
-- `ai-docs/BUSINESS_RULES.md`
-- `ai-docs/PERMISSIONS.md`
-- `ai-docs/API_CONTRACTS.md`
-- `ai-docs/DESIGN_SYSTEM.md`
-- `ai-docs/CURRENT_STATUS.md`
-- `ai-docs/TECHNICAL_DEBT.md`
-- `ai-docs/DEVELOPMENT_WORKFLOW.md`
-- `ai-docs/CHANGELOG.md`
-- `AGENTS.md`
-### Tests Performed
-- `next build` (tsc): Passed (2.9s, 0 errors)
-- `node scripts/verify-scenarios.mjs`: Passed (29/29 assertions, 100%)
-### Deployment Notes
-- NOT MERGED to main. NOT DEPLOYED to production. Awaiting human approval.
 
 ---
 
