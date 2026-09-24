@@ -185,7 +185,16 @@ export default function CartDrawer() {
               {items.map(({ product, quantity }) => (
                 <div key={product.id} className={styles.itemCard}>
                   <div className={styles.itemMedia}>
-                    <span className="text-[32px]">{product.imageUrl}</span>
+                    {product.imageUrl && (product.imageUrl.startsWith('http') || product.imageUrl.startsWith('/') || product.imageUrl.includes('.')) ? (
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className={styles.itemImage}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span className="text-[28px]">{product.imageUrl || '📱'}</span>
+                    )}
                   </div>
                   <div className={styles.itemDetails}>
                     <h4 className={styles.itemName}>{product.name}</h4>

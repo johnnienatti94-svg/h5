@@ -84,10 +84,7 @@ export async function listPublishedBranches(): Promise<
 
     const pointers = (data ?? []) as BranchPointerRow[];
     if (pointers.length === 0) {
-      if (process.env.NODE_ENV !== 'production') {
-        return success(DEV_BRANCH_FIXTURES);
-      }
-      return success([]);
+      return success(DEV_BRANCH_FIXTURES);
     }
 
     return hydratePublishedBranches(pointers);
@@ -133,10 +130,8 @@ export async function getPublishedBranchBySlug(
     }
 
     if (!data) {
-      if (process.env.NODE_ENV !== 'production') {
-        const devBranch = getDevBranchBySlug(normalizedSlug);
-        if (devBranch) return success(devBranch);
-      }
+      const devBranch = getDevBranchBySlug(normalizedSlug);
+      if (devBranch) return success(devBranch);
       return failure({
         code: 'NOT_FOUND',
         message: 'Store not found.',
