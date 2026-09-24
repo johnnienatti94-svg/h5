@@ -486,6 +486,13 @@ export const WIDGET_SCHEMAS: Record<string, z.ZodTypeAny> = {
     secondaryButtonHref: z.string().optional(),
     badgeText: z.string().optional(),
   }).passthrough(),
+  CUSTOMER_GREETING: z.object({
+    title: z.string().optional(),
+    defaultPoints: z.number().optional(),
+    membershipTier: z.string().optional(),
+    showMembership: z.boolean().optional(),
+    showPoints: z.boolean().optional(),
+  }).passthrough(),
 };
 
 

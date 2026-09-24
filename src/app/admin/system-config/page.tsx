@@ -131,7 +131,54 @@ export default function AdminSystemConfigPage() {
           </div>
         </div>
 
-        {/* Section 3: Maintenance Mode */}
+        {/* Section 3: Membership & Rewards Program Toggles */}
+        <div className={styles.consoleCard}>
+          <div className={styles.consoleTitle}>
+            <span>⭐</span>
+            <span>ระบบสมาชิก & สิทธิพิเศษของรางวัล (Membership & Rewards System)</span>
+          </div>
+          <p style={{ fontSize: '11px', color: '#64748B', marginBottom: '14px', lineHeight: 1.5 }}>
+            สามารถเปิด/ปิดการแสดงผลระดับสมาชิก (Tier) และระบบคะแนนสะสม MeePoints ในหน้าแรกและหน้าบัญชีลูกค้าได้
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={config.membershipEnabled}
+                onChange={(e) => setConfig({ ...config, membershipEnabled: e.target.checked })}
+                style={{ width: '18px', height: '18px', accentColor: '#2563EB' }}
+              />
+              <div>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: config.membershipEnabled ? '#93C5FD' : '#9CA3AF' }}>
+                  เปิดใช้งานระบบสมาชิกระดับ Tier (Membership Program)
+                </span>
+                <p style={{ fontSize: '11px', color: '#64748B', margin: '2px 0 0 0' }}>
+                  แสดงป้ายระดับสมาชิก (Member, Silver, Gold, Platinum) ในการ์ดผู้ใช้และโปรไฟล์
+                </p>
+              </div>
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={config.rewardsEnabled}
+                onChange={(e) => setConfig({ ...config, rewardsEnabled: e.target.checked })}
+                style={{ width: '18px', height: '18px', accentColor: '#10B981' }}
+              />
+              <div>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: config.rewardsEnabled ? '#6EE7B7' : '#9CA3AF' }}>
+                  เปิดใช้งานระบบคะแนนสะสม & ของรางวัล (MeePoints & Rewards)
+                </span>
+                <p style={{ fontSize: '11px', color: '#64748B', margin: '2px 0 0 0' }}>
+                  แสดงกล่องคะแนนสะสมและสิทธิประโยชน์การแลกพอยท์ในหน้าแรกและหน้าบัญชี
+                </p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {/* Section 4: Maintenance Mode */}
         <div className={styles.consoleCard}>
           <div className={styles.consoleTitle}>
             <span>🛑</span>

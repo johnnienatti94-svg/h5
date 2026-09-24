@@ -22,6 +22,8 @@ export interface SystemConfig {
   botProtectionEnabled: boolean;
   botProtectionSensitivity: 'Low' | 'Medium' | 'High';
   apiRateLimitPerMin: number;
+  membershipEnabled: boolean;
+  rewardsEnabled: boolean;
 }
 
 export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
@@ -33,6 +35,8 @@ export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
   botProtectionEnabled: true,
   botProtectionSensitivity: 'Medium',
   apiRateLimitPerMin: 120,
+  membershipEnabled: true,
+  rewardsEnabled: true,
 };
 
 export interface SystemLogEntry {

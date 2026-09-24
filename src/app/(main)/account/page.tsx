@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAuthUser, clearAuth } from '@/lib/auth';
+import { getSystemConfig, SystemConfig } from '@/lib/adminSystem';
 import PrivacyPolicyModal from '@/components/auth/PrivacyPolicyModal';
 import Link from 'next/link';
 import type { PublicApplication, ApplicationDraft } from '@/features/applications/types';
@@ -13,6 +14,7 @@ export default function AccountPage() {
   const [phone, setPhone] = useState('');
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [sysConfig, setSysConfig] = useState<SystemConfig | null>(null);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [logoutStep, setLogoutStep] = useState<'idle' | 'confirm' | 'loading' | 'success'>('idle');
   const [logoutTime, setLogoutTime] = useState('');
@@ -23,6 +25,7 @@ export default function AccountPage() {
   useEffect(() => {
     let active = true;
     async function loadAccount() {
+      setSysConfig(getSystemConfig());
       const user = await getAuthUser();
       if (!active) return;
       if (user?.phone) {
@@ -196,32 +199,43 @@ export default function AccountPage() {
             <span className="material-symbols-outlined text-[#007ACC] text-[18px]">verified</span>
           </div>
           <p className="text-xs text-[#64748B] truncate">{displayPhone} • บัญชียืนยันตัวตนแล้ว</p>
-          <div className="mt-1 inline-flex items-center gap-1 bg-blue-50/70 px-2 py-0.5 rounded text-[11px] font-semibold text-[#007ACC]">
-            <span>⭐ MeePro Member Tier Gold</span>
-          </div>
+          {sysConfig?.membershipEnabled !== false && (
+            <div className="mt-1 inline-flex items-center gap-1 bg-blue-50/70 px-2 py-0.5 rounded text-[11px] font-semibold text-[#007ACC]">
+              <span>⭐ MeePro Member Tier Gold</span>
+            </div>
+          )}
         </div>
       </section>
 
       {/* 2. Quick Financial Overview Widget */}
       <section className="bg-white rounded-2xl p-4 border border-[#E2E8F0] shadow-sm">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-xs text-[#64748B] font-medium">คะแนนสะสม & วงเงินพร้อมใช้</span>
+          <span className="text-xs text-[#64748B] font-medium">
+            {sysConfig?.rewardsEnabled !== false ? 'คะแนนสะสม & วงเงินพร้อมใช้' : 'วงเงินพร้อมใช้'}
+          </span>
           <Link href="/billing" className="text-xs text-[#007ACC] font-semibold hover:underline">
             ดูบิลของฉัน
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#E2E8F0]">
-          <div>
-            <span className="text-[11px] text-[#64748B] block">แต้มสะสม MeePoints</span>
-            <span className="text-[18px] font-bold text-[#0F172A]">
-              1,240 <span className="text-xs font-normal text-[#64748B]">แต้ม</span>
-            </span>
+        {sysConfig?.rewardsEnabled !== false ? (
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#E2E8F0]">
+            <div>
+              <span className="text-[11px] text-[#64748B] block">แต้มสะสม MeePoints</span>
+              <span className="text-[18px] font-bold text-[#0F172A]">
+                1,240 <span className="text-xs font-normal text-[#64748B]">แต้ม</span>
+              </span>
+            </div>
+            <div className="border-l border-[#E2E8F0] pl-3">
+              <span className="text-[11px] text-[#64748B] block">วงเงินพร้อมใช้</span>
+              <span className="text-[18px] font-bold text-[#007ACC]">฿15,000</span>
+            </div>
           </div>
-          <div className="border-l border-[#E2E8F0] pl-3">
+        ) : (
+          <div className="pt-2 border-t border-[#E2E8F0]">
             <span className="text-[11px] text-[#64748B] block">วงเงินพร้อมใช้</span>
             <span className="text-[18px] font-bold text-[#007ACC]">฿15,000</span>
           </div>
-        </div>
+        )}
       </section>
 
       {/* Active Incomplete Draft Alert */}

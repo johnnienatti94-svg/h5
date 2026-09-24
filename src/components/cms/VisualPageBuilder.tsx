@@ -1431,6 +1431,118 @@ export default function VisualPageBuilder({
                     </div>
                   ))}
                 </div>
+              ) : selectedWidget.type === 'CUSTOMER_GREETING' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div className={styles.customizerCard}>
+                    <div className={styles.slideHeader}>
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: '#38BDF8', background: '#0F172A', padding: '2px 8px', borderRadius: '4px' }}>
+                        ⭐ ตั้งค่าระบบสมาชิก & คะแนนสะสม (Membership & Rewards)
+                      </span>
+                    </div>
+
+                    {/* Show Membership Toggle */}
+                    <div className={styles.formGroup} style={{ margin: '8px 0' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedWidget.config?.showMembership !== false && (selectedWidget as any).showMembership !== false}
+                          onChange={(e) => {
+                            const newCfg = { ...(selectedWidget.config || {}), showMembership: e.target.checked };
+                            setInspectorConfigJson(JSON.stringify(newCfg, null, 2));
+                            validateInspectorConfig(selectedWidget.type, newCfg);
+                            const updated = widgets.map((w) =>
+                              w.id === selectedWidget.id
+                                ? { ...w, config: newCfg, showMembership: e.target.checked }
+                                : w
+                            );
+                            setWidgets(updated as any);
+                            setHasUnsavedChanges(true);
+                          }}
+                          style={{ width: '16px', height: '16px', accentColor: '#2563EB' }}
+                        />
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#F8FAFC' }}>
+                          แสดงระดับสมาชิก (Show Membership Tier Badge)
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Show Points Toggle */}
+                    <div className={styles.formGroup} style={{ margin: '8px 0' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedWidget.config?.showPoints !== false && (selectedWidget as any).showPoints !== false}
+                          onChange={(e) => {
+                            const newCfg = { ...(selectedWidget.config || {}), showPoints: e.target.checked };
+                            setInspectorConfigJson(JSON.stringify(newCfg, null, 2));
+                            validateInspectorConfig(selectedWidget.type, newCfg);
+                            const updated = widgets.map((w) =>
+                              w.id === selectedWidget.id
+                                ? { ...w, config: newCfg, showPoints: e.target.checked }
+                                : w
+                            );
+                            setWidgets(updated as any);
+                            setHasUnsavedChanges(true);
+                          }}
+                          style={{ width: '16px', height: '16px', accentColor: '#10B981' }}
+                        />
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#F8FAFC' }}>
+                          แสดงกล่องคะแนนสะสม & ของรางวัล (Show Rewards Points Box)
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Membership Tier Select */}
+                    <div className={styles.formGroup} style={{ marginTop: '10px' }}>
+                      <label className={styles.formLabel} style={{ fontSize: '10px' }}>ระดับสมาชิกตั้งต้น (Default Tier)</label>
+                      <select
+                        className={styles.formInput}
+                        value={(selectedWidget.config?.membershipTier || (selectedWidget as any).membershipTier || 'Gold')}
+                        onChange={(e) => {
+                          const newCfg = { ...(selectedWidget.config || {}), membershipTier: e.target.value };
+                          setInspectorConfigJson(JSON.stringify(newCfg, null, 2));
+                          validateInspectorConfig(selectedWidget.type, newCfg);
+                          const updated = widgets.map((w) =>
+                            w.id === selectedWidget.id
+                              ? { ...w, config: newCfg, membershipTier: e.target.value }
+                              : w
+                          );
+                          setWidgets(updated as any);
+                          setHasUnsavedChanges(true);
+                        }}
+                        style={{ fontSize: '11px' }}
+                      >
+                        <option value="Member">Member (สมาชิกทั่วไป)</option>
+                        <option value="Silver">Silver</option>
+                        <option value="Gold">Gold</option>
+                        <option value="Platinum">Platinum</option>
+                      </select>
+                    </div>
+
+                    {/* Default Points */}
+                    <div className={styles.formGroup} style={{ marginTop: '8px' }}>
+                      <label className={styles.formLabel} style={{ fontSize: '10px' }}>คะแนนสะสมตั้งต้น (Default Points)</label>
+                      <input
+                        type="number"
+                        className={styles.formInput}
+                        value={(selectedWidget.config?.defaultPoints ?? (selectedWidget as any).defaultPoints ?? 450)}
+                        onChange={(e) => {
+                          const newCfg = { ...(selectedWidget.config || {}), defaultPoints: Number(e.target.value) };
+                          setInspectorConfigJson(JSON.stringify(newCfg, null, 2));
+                          validateInspectorConfig(selectedWidget.type, newCfg);
+                          const updated = widgets.map((w) =>
+                            w.id === selectedWidget.id
+                              ? { ...w, config: newCfg, defaultPoints: Number(e.target.value) }
+                              : w
+                          );
+                          setWidgets(updated as any);
+                          setHasUnsavedChanges(true);
+                        }}
+                        style={{ fontSize: '11px' }}
+                      />
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div className={styles.formGroup}>

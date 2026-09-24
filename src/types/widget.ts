@@ -144,7 +144,9 @@ export interface BrandShowcaseWidget extends BaseWidget {
 export interface CustomerGreetingWidget extends BaseWidget {
   type: 'CUSTOMER_GREETING';
   defaultPoints?: number;
-  membershipTier?: 'Member' | 'Silver' | 'Gold' | 'Platinum';
+  membershipTier?: 'Member' | 'Silver' | 'Gold' | 'Platinum' | string;
+  showMembership?: boolean;
+  showPoints?: boolean;
 }
 
 export interface BannerCarouselWidget extends BaseWidget {
