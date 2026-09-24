@@ -22,8 +22,6 @@ As defined in `src/lib/rbac.ts`, `src/features/staff/types.ts`, and `supabase/mi
 4. **`HQ`**: Central office staff with broad operational, media, and CMS draft capabilities.
 5. **`ADMIN`**: System administrator with full CMS publishing, media, and system configuration access.
 
-*(Note: Roles such as `SUPER_ADMIN` and `SALES_ASSOCIATE` do not exist in the codebase and have been removed.)*
-
 ---
 
 ## 3. System Architecture & Applications
@@ -67,7 +65,6 @@ Current installment offer fixtures in `src/server/repositories/offersStore.ts` a
 
 As authoritative in `src/features/applications/types.ts`:
 - **Allowed States**: `DRAFT`, `SUBMITTED`, `UNDER_REVIEW`, `NEEDS_INFO`, `APPROVED`, `REJECTED`, `APPOINTMENT_SET`, `COMPLETED`, `CANCELLED`.
-- *(Note: `COLLECTED` does not exist in `ApplicationStatus`; the final completion state is `COMPLETED`.)*
 
 ---
 

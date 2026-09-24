@@ -51,8 +51,6 @@ Authoritative status values and transition rules from `src/features/applications
 - `COMPLETED`: In-store verification passed and contract completed (terminal)
 - `CANCELLED`: Cancelled by customer or staff (terminal)
 
-*(Note: `COLLECTED` is obsolete and replaced by `COMPLETED`.)*
-
 ### Valid State Transitions (`VALID_APPLICATION_TRANSITIONS`):
 
 ```mermaid

@@ -5,7 +5,7 @@
 
 ---
 
-## 1. System Role Definitions [VERIFIED FROM CODE]
+## 1. System Role Definitions [VERIFIED FROM CODE & MIGRATION]
 
 The MeePro domain models 5 authoritative roles (`CmsRole` / `StaffRole`):
 1. **`CUSTOMER`**: Public visitor or authenticated financing applicant.
@@ -13,8 +13,6 @@ The MeePro domain models 5 authoritative roles (`CmsRole` / `StaffRole`):
 3. **`BRANCH_MANAGER`**: Branch supervisor scoped to their specific physical store.
 4. **`HQ`**: Central operations team with content and queue management capabilities.
 5. **`ADMIN`**: Full administrator with complete CMS, media, system config, and role privileges.
-
-*(Note: `SUPER_ADMIN` and `SALES_ASSOCIATE` do not exist in the codebase.)*
 
 ---
 
@@ -65,8 +63,13 @@ From `supabase/migrations/20260924073909_authoritative_domain_v1.sql`:
    - `INSERT` on `applications` with required idempotency key.
    - `SELECT` scoped strictly to applications matching their authenticated `customer_id`.
 3. **Staff Roles**:
-   - Evaluated via PostgreSQL functions `public.current_staff_user()` and `public.staff_has_capability()`.
-   - Branch scoping enforced at PostgreSQL RLS level on `applications` table: `branch_id = current_staff_user().branch_id` unless staff has global HQ capability.
+   - Evaluated via PostgreSQL functions in schema `private`:
+     - `private.current_staff_role()`
+     - `private.is_staff()`
+     - `private.is_hq_admin()`
+     - `private.has_staff_capability(text)`
+     - `private.can_access_branch(uuid)`
+   - Branch scoping enforced at PostgreSQL RLS level on `applications` table: `private.can_access_branch(branch_id)` enforces that Branch Managers and PC Staff can only access rows matching their `assigned_branch_id`, while HQ and Admin have global access.
 4. **Service Role (`service_role`)**:
    - Bypasses RLS for authoritative migrations and background sync jobs.
 

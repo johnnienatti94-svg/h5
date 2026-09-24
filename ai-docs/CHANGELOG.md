@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-09-24 — Final Documentation-Only Accuracy & Migration Alignment Pass
+### Requested
+- Correct PostgreSQL security helper names in `PERMISSIONS.md` and `DATABASE.md` to exact `private` schema functions (`private.current_staff_role()`, `private.is_staff()`, `private.is_hq_admin()`, `private.has_staff_capability(text)`, `private.can_access_branch(uuid)`).
+- Correct `staff_profiles` schema documentation to exact implemented migration fields (`user_id`, `display_name`, `role`, `assigned_branch_id`, `status`, `created_at`, `updated_at`).
+- Correct `customer_profiles` schema documentation to exact implemented migration fields (`user_id`, `normalized_phone`, `display_phone`, `contact_name`, `status`, `created_at`, `updated_at`).
+- Simplify ER diagram in `DATABASE.md` to a clean `SIMPLIFIED RELATIONSHIP VIEW` without representative columns.
+- Audit entire `ai-docs/` directory to eliminate all occurrences of unverified terms (`current_staff_user`, `staff_has_capability`, `employee_code`, `national_id_sha256`, `mobile_phone_e164`, `SUPER_ADMIN`, `SALES_ASSOCIATE`, `COLLECTED`).
+- Ensure no field, table, or rule is labeled verified unless located directly in code or migrations.
+### Changed
+- `ai-docs/DATABASE.md`
+- `ai-docs/PERMISSIONS.md`
+- `ai-docs/MASTER_SPEC.md`
+- `ai-docs/BUSINESS_RULES.md`
+- `ai-docs/CHANGELOG.md`
+### Tests Performed
+- `next build`: Passed (2.6s, 0 errors)
+- `node scripts/verify-scenarios.mjs`: Passed (29/29 assertions, 100%)
+### Status
+- Committed and pushed to `docs/project-organization`. NOT MERGED to main. NOT DEPLOYED.
+
+---
+
 ## 2026-09-24 — Post-Audit Documentation Inaccuracies Corrections
 ### Requested
 - Correct role models across all documents to match code and migrations (`CUSTOMER`, `PC_STAFF`, `BRANCH_MANAGER`, `HQ`, `ADMIN`).
