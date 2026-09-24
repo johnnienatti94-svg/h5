@@ -85,3 +85,21 @@ From `supabase/migrations/20260924073909_authoritative_domain_v1.sql`:
   - Enforces HTTP 401 Unauthorized for unauthenticated requests and HTTP 403 Forbidden for insufficient permissions (`PC_STAFF`, `BRANCH_MANAGER`, `CUSTOMER`). Only `ADMIN` and `HQ` are permitted.
 - **Staff Mutation Endpoints**:
   - `POST /api/staff/applications/[id]/status` and `POST /api/staff/applications/[id]/appointment` explicitly reject `PC_STAFF` with HTTP 403 Forbidden, restricting state changes and appointments strictly to `BRANCH_MANAGER`, `HQ`, and `ADMIN`.
+
+---
+
+## 6. Authentication Boundary & Production Isolation [VERIFIED FROM CODE]
+
+Authorization guards depend directly on the authentication boundary (`authenticateCmsRequest` and `getCurrentStaff`):
+
+1. **Production Token Requirements**:
+   - Production requests must provide either a cryptographically signed HMAC token (via `meepro_staff_session` cookie or `Authorization: Bearer <token>`) signed with `STAFF_SESSION_SECRET`, or a verified Supabase Auth JWT.
+   - If `STAFF_SESSION_SECRET` is missing in production, the authentication boundary fails closed (HTTP 401).
+2. **Development Bypass Isolation**:
+   - Development shortcuts (`dev-admin-token`, `dev-hq-token`, `dev-manager-token`, `dev-pcstaff-token`) and development passwords (`staff1234`, `admin1234`) are gated by `isDevAuthAllowed()`.
+   - When `process.env.NODE_ENV === 'production'`, `isDevAuthAllowed()` returns `false` unconditionally.
+   - Development shortcuts are strictly rejected in production with HTTP 401 Unauthorized.
+3. **Database-Backed Staff Accounts**:
+   - In production, staff users must be provisioned in Supabase Auth (`auth.users`) and have an active row in `public.staff_profiles`.
+   - `getCurrentStaff()` and `authenticateCmsRequest()` verify the caller's JWT and look up the assigned role and branch from `public.staff_profiles`.
+

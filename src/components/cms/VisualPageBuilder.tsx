@@ -124,8 +124,8 @@ async function authenticatedCmsFetch<T>(url: string, init?: RequestInit): Promis
     // Ignore and proceed with session cookie or dev token
   }
 
-  // 2. If no Bearer token attached, supply dev-admin-token for seamless admin operation
-  if (!headers.has('Authorization')) {
+  // 2. In non-production environments, supply dev-admin-token if no Bearer token is attached
+  if (process.env.NODE_ENV !== 'production' && !headers.has('Authorization')) {
     headers.set('Authorization', 'Bearer dev-admin-token');
   }
 

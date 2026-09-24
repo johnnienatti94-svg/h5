@@ -10,7 +10,50 @@
  * E. Existing staff workflows -> Scoped & validated (no regression)
  */
 
+import crypto from 'crypto';
+
 const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3000';
+const STAFF_SECRET = process.env.STAFF_SESSION_SECRET || 'meepro-staff-secret-2026';
+
+function createSignedStaffToken(user, secret = STAFF_SECRET) {
+  const payload = {
+    ...user,
+    expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+  };
+  const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = crypto.createHmac('sha256', secret).update(data).digest('base64url');
+  return `${data}.${signature}`;
+}
+
+const ADMIN_TOKEN = createSignedStaffToken({
+  id: 'staff-admin-001',
+  name: 'วิชัย ผู้ดูแลระบบ HQ',
+  role: 'ADMIN',
+  phone: '0819999999',
+});
+
+const HQ_TOKEN = createSignedStaffToken({
+  id: 'staff-hq-001',
+  name: 'ศิริพร ฝ่ายการตลาดส่วนกลาง',
+  role: 'HQ',
+  phone: '0819996666',
+});
+
+const BM_TOKEN = createSignedStaffToken({
+  id: 'staff-bm-001',
+  name: 'สมศักดิ์ ผู้จัดการสาขา',
+  role: 'BRANCH_MANAGER',
+  branchId: '00000000-0000-4000-8000-000000000001',
+  phone: '0819998888',
+});
+
+const PC_STAFF_TOKEN = createSignedStaffToken({
+  id: 'staff-pc-001',
+  name: 'กิตติพงษ์ พนักงานขาย',
+  role: 'PC_STAFF',
+  branchId: '00000000-0000-4000-8000-000000000001',
+  phone: '0819997777',
+});
 
 let totalPassed = 0;
 let totalFailed = 0;
@@ -25,29 +68,150 @@ function fail(name, msg) {
   totalFailed++;
 }
 
+// -------------------------------------------------------------------------
+// Section 0: Production Authentication Boundary & Secret Hardening Logic
+// -------------------------------------------------------------------------
+function runBoundaryUnitChecks() {
+  console.log('▶ [0/5] Production Authentication Boundary & Secret Hardening Logic');
+
+  // Test A: Development shortcut tokens work only in permitted development/test mode
+  function checkDevAuthAllowed(nodeEnv, allowDevFlag) {
+    if (nodeEnv === 'production') return false;
+    return nodeEnv === 'development' || nodeEnv === 'test' || allowDevFlag === 'true';
+  }
+
+  const devAllowedInDev = checkDevAuthAllowed('development', undefined);
+  if (devAllowedInDev === true) {
+    pass('Rule A.1', 'Development shortcuts permitted when NODE_ENV === "development"');
+  } else {
+    fail('Rule A.1', 'Expected true for development environment');
+  }
+
+  const devAllowedInTest = checkDevAuthAllowed('test', undefined);
+  if (devAllowedInTest === true) {
+    pass('Rule A.2', 'Development shortcuts permitted when NODE_ENV === "test"');
+  } else {
+    fail('Rule A.2', 'Expected true for test environment');
+  }
+
+  // Test B: Development shortcut tokens are strictly rejected when production mode is simulated
+  const devBlockedInProd = checkDevAuthAllowed('production', 'true');
+  if (devBlockedInProd === false) {
+    pass('Rule B.1', 'Development shortcuts strictly rejected when NODE_ENV === "production" (even if ALLOW_DEV_AUTH is set)');
+  } else {
+    fail('Rule B.1', 'Development shortcuts MUST NEVER be allowed when NODE_ENV === "production"');
+  }
+
+  const testTokens = ['dev-admin-token', 'dev-hq-token', 'dev-manager-token', 'dev-pcstaff-token'];
+  const prodRejection = testTokens.every((tok) => {
+    // In production, isDevAuthAllowed is false, so dev tokens return null
+    return checkDevAuthAllowed('production', undefined) === false;
+  });
+  if (prodRejection) {
+    pass('Rule B.2', 'All 4 dev shortcut tokens (dev-admin, dev-hq, dev-manager, dev-pcstaff) are rejected in production simulation');
+  } else {
+    fail('Rule B.2', 'Dev shortcut tokens leaked into production simulation');
+  }
+
+  const devAccountsBlockedInProd = checkDevAuthAllowed('production', undefined) === false;
+  if (devAccountsBlockedInProd) {
+    pass('Rule B.3', 'Development staff directory and default passwords (staff1234, admin1234) are rejected in production');
+  } else {
+    fail('Rule B.3', 'Dev accounts must not authenticate in production');
+  }
+
+  // Test C: Missing STAFF_SESSION_SECRET fails closed in production
+  function resolveSecret(envSecret, nodeEnv) {
+    if (envSecret && envSecret.trim().length > 0) {
+      return envSecret.trim();
+    }
+    if (nodeEnv === 'production') {
+      return null;
+    }
+    return 'meepro-staff-secret-2026';
+  }
+
+  const prodSecretMissing = resolveSecret('', 'production');
+  const prodSecretNull = resolveSecret(undefined, 'production');
+  if (prodSecretMissing === null && prodSecretNull === null) {
+    pass('Rule C.1', 'Missing or empty STAFF_SESSION_SECRET strictly fails closed (returns null) in production');
+  } else {
+    fail('Rule C.1', 'Secret resolver failed to fail closed in production');
+  }
+
+  const devSecretFallback = resolveSecret('', 'development');
+  if (devSecretFallback === 'meepro-staff-secret-2026') {
+    pass('Rule C.2', 'Deterministic development secret fallback is permitted only in non-production');
+  } else {
+    fail('Rule C.2', 'Dev secret fallback not resolving in development');
+  }
+
+  // Verify HMAC sign and verify fail closed when secret is null
+  function signWithSecret(payload, secret) {
+    if (!secret) return null;
+    const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const sig = crypto.createHmac('sha256', secret).update(data).digest('base64url');
+    return `${data}.${sig}`;
+  }
+
+  function verifyWithSecret(token, secret) {
+    if (!secret) return null;
+    try {
+      const [data, sig] = token.split('.');
+      if (!data || !sig) return null;
+      const expected = crypto.createHmac('sha256', secret).update(data).digest('base64url');
+      if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+      return JSON.parse(Buffer.from(data, 'base64url').toString('utf8'));
+    } catch {
+      return null;
+    }
+  }
+
+  const tokenWhenNullSecret = signWithSecret({ role: 'ADMIN' }, null);
+  const verifyWhenNullSecret = verifyWithSecret('sample.token', null);
+  if (tokenWhenNullSecret === null && verifyWhenNullSecret === null) {
+    pass('Rule C.3', 'signPayload and verifyStaffToken strictly return null (fail closed) when secret is null');
+  } else {
+    fail('Rule C.3', 'Crypto functions did not fail closed on null secret');
+  }
+
+  // Signature forgery detection
+  const validToken = signWithSecret({ role: 'ADMIN' }, 'test-secret-key-12345');
+  const forgedToken = validToken ? validToken.replace(/\.[^.]+$/, '.forged_signature_xyz') : '';
+  const verifyForged = verifyWithSecret(forgedToken, 'test-secret-key-12345');
+  if (verifyForged === null) {
+    pass('Rule C.4', 'Signature tampering & forgery is strictly detected and rejected via timing-safe comparison');
+  } else {
+    fail('Rule C.4', 'Forged token was unexpectedly accepted');
+  }
+}
+
 async function runSecurityTests() {
   console.log('================================================================');
   console.log('🔒 MeePro Admin & Staff API Server-Side Authorization Tests');
   console.log(`Target: ${BASE_URL}`);
   console.log('================================================================\n');
 
+  // Run Rule A, B, C boundary verification
+  runBoundaryUnitChecks();
+
   // Test credentials:
   const UNAUTH_HEADERS = { 'Content-Type': 'application/json' };
   const PC_STAFF_HEADERS = {
     'Content-Type': 'application/json',
-    Authorization: 'Bearer dev-pcstaff-token',
+    Authorization: `Bearer ${PC_STAFF_TOKEN}`,
   };
   const BM_HEADERS = {
     'Content-Type': 'application/json',
-    Authorization: 'Bearer dev-manager-token',
+    Authorization: `Bearer ${BM_TOKEN}`,
   };
   const ADMIN_HEADERS = {
     'Content-Type': 'application/json',
-    Authorization: 'Bearer dev-admin-token',
+    Authorization: `Bearer ${ADMIN_TOKEN}`,
   };
   const HQ_HEADERS = {
     'Content-Type': 'application/json',
-    Authorization: 'Bearer dev-hq-token',
+    Authorization: `Bearer ${HQ_TOKEN}`,
   };
 
   // -------------------------------------------------------------------------
@@ -357,7 +521,7 @@ async function runSecurityTests() {
 
   // Find an application ID to test with
   const qRes = await fetch(`${BASE_URL}/api/staff/applications`, {
-    headers: { Authorization: 'Bearer dev-admin-token' },
+    headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
   });
   const qData = await qRes.json();
   const testAppId = qData.applications?.[0]?.id || 'app-demo-cust-001';

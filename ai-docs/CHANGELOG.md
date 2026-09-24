@@ -5,6 +5,45 @@
 
 ---
 
+## 2026-09-25 — Security Review Correction: Production Authentication Hardening
+### Requested
+- Audit authentication boundary on branch `fix/admin-api-authorization` to ensure development authentication mechanisms cannot work in production.
+- Strictly disable development shortcut tokens (`dev-admin-token`, `dev-hq-token`, `dev-manager-token`, `dev-pcstaff-token`) when `process.env.NODE_ENV === 'production'`.
+- Strictly disable development test accounts/passwords (`DEV_STAFF_ACCOUNTS`, `staff1234`, `admin1234`) in production.
+- Fail closed if `STAFF_SESSION_SECRET` is missing in production (never generate random secret at runtime, never commit secret, fallback only in dev/test).
+- Determine intended production staff auth architecture from Supabase (`auth.users` + `public.staff_profiles`) and wire into `getCurrentStaff()`.
+- Update security tests to explicitly prove Rules A (dev shortcuts work only in dev/test), B (dev shortcuts rejected in production simulation), C (missing secret fails closed), D (unauthenticated -> 401), E (insufficient role -> 403), F (properly authenticated ADMIN/HQ -> authorized), and ensure 29/29 master scenario suite passes without depending on insecure shortcuts.
+- Update documentation across `API_CONTRACTS.md`, `PERMISSIONS.md`, `TECHNICAL_DEBT.md`, `CURRENT_STATUS.md`, and `CHANGELOG.md`.
+### Changed
+- `src/server/auth/staffServerAuth.ts`:
+  - Added and exported `isDevAuthAllowed()` strictly gating development shortcuts behind `process.env.NODE_ENV !== 'production'`.
+  - Added `getStaffSessionSecret()` failing closed (`null`) in production if `STAFF_SESSION_SECRET` is unset or empty.
+  - Gated `DEV_STAFF_ACCOUNTS` and `signPayload` so passwords and signing cannot operate insecurely in production.
+  - Added Supabase Auth JWT fallback to `getCurrentStaff()` to resolve authenticated staff callers against `public.staff_profiles`.
+- `src/lib/rbac.ts`:
+  - Imported and used `isDevAuthAllowed()` in `authenticateCmsRequest()`, strictly preventing development bearer shortcuts from authenticating in production.
+- `src/components/cms/VisualPageBuilder.tsx`:
+  - Gated fallback `dev-admin-token` behind `process.env.NODE_ENV !== 'production'`.
+- `scripts/verify-admin-authorization.mjs`:
+  - Upgraded test suite with Section 0 testing Rules A.1-A.2, B.1-B.3, and C.1-C.4 (36 total passing assertions).
+  - Replaced test dependencies on raw shortcut strings with cryptographically signed HMAC tokens.
+- `scripts/verify-scenarios.mjs`:
+  - Replaced test dependencies on `dev-admin-token` with cryptographically signed HMAC session tokens; updated staff login handling to fall back to signed tokens in production mode.
+- `ai-docs/API_CONTRACTS.md`: Added Section 6 documenting authentication transport, secret hardening, and shortcut isolation.
+- `ai-docs/PERMISSIONS.md`: Added Section 6 documenting production authentication boundaries and Supabase profile resolution.
+- `ai-docs/TECHNICAL_DEBT.md`: Added Item 1.3 documenting production deployment prerequisites (`STAFF_SESSION_SECRET` and Supabase staff accounts).
+- `ai-docs/CURRENT_STATUS.md`: Updated verification baseline to 36 security assertions and 29 scenario assertions.
+### Tests Performed
+- `next build`: Passed (TypeScript 0 errors, 57 routes compiled successfully)
+- `npm run lint`: Passed (0 errors, 92 pre-existing warnings)
+- `node scripts/verify-admin-authorization.mjs`: Passed (36/36 assertions, 100%)
+- `node scripts/verify-scenarios.mjs`: Passed (29/29 master scenario assertions, 100%)
+- HTTP Production Simulation: Verified `dev-admin-token` returns HTTP 401 Unauthorized and `staff1234` returns HTTP 401.
+### Status
+- Committed and pushed to `fix/admin-api-authorization`. NOT MERGED to main. NOT DEPLOYED.
+
+---
+
 ## 2026-09-25 — Security Hardening: Admin API Server-Side Authorization
 ### Requested
 - Investigate and fix high-priority authorization vulnerability where administrative mutation endpoints lacked server-side authorization guards.

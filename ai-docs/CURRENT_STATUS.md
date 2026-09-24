@@ -2,7 +2,7 @@
 
 > **Target:** `/ai-docs/CURRENT_STATUS.md`  
 > **Status:** Active Operational Baseline [VERIFIED FROM CODE]  
-> **Last Verification Run:** 2026-09-25 (29/29 Master E2E Scenarios Passing + 27/27 Security Tests Passing)
+> **Last Verification Run:** 2026-09-25 (29/29 Master E2E Scenarios Passing + 36/36 Security Tests Passing)
 
 ---
 
@@ -14,6 +14,7 @@
 - **Media Library (`/admin/media`)**: Image uploads, MIME validation, dimension extraction, and reference deletion protection (prevents breaking published pages).
 - **Visual Page Builder (`/admin/page-builder`)**: Modular widget layout editor, draft vs published isolation, revision snapshots, UTC publication scheduling, and concurrency conflict handling (HTTP 409).
 - **Security & Authorization**: Strict backend-only CMS enforcement, RBAC for Staff roles (`PC_STAFF`, `BRANCH_MANAGER`, `HQ`, `ADMIN`), server-side admin API protection, and branch-scoped queue locking.
+- **Production Authentication Hardening**: Development bearer tokens (`dev-admin-token`, `dev-pcstaff-token`, etc.) and default test passwords (`staff1234`, `admin1234`) strictly isolated behind `isDevAuthAllowed()` and unconditionally rejected in production (`NODE_ENV === 'production'`). Missing `STAFF_SESSION_SECRET` fails closed (HTTP 401). Real Supabase Auth JWTs verified against `public.staff_profiles`.
 - **System Config Toggles (`/admin/system-config`)**: Global toggles to disable Member Tier display and MeePoints rewards system-wide.
 
 ---
@@ -28,6 +29,7 @@
 ## 3. Discovered Security & Governance Items [RESOLVED]
 
 - **Admin Route Authorization Guards [RESOLVED]**: Route handlers in `src/app/api/admin/branches/*`, `src/app/api/admin/products/*`, and `src/app/api/offers/*` now enforce server-side authentication and role authorization via `requireAdminOrHqAuth()`, returning 401 for unauthenticated calls and 403 for unauthorized roles. `PC_STAFF` role restrictions are also enforced on `/api/staff/applications/[id]/status` and `/api/staff/applications/[id]/appointment`.
+- **Production Authentication Boundary Hardening [RESOLVED AT CODE LEVEL — PENDING VERCEL ENV & SUPABASE USERS]**: Hardened `src/server/auth/staffServerAuth.ts` and `src/lib/rbac.ts` so that development authentication mechanisms cannot work in production. Added fail-closed secret resolution, Supabase Auth token fallback in `getCurrentStaff()`, and upgraded security test suite to 36 assertions proving isolation, rejection, fail-closed handling, and permission boundaries.
 - **ESLint Configuration**: Flat config `eslint.config.mjs` executes via `npm run lint` with 0 errors.
 
 ---

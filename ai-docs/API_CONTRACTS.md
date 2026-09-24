@@ -172,3 +172,31 @@
 - **Request Body**: `{ expectedRevision: number, widgets: PageWidgetRecord[] }`
 - **Errors**: 409 Conflict (`REVISION_CONFLICT`) if `expectedRevision` does not match server revision.
 - **Side Effects**: Saves page draft widgets and increments draft revision.
+
+---
+
+## 6. Authentication Boundary & Session Specification [VERIFIED FROM CODE]
+
+All authenticated administrative and staff endpoints rely on two server-side authentication gateways:
+- `authenticateCmsRequest(req: Request)` in `src/lib/rbac.ts`
+- `getCurrentStaff()` and `authenticateStaff()` in `src/server/auth/staffServerAuth.ts`
+
+### 6.1 Authentication Transport
+1. **HttpOnly Cookie**: `meepro_staff_session` containing cryptographically signed HMAC-SHA256 session token.
+2. **Authorization Bearer Header**: `Authorization: Bearer <token>` containing either:
+   - Cryptographically signed HMAC-SHA256 session token, OR
+   - Supabase Auth JWT access token (verified via `supabaseAdmin.auth.getUser()` and resolved against active rows in `public.staff_profiles`).
+
+### 6.2 Production Secret Hardening (`STAFF_SESSION_SECRET`)
+- **Environment Variable**: `STAFF_SESSION_SECRET`
+- **Production Invariant**: In production (`NODE_ENV === 'production'`), if `STAFF_SESSION_SECRET` is unset or empty, `getStaffSessionSecret()` returns `null`.
+- **Fail-Closed Behavior**: When the secret is `null`, `signPayload()` and `verifyStaffToken()` strictly return `null`. All mutation and staff requests fail closed with HTTP 401 Unauthorized.
+- **Forbidden Practices**: The system does NOT generate runtime random secrets (which would cause horizontal inconsistency), does NOT hard-code production secrets, and NEVER falls back to default secrets in production.
+- **Non-Production Fallback**: A deterministic fallback secret (`meepro-staff-secret-2026`) is permitted ONLY in non-production environments (`NODE_ENV !== 'production'`).
+
+### 6.3 Development Shortcut Isolation (`isDevAuthAllowed()`)
+- **Shortcut Tokens**: `dev-admin-token`, `dev-hq-token`, `dev-manager-token`, `dev-pcstaff-token`
+- **Development Directory & Passwords**: `DEV_STAFF_ACCOUNTS` (`staff1234`, `admin1234`)
+- **Production Invariant**: When `process.env.NODE_ENV === 'production'`, `isDevAuthAllowed()` strictly evaluates to `false`.
+- **Enforcement**: Development tokens and passwords MUST NEVER authenticate a request in production mode. Any request carrying development shortcuts in production is rejected with HTTP 401 Unauthorized.
+

@@ -68,48 +68,50 @@ export interface AuthContext {
   email?: string;
 }
 
-import { verifyStaffToken } from '@/server/auth/staffServerAuth';
+import { verifyStaffToken, isDevAuthAllowed } from '@/server/auth/staffServerAuth';
 
 /**
  * Server-side request authenticator for Next.js CMS API routes.
  * Supports:
- * 1. Bearer tokens (dev tokens, signed staff HMAC sessions, or Supabase JWTs)
+ * 1. Bearer tokens (signed staff HMAC sessions, Supabase JWTs, or dev tokens in dev/test)
  * 2. HttpOnly cookie (meepro_staff_session)
  */
 export async function authenticateCmsRequest(req: Request): Promise<AuthContext | null> {
   const authHeader = req.headers.get('authorization') || '';
   const token = authHeader.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
 
-  // 1. Development token shortcuts
-  if (token === 'dev-admin-token') {
-    return {
-      userId: 'staff-admin-001',
-      name: 'วิชัย ผู้ดูแลระบบ HQ',
-      role: 'ADMIN',
-    };
-  }
-  if (token === 'dev-hq-token') {
-    return {
-      userId: 'staff-hq-001',
-      name: 'ศิริพร ฝ่ายการตลาดส่วนกลาง',
-      role: 'HQ',
-    };
-  }
-  if (token === 'dev-manager-token') {
-    return {
-      userId: 'staff-bm-001',
-      name: 'สมศักดิ์ ผู้จัดการสาขา',
-      role: 'BRANCH_MANAGER',
-      assignedBranchId: '00000000-0000-4000-8000-000000000001',
-    };
-  }
-  if (token === 'dev-pcstaff-token') {
-    return {
-      userId: 'staff-pc-001',
-      name: 'กิตติพงษ์ พนักงานขาย',
-      role: 'PC_STAFF',
-      assignedBranchId: '00000000-0000-4000-8000-000000000001',
-    };
+  // 1. Development token shortcuts (STRICTLY PROHIBITED IN PRODUCTION)
+  if (isDevAuthAllowed()) {
+    if (token === 'dev-admin-token') {
+      return {
+        userId: 'staff-admin-001',
+        name: 'วิชัย ผู้ดูแลระบบ HQ',
+        role: 'ADMIN',
+      };
+    }
+    if (token === 'dev-hq-token') {
+      return {
+        userId: 'staff-hq-001',
+        name: 'ศิริพร ฝ่ายการตลาดส่วนกลาง',
+        role: 'HQ',
+      };
+    }
+    if (token === 'dev-manager-token') {
+      return {
+        userId: 'staff-bm-001',
+        name: 'สมศักดิ์ ผู้จัดการสาขา',
+        role: 'BRANCH_MANAGER',
+        assignedBranchId: '00000000-0000-4000-8000-000000000001',
+      };
+    }
+    if (token === 'dev-pcstaff-token') {
+      return {
+        userId: 'staff-pc-001',
+        name: 'กิตติพงษ์ พนักงานขาย',
+        role: 'PC_STAFF',
+        assignedBranchId: '00000000-0000-4000-8000-000000000001',
+      };
+    }
   }
 
   // 2. Check signed staff token from Bearer header

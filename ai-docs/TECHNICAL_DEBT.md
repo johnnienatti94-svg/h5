@@ -19,6 +19,15 @@
 - **Risk Level**: **HIGH**
 - **Recommendation**: Require all future developers/agents to pass `verify-scenarios.mjs` before touching `currency.ts` or offer calculation logic.
 
+### Item 1.3: Production Staff Authentication Provisioning Prerequisite [PENDING PRODUCTION CONFIGURATION]
+- **Finding**: The authentication layer previously contained development shortcut tokens (`dev-admin-token`, `dev-pcstaff-token`, etc.) and hard-coded test credentials (`staff1234`, `admin1234`).
+- **Current State**: **HARDENED AT APPLICATION BOUNDARY**. Development shortcut tokens and test accounts are now strictly isolated behind `isDevAuthAllowed()` and unconditionally rejected when `NODE_ENV === 'production'`. `STAFF_SESSION_SECRET` fails closed (returns HTTP 401) if missing in production. Live Supabase JWT verification against `public.staff_profiles` is fully wired into `getCurrentStaff()` and `authenticateCmsRequest()`.
+- **Remaining Production Prerequisites Before Live Use**:
+  1. The project owner must configure `STAFF_SESSION_SECRET` in Vercel environment variables (minimum 32-character high-entropy secret).
+  2. Live staff users must be provisioned in Supabase Auth (`auth.users`) and mapped in `public.staff_profiles` with `status = 'active'`, matching their assigned physical branch.
+- **Risk Level**: **MEDIUM / OPERATIONAL PREREQUISITE** (Application boundary is hardened; production deployment configuration remains required).
+- **Recommendation**: Do NOT merge to `main` or deploy to production until the project owner sets `STAFF_SESSION_SECRET` in Vercel and provisions initial HQ/Admin users in Supabase.
+
 ---
 
 ## 2. MEDIUM RISK
