@@ -3,13 +3,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnyWidget } from '@/types/widget';
-import {
-  getHomepageWidgets,
-  saveHomepageWidgets,
-  resetHomepageWidgets,
-} from '@/lib/homepageWidgets';
+import { getHomepageWidgets } from '@/lib/homepageWidgets';
 import WidgetRenderer from '@/components/home/WidgetRenderer';
-import WidgetQuickManagerModal from '@/components/home/WidgetQuickManagerModal';
 import TradeInView from '@/components/home/TradeInView';
 
 function HomeContent() {
@@ -20,31 +15,52 @@ function HomeContent() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const load = () => {
-      const loaded = getHomepageWidgets();
-      setWidgets(loaded);
-      setIsLoaded(true);
-    };
-    load();
+    let isMounted = true;
 
-    const handleUpdate = () => load();
+    const loadWidgetsFromBackend = async () => {
+      try {
+        const res = await fetch('/api/cms/pages/page-home-001/widgets');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.widgets) && data.widgets.length > 0) {
+            const mapped: AnyWidget[] = data.widgets.map((w: any) => ({
+              id: w.id,
+              type: (w.widget_type || w.type || '').toUpperCase() as any,
+              title: w.title,
+              subtitle: w.subtitle,
+              sortOrder: w.sort_order ?? w.sortOrder,
+              isActive: w.is_active ?? w.isActive ?? true,
+              config: w.config || {},
+              ...(w.config || {}),
+            }));
+            if (isMounted) {
+              setWidgets(mapped);
+              setIsLoaded(true);
+              return;
+            }
+          }
+        }
+      } catch {
+        // Fall back to default widgets
+      }
+
+      if (isMounted) {
+        setWidgets(getHomepageWidgets());
+        setIsLoaded(true);
+      }
+    };
+
+    loadWidgetsFromBackend();
+
+    const handleUpdate = () => loadWidgetsFromBackend();
     window.addEventListener('storage', handleUpdate);
     window.addEventListener('meepro_widgets_updated', handleUpdate);
     return () => {
+      isMounted = false;
       window.removeEventListener('storage', handleUpdate);
       window.removeEventListener('meepro_widgets_updated', handleUpdate);
     };
   }, []);
-
-  const handleUpdateWidgets = (updated: AnyWidget[]) => {
-    setWidgets(updated);
-    saveHomepageWidgets(updated);
-  };
-
-  const handleResetWidgets = () => {
-    const defaultWidgets = resetHomepageWidgets();
-    setWidgets(defaultWidgets);
-  };
 
   if (!isLoaded) {
     return (
@@ -89,18 +105,7 @@ function HomeContent() {
 
       {/* 2. Tab Content */}
       {activeTab === 'installment' ? (
-        <>
-
-          {/* Dynamic Widget Engine Renderer (Spec Sec 9, 11, 12, 13) */}
-          <WidgetRenderer widgets={widgets} />
-
-          {/* Floating Widget Quick Manager / Homepage Builder Preview */}
-          <WidgetQuickManagerModal
-            widgets={widgets}
-            onUpdateWidgets={handleUpdateWidgets}
-            onResetWidgets={handleResetWidgets}
-          />
-        </>
+        <WidgetRenderer widgets={widgets} />
       ) : (
         <TradeInView />
       )}
