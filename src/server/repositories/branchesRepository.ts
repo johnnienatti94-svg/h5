@@ -57,7 +57,7 @@ const DATA_SOURCE_UNAVAILABLE: BranchRepositoryError = {
   message: 'Store information is temporarily unavailable.',
 };
 
-import { DEV_BRANCH_FIXTURES, getDevBranchBySlug } from '@/server/fixtures/devBranches';
+import { getAllBranches, getBranchBySlug } from '@/server/repositories/branchesStore';
 
 export async function listPublishedBranches(): Promise<
   BranchRepositoryResult<PublicBranch[]>
@@ -74,24 +74,23 @@ export async function listPublishedBranches(): Promise<
 
     if (error) {
       logQueryFailure('branch list', error);
-      // In development or when table is not yet migrated, fall back to validated dev fixtures
+      // In development or when table is not yet migrated, fall back to branchesStore
       if (process.env.NODE_ENV !== 'production' || error.code === 'PGRST205') {
-        console.info('[branchesRepository] Falling back to validated development branch fixtures.');
-        return success(DEV_BRANCH_FIXTURES);
+        return success(getAllBranches());
       }
       return failure(DATA_SOURCE_UNAVAILABLE);
     }
 
     const pointers = (data ?? []) as BranchPointerRow[];
     if (pointers.length === 0) {
-      return success(DEV_BRANCH_FIXTURES);
+      return success(getAllBranches());
     }
 
     return hydratePublishedBranches(pointers);
   } catch (error) {
     logUnexpectedFailure('branch list', error);
     if (process.env.NODE_ENV !== 'production') {
-      return success(DEV_BRANCH_FIXTURES);
+      return success(getAllBranches());
     }
     return failure(DATA_SOURCE_UNAVAILABLE);
   }
@@ -121,17 +120,17 @@ export async function getPublishedBranchBySlug(
     if (error) {
       logQueryFailure('branch detail', error);
       if (process.env.NODE_ENV !== 'production' || error.code === 'PGRST205') {
-        const devBranch = getDevBranchBySlug(normalizedSlug);
-        return devBranch
-          ? success(devBranch)
+        const branch = getBranchBySlug(normalizedSlug);
+        return branch
+          ? success(branch)
           : failure({ code: 'NOT_FOUND', message: 'Store not found.' });
       }
       return failure(DATA_SOURCE_UNAVAILABLE);
     }
 
     if (!data) {
-      const devBranch = getDevBranchBySlug(normalizedSlug);
-      if (devBranch) return success(devBranch);
+      const branch = getBranchBySlug(normalizedSlug);
+      if (branch) return success(branch);
       return failure({
         code: 'NOT_FOUND',
         message: 'Store not found.',
@@ -150,8 +149,8 @@ export async function getPublishedBranchBySlug(
   } catch (error) {
     logUnexpectedFailure('branch detail', error);
     if (process.env.NODE_ENV !== 'production') {
-      const devBranch = getDevBranchBySlug(normalizedSlug);
-      if (devBranch) return success(devBranch);
+      const branch = getBranchBySlug(normalizedSlug);
+      if (branch) return success(branch);
     }
     return failure(DATA_SOURCE_UNAVAILABLE);
   }

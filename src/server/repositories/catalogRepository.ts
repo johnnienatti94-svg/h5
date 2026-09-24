@@ -13,12 +13,15 @@ import {
   DEV_PRODUCT_SUMMARIES,
 } from '@/server/fixtures/devCatalog';
 import { getSupabasePublicServerClient } from '@/lib/supabasePublicServer';
+import {
+  filterAndPaginateProducts,
+  getProductBySlug as getStoreProductBySlug,
+} from '@/server/repositories/catalogStore';
 
 export async function listPublishedProducts(
   params: CatalogFilterParams = {}
 ): Promise<CatalogRepositoryResult<PaginatedCatalogResult>> {
   try {
-    // 1. Attempt Supabase query if tables exist
     const client = getSupabasePublicServerClient();
     const { error: probeError } = await client
       .from('products')
@@ -26,24 +29,21 @@ export async function listPublishedProducts(
       .limit(1);
 
     if (probeError) {
-      // Table not yet migrated or live DB unavailable -> gracefully fall back to dev fixtures
       return {
         ok: true,
-        data: filterAndPaginateDevProducts(params),
+        data: filterAndPaginateProducts(params),
       };
     }
 
-    // Live Supabase query implementation (when DB is migrated)
-    // For now, if 0 records exist or tables are empty, fall back to dev fixtures
     return {
       ok: true,
-      data: filterAndPaginateDevProducts(params),
+      data: filterAndPaginateProducts(params),
     };
   } catch (error) {
     console.error('[catalogRepository] listPublishedProducts error:', error);
     return {
       ok: true,
-      data: filterAndPaginateDevProducts(params),
+      data: filterAndPaginateProducts(params),
     };
   }
 }
@@ -71,8 +71,7 @@ export async function getPublishedProductBySlug(
       // Future: hydrate from DB tables
     }
 
-    // Fallback to dev fixture
-    const devProduct = DEV_PRODUCTS.find((p) => p.slug === normalizedSlug);
+    const devProduct = getStoreProductBySlug(normalizedSlug);
     if (devProduct) {
       return { ok: true, data: devProduct };
     }
@@ -83,7 +82,7 @@ export async function getPublishedProductBySlug(
     };
   } catch (error) {
     console.error('[catalogRepository] getPublishedProductBySlug error:', error);
-    const devProduct = DEV_PRODUCTS.find((p) => p.slug === normalizedSlug);
+    const devProduct = getStoreProductBySlug(normalizedSlug);
     if (devProduct) {
       return { ok: true, data: devProduct };
     }
