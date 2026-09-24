@@ -5,35 +5,74 @@ import { useRouter } from 'next/navigation';
 import { getAuthUser, clearAuth } from '@/lib/auth';
 import PrivacyPolicyModal from '@/components/auth/PrivacyPolicyModal';
 import Link from 'next/link';
+import type { PublicApplication, ApplicationDraft } from '@/features/applications/types';
+import { STATUS_LABELS } from '@/features/applications/types';
 
 export default function AccountPage() {
   const router = useRouter();
-  const [phone, setPhone] = useState('081-234-5678');
+  const [phone, setPhone] = useState('');
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [logoutStep, setLogoutStep] = useState<'idle' | 'confirm' | 'loading' | 'success'>('idle');
   const [logoutTime, setLogoutTime] = useState('');
+  const [applications, setApplications] = useState<PublicApplication[]>([]);
+  const [draft, setDraft] = useState<ApplicationDraft | null>(null);
+  const [isLoadingApps, setIsLoadingApps] = useState(false);
 
   useEffect(() => {
-    const user = getAuthUser();
-    if (user?.phone) {
-      setPhone(user.phone);
+    let active = true;
+    async function loadAccount() {
+      const user = await getAuthUser();
+      if (!active) return;
+      if (user?.phone) {
+        setPhone(user.phone);
+        setIsAuthenticated(true);
+        setIsLoadingApps(true);
+
+        try {
+          const [appsRes, draftRes] = await Promise.all([
+            fetch('/api/applications').then((r) => r.json()).catch(() => ({ applications: [] })),
+            fetch('/api/applications/draft').then((r) => r.json()).catch(() => ({ draft: null })),
+          ]);
+          if (active) {
+            if (appsRes.success && Array.isArray(appsRes.applications)) {
+              setApplications(appsRes.applications);
+            }
+            if (draftRes.success && draftRes.draft) {
+              setDraft(draftRes.draft);
+            }
+          }
+        } finally {
+          if (active) setIsLoadingApps(false);
+        }
+      }
+      setIsCheckingAuth(false);
     }
+
+    void loadAccount();
+    return () => {
+      active = false;
+    };
   }, []);
+
 
   const handleStartLogout = () => {
     setLogoutStep('confirm');
   };
 
-  const handleConfirmLogout = () => {
+  const handleConfirmLogout = async () => {
     setLogoutStep('loading');
     const now = new Date();
     const timeStr = `วันนี้ เวลา ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} น.`;
     setLogoutTime(timeStr);
 
-    setTimeout(() => {
-      clearAuth();
+    try {
+      await clearAuth();
       setLogoutStep('success');
-    }, 1200);
+    } catch {
+      setLogoutStep('idle');
+    }
   };
 
   const handleFinishLogout = () => {
@@ -43,6 +82,34 @@ export default function AccountPage() {
   const displayPhone = phone.length >= 10
     ? `${phone.slice(0, 3)}-${phone.slice(3, 6)}-${phone.slice(6)}`
     : phone;
+
+  if (isCheckingAuth) {
+    return (
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-12" role="status">
+        <div className="h-40 rounded-2xl border border-[#E2E8F0] bg-white animate-pulse" />
+        <span className="sr-only">กำลังตรวจสอบบัญชี</span>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="w-full max-w-xl mx-auto px-4 sm:px-6 py-12 pb-24">
+        <section className="rounded-2xl border border-[#E2E8F0] bg-white p-6 sm:p-8 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-[#C94F00]">
+            <span className="material-symbols-outlined text-[28px]" aria-hidden="true">person</span>
+          </div>
+          <h1 className="text-2xl font-bold text-[#142B4A]">เข้าสู่ระบบเพื่อดูบัญชีของคุณ</h1>
+          <p className="mt-2 text-sm leading-6 text-[#64748B]">
+            ใช้หมายเลขโทรศัพท์ที่ยืนยันแล้วเพื่อดูใบสมัคร สถานะ และข้อมูลนัดหมายของคุณ
+          </p>
+          <Link href="/login" className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[#C94F00] px-5 font-bold text-white sm:w-auto">
+            เข้าสู่ระบบด้วย OTP
+          </Link>
+        </section>
+      </div>
+    );
+  }
 
   // Screen 14: Full Logout Success View
   if (logoutStep === 'success') {
@@ -157,7 +224,109 @@ export default function AccountPage() {
         </div>
       </section>
 
+      {/* Active Incomplete Draft Alert */}
+
+      {draft && (
+        <section className="bg-[#FFF6EF] border border-[#FFE4D1] rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#FF6E00]/10 text-[#FF6E00] flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-2xl">edit_document</span>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-[#142B4A]">คุณมีใบสมัครที่ยังทำไม่เสร็จ</h3>
+              <p className="text-xs text-[#64748B]">ดำเนินการต่อเพื่อส่งคำขอรับสิทธิ์ผ่อน 0%</p>
+            </div>
+          </div>
+          <Link
+            href="/apply"
+            className="px-4 py-2 bg-[#FF6E00] hover:bg-[#E05D00] text-white text-xs font-bold rounded-xl shrink-0 transition-colors shadow-sm"
+          >
+            ทำรายการต่อ
+          </Link>
+        </section>
+      )}
+
+      {/* 2.5 My Applications Section */}
+      <section className="bg-white rounded-2xl p-4 sm:p-5 border border-[#E2E8F0] shadow-sm space-y-3">
+        <div className="flex justify-between items-center pb-2 border-b border-[#F1F5F9]">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[#FF6E00] text-xl">assignment</span>
+            <h3 className="text-sm font-bold text-[#142B4A]">ใบสมัครผ่อนชำระของฉัน</h3>
+          </div>
+          <Link href="/apply" className="text-xs text-[#FF6E00] font-bold hover:underline">
+            + สมัครผ่อนใหม่
+          </Link>
+        </div>
+
+        {isLoadingApps ? (
+          <div className="py-6 text-center text-xs text-[#64748B] animate-pulse">
+            กำลังโหลดรายการใบสมัคร...
+          </div>
+        ) : applications.length === 0 ? (
+          <div className="py-8 text-center text-xs text-[#64748B] space-y-2">
+            <p>ยังไม่มีประวัติการสมัครผ่อนชำระในบัญชีนี้</p>
+            <Link
+              href="/products"
+              className="inline-block px-4 py-2 bg-[#142B4A] text-white text-xs font-bold rounded-xl hover:bg-[#0E1E34]"
+            >
+              เลือกดูสินค้าและเริ่มสมัคร
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {applications.map((app) => {
+              const statusCfg = STATUS_LABELS[app.status] || {
+                label: app.status,
+                color: '#64748B',
+                bg: '#F1F5F9',
+              };
+
+              return (
+                <div
+                  key={app.id}
+                  className="p-3.5 rounded-xl border border-[#E2E8F0] hover:border-[#CBD5E1] transition-all bg-[#F8FAFC]"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <span className="text-[11px] font-mono font-bold text-[#64748B]">{app.reference}</span>
+                      <h4 className="font-bold text-sm text-[#142B4A]">{app.productSnapshot.name}</h4>
+                      <p className="text-xs text-[#64748B]">
+                        {app.variantSnapshot.storage} • {app.variantSnapshot.color}
+                      </p>
+                    </div>
+                    <span
+                      className="px-2.5 py-0.5 rounded-full text-[11px] font-bold"
+                      style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
+                    >
+                      ● {statusCfg.label}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between pt-2 border-t border-[#E2E8F0] gap-2 text-xs">
+                    <div className="text-[#64748B]">
+                      <span>ค่างวด: </span>
+                      <strong className="text-[#FF6E00]">{app.offerSnapshot.monthlyInstallmentFormatted} / ด.</strong>
+                      <span className="text-slate-400 mx-1.5">•</span>
+                      <span>สาขา: {app.branchSnapshot.name}</span>
+                    </div>
+
+                    <Link
+                      href={`/account/applications/${app.id}`}
+                      className="font-bold text-[#FF6E00] hover:underline inline-flex items-center gap-0.5"
+                    >
+                      <span>ดูรายละเอียด</span>
+                      <span className="material-symbols-outlined text-sm">chevron_right</span>
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       {/* 3. Account Settings Menu Section */}
+
       <section className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm divide-y divide-[#E2E8F0] overflow-hidden">
         <div className="px-4 py-2.5 bg-[#F8FAFC]">
           <span className="text-xs font-semibold text-[#64748B]">การตั้งค่าและความปลอดภัย</span>

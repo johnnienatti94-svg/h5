@@ -3,7 +3,8 @@
  * Connects to Supabase PostgreSQL schema defined in Phase 2
  */
 
-import { supabase, supabaseAdmin } from './supabase';
+import { supabase } from './supabase';
+import { supabaseAdmin } from './supabaseAdmin';
 
 export type PageStatus = 'draft' | 'published' | 'archived';
 

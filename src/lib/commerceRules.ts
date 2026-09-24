@@ -6,8 +6,10 @@
 import crypto from 'crypto';
 import { ALL_PRODUCTS, DetailedProduct } from './productsData';
 
-// Secret key for HMAC token signing
-const COMMERCE_HMAC_SECRET = process.env.COMMERCE_SECRET || 'meepro_commerce_secure_hmac_secret_2026';
+function getCommerceHmacSecret(): string | null {
+  const secret = process.env.COMMERCE_SIGNING_SECRET || process.env.COMMERCE_SECRET;
+  return secret && secret.length >= 32 ? secret : null;
+}
 
 export interface CartItemRequest {
   productId: string;
@@ -125,6 +127,15 @@ export function validateCartAndGenerateQuote(
   couponCode?: string,
   installmentMonths: number = 10
 ): { success: true; quote: CheckoutQuote } | { success: false; error: string; code: string } {
+  const hmacSecret = getCommerceHmacSecret();
+  if (!hmacSecret) {
+    return {
+      success: false,
+      error: 'Commerce quote service is not configured',
+      code: 'COMMERCE_NOT_CONFIGURED',
+    };
+  }
+
   if (!items || !Array.isArray(items) || items.length === 0) {
     return { success: false, error: 'ตะกร้าสินค้าว่างเปล่า กรุณาเลือกสินค้าก่อนดำเนินการ', code: 'EMPTY_CART' };
   }
@@ -225,7 +236,7 @@ export function validateCartAndGenerateQuote(
 
   const tokenPayload = `${quoteId}|${finalPayable}|${expiresEpoch}`;
   const signature = crypto
-    .createHmac('sha256', COMMERCE_HMAC_SECRET)
+    .createHmac('sha256', hmacSecret)
     .update(tokenPayload)
     .digest('hex');
   const token = `${tokenPayload}|${signature}`;
@@ -253,17 +264,22 @@ export function validateCartAndGenerateQuote(
 export function verifyCheckoutToken(token: string): { valid: boolean; quoteId?: string; finalPayable?: number; error?: string } {
   if (!token) return { valid: false, error: 'Missing checkout token' };
 
+  const hmacSecret = getCommerceHmacSecret();
+  if (!hmacSecret) return { valid: false, error: 'Commerce quote service is not configured' };
+
   const parts = token.split('|');
   if (parts.length !== 4) return { valid: false, error: 'Malformed checkout token' };
 
   const [quoteId, finalPayableStr, expiresEpochStr, signature] = parts;
   const tokenPayload = `${quoteId}|${finalPayableStr}|${expiresEpochStr}`;
   const expectedSignature = crypto
-    .createHmac('sha256', COMMERCE_HMAC_SECRET)
+    .createHmac('sha256', hmacSecret)
     .update(tokenPayload)
     .digest('hex');
 
-  if (signature !== expectedSignature) {
+  const provided = Buffer.from(signature, 'hex');
+  const expected = Buffer.from(expectedSignature, 'hex');
+  if (provided.length !== expected.length || !crypto.timingSafeEqual(provided, expected)) {
     return { valid: false, error: 'Invalid checkout signature (tampering detected)' };
   }
 

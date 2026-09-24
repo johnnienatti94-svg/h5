@@ -2,40 +2,37 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DEMO_ADMIN_USERS, setAdminAuth } from '@/lib/adminSystem';
+import { clearStaffAuth, signInStaff } from '@/lib/staffAuth';
 import styles from '../admin.module.css';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('admin01');
-  const [pin, setPin] = useState('9999');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
     setErrorMsg('');
+    setIsSubmitting(true);
 
-    const account = DEMO_ADMIN_USERS[username.trim()];
-    if (account && account.pin === pin.trim()) {
-      setAdminAuth(account.user);
+    try {
+      const staff = await signInStaff(phone, password);
+      if (staff.role !== 'ADMIN' && staff.role !== 'HQ') {
+        await clearStaffAuth();
+        throw new Error('บัญชีนี้ไม่มีสิทธิ์เข้าสู่ระบบผู้ดูแล');
+      }
       router.replace('/admin/dashboard');
-    } else {
-      setErrorMsg('ข้อมูลเข้าสู่ระบบไม่ถูกต้อง (ลอง admin01 / PIN: 9999 หรือ dev01 / PIN: 7777)');
-    }
-  };
-
-  const quickLogin = (userKey: string) => {
-    const account = DEMO_ADMIN_USERS[userKey];
-    if (account) {
-      setUsername(userKey);
-      setPin(account.pin);
-      setAdminAuth(account.user);
-      router.replace('/admin/dashboard');
+    } catch (cause) {
+      setErrorMsg(cause instanceof Error ? cause.message : 'ไม่สามารถเข้าสู่ระบบได้');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div
+    <main
       style={{
         minHeight: '100dvh',
         background: '#0B0F19',
@@ -45,7 +42,8 @@ export default function AdminLoginPage() {
         padding: '16px',
       }}
     >
-      <div
+      <section
+        aria-labelledby="admin-login-title"
         style={{
           width: '100%',
           maxWidth: '420px',
@@ -57,54 +55,50 @@ export default function AdminLoginPage() {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ fontSize: '36px', marginBottom: '8px' }}>🔐</div>
-          <h1 style={{ fontSize: '18px', fontWeight: 800, color: '#F8FAFC', letterSpacing: '1px' }}>
-            MEEPRO SECURITY CONSOLE
+          <div aria-hidden="true" style={{ fontSize: '36px', marginBottom: '8px' }}>🔐</div>
+          <h1 id="admin-login-title" style={{ fontSize: '18px', fontWeight: 800, color: '#F8FAFC', letterSpacing: '1px' }}>
+            MEEPRO ADMIN CONSOLE
           </h1>
-          <p style={{ fontSize: '11px', color: '#64748B', marginTop: '4px' }}>
-            ระบบควบคุมระดับผู้ดูแลระบบและวิศวกรซอฟต์แวร์ (Spec Sec 23 & 24)
+          <p style={{ fontSize: '11px', color: '#94A3B8', marginTop: '6px' }}>
+            เข้าสู่ระบบด้วยบัญชี HQ หรือผู้ดูแลที่ออกโดยระบบ
           </p>
         </div>
 
         {errorMsg && (
-          <div
-            style={{
-              padding: '10px',
-              borderRadius: '6px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid #7F1D1D',
-              color: '#FCA5A5',
-              fontSize: '12px',
-              marginBottom: '16px',
-            }}
-          >
+          <div role="alert" style={{ padding: '10px', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #7F1D1D', color: '#FCA5A5', fontSize: '12px', marginBottom: '16px' }}>
             {errorMsg}
           </div>
         )}
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#9CA3AF', marginBottom: '6px' }}>
-              ADMIN / DEVELOPER USERNAME
+            <label htmlFor="admin-phone" style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#CBD5E1', marginBottom: '6px' }}>
+              เบอร์โทรศัพท์เจ้าหน้าที่
             </label>
             <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              id="admin-phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
               className={styles.formInput}
               style={{ width: '100%' }}
+              placeholder="0xx-xxx-xxxx"
               required
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#9CA3AF', marginBottom: '6px' }}>
-              SECURITY PIN
+            <label htmlFor="admin-password" style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#CBD5E1', marginBottom: '6px' }}>
+              รหัสผ่าน
             </label>
             <input
+              id="admin-password"
               type="password"
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
               className={styles.formInput}
               style={{ width: '100%' }}
               required
@@ -113,59 +107,28 @@ export default function AdminLoginPage() {
 
           <button
             type="submit"
+            disabled={isSubmitting}
             style={{
               width: '100%',
-              height: '42px',
-              background: '#2563EB',
+              minHeight: '44px',
+              background: isSubmitting ? '#475569' : '#2563EB',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: '8px',
               fontSize: '12px',
               fontWeight: 700,
-              cursor: 'pointer',
+              cursor: isSubmitting ? 'wait' : 'pointer',
               marginTop: '8px',
             }}
           >
-            เข้าสู่ระบบความปลอดภัย
+            {isSubmitting ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบผู้ดูแล'}
           </button>
         </form>
 
-        <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed #1F2937', textAlign: 'center' }}>
-          <div style={{ fontSize: '10px', color: '#64748B', marginBottom: '10px' }}>
-            DEMO ACCESS TRIGGER
-          </div>
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-            <button
-              onClick={() => quickLogin('admin01')}
-              style={{
-                fontSize: '11px',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                border: '1px solid #374151',
-                background: '#1F2937',
-                color: '#FCA5A5',
-                cursor: 'pointer',
-              }}
-            >
-              🛡️ Admin Demo
-            </button>
-            <button
-              onClick={() => quickLogin('dev01')}
-              style={{
-                fontSize: '11px',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                border: '1px solid #374151',
-                background: '#1F2937',
-                color: '#6EE7B7',
-                cursor: 'pointer',
-              }}
-            >
-              💻 Developer Demo
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+        <p style={{ marginTop: '20px', fontSize: '11px', lineHeight: 1.6, color: '#64748B', textAlign: 'center' }}>
+          ตัวตนและสิทธิ์จะถูกตรวจสอบจาก Supabase Auth และโปรไฟล์เจ้าหน้าที่ทุกครั้ง
+        </p>
+      </section>
+    </main>
   );
 }

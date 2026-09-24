@@ -15,10 +15,13 @@ export default function CustomerGreetingWidget({ widget }: Props) {
   const tier = widget.membershipTier || 'Gold';
 
   useEffect(() => {
-    const user = getAuthUser();
-    if (user?.phone) {
-      setPhone(user.phone);
-    }
+    let active = true;
+    void getAuthUser().then((user) => {
+      if (active && user?.phone) setPhone(user.phone);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Format display phone: 089-xxx-4567

@@ -3,7 +3,7 @@
  * Pre-configured default templates for all 30+ supported widget types.
  */
 
-import { SupportedWidgetType } from './cmsDb';
+import type { SupportedWidgetType } from './cmsDb';
 
 export interface WidgetCatalogItem {
   type: SupportedWidgetType | string;
@@ -572,4 +572,89 @@ export const WIDGET_CATALOG: WidgetCatalogItem[] = [
       allowedDomains: ['youtube.com', 'google.com/maps'],
     },
   },
+  {
+    type: 'PROCESS_STEPS',
+    name: 'Process Steps Walkthrough',
+    category: 'trust',
+    description: 'ขั้นตอนการสมัครผ่อน 4 สเต็ปเข้าใจง่าย',
+    icon: '🪜',
+    defaultTitle: 'ขั้นตอนการสมัครผ่อนง่ายๆ 4 สเต็ป',
+    defaultConfig: {
+      title: 'ขั้นตอนการสมัครผ่อนง่ายๆ 4 สเต็ป',
+      subtitle: 'อนุมัติไว ได้เครื่องแท้ศูนย์ไทย ไม่ยุ่งยาก',
+      ctaLabel: 'เริ่มต้นเช็กวงเงินผ่อน',
+      ctaHref: '/apply',
+    },
+  },
+  {
+    type: 'ARTICLE_CARDS',
+    name: 'Article Knowledge Cards',
+    category: 'banners',
+    description: 'การ์ดบทความและเคล็ดลับความรู้การเงิน/สินค้า',
+    icon: '📚',
+    defaultTitle: 'บทความและเคล็ดลับการผ่อนสมาร์ตโฟน',
+    defaultConfig: {
+      title: 'บทความและเคล็ดลับการผ่อนสมาร์ตโฟน',
+      subtitle: 'สาระน่ารู้เกี่ยวกับสเปกมือถือและการบริหารการเงิน',
+      viewAllHref: '/services',
+    },
+  },
+  {
+    type: 'BRANCH_PREVIEW',
+    name: 'Branch Preview Cards',
+    category: 'trust',
+    description: 'พรีวิวสาขาพร้อมเปิด BranchDetailsDialog',
+    icon: '🏬',
+    defaultTitle: 'สาขาบริการใกล้คุณ พร้อมให้คำปรึกษา',
+    defaultConfig: {
+      title: 'สาขาบริการใกล้คุณ พร้อมให้คำปรึกษา',
+      subtitle: 'ครอบคลุม 45 สาขาทั่วประเทศ รับเครื่องได้ทันทีหลังอนุมัติ',
+      maxBranches: 3,
+    },
+  },
+  {
+    type: 'SERVICE_GRID',
+    name: 'Service Grid',
+    category: 'navigation',
+    description: 'กริดบริการหลัก (ผ่อน 0%, Trade-in, ติดตามสถานะ)',
+    icon: '⚡',
+    defaultTitle: 'บริการหลักจาก MeePro',
+    defaultConfig: {
+      title: 'บริการหลักจาก MeePro',
+      subtitle: 'ครบวงจรเรื่องสมาร์ตโฟนและสินเชื่อดิจิทัลเพื่อคุณ',
+    },
+  },
+  {
+    type: 'PROMOTION_STRIP',
+    name: 'Promotion Strip',
+    category: 'promotions',
+    description: 'แถบริบบิ้นโปรโมชั่นพิเศษด่วนพร้อมดีลส่วนลด',
+    icon: '🎗️',
+    defaultTitle: 'แถบโปรโมชั่นพิเศษ',
+    defaultConfig: {
+      headline: 'โปรโมชั่นพิเศษประจำเดือน: ผ่อนสมาร์ตโฟน 0% นานสูงสุด 10 เดือน',
+      subheadline: 'รับฟรี เคส + ฟิล์มกระจกกันรอยมูลค่า ฿1,290 เมื่อรับเครื่องที่สาขา',
+      badgeText: 'SPECIAL DEAL',
+      ctaText: 'ดูข้อเสนอทั้งหมด',
+      ctaHref: '/products',
+    },
+  },
+  {
+    type: 'CTA_SECTION',
+    name: 'Call to Action Section',
+    category: 'banners',
+    description: 'บล็อกกระตุ้นการตัดสินใจขนาดใหญ่สี MeePro Gradient',
+    icon: '🎯',
+    defaultTitle: 'พร้อมเป็นเจ้าของเครื่องใหม่แล้วหรือยัง?',
+    defaultConfig: {
+      title: 'พร้อมเป็นเจ้าของสมาร์ตโฟนเครื่องใหม่แล้วหรือยัง?',
+      description: 'สมัครง่าย ไม่ต้องมีคนค้ำ ดอกเบี้ย 0% สูงสุด 10 เดือน รับเครื่องได้ที่ 45 สาขาทั่วไทย',
+      primaryButtonLabel: 'เช็กวงเงินและสมัครทันที',
+      primaryButtonHref: '/apply',
+      secondaryButtonLabel: 'ดูสมาร์ตโฟนทั้งหมด',
+      secondaryButtonHref: '/products',
+      badgeText: 'อนุมัติไวใน 3 นาที',
+    },
+  },
 ];
+

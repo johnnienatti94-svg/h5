@@ -3,25 +3,29 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { getStaffAuth, clearStaffAuth } from '@/lib/staffAuth';
+import { clearStaffAuth, useStaffGuard } from '@/lib/staffAuth';
 import styles from './staff.module.css';
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const staff = getStaffAuth();
+  const { staff, isChecking } = useStaffGuard();
 
   const isLoginPage = pathname === '/staff/login';
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm('คุณต้องการออกจากระบบเจ้าหน้าที่ MeePro หรือไม่?')) {
-      clearStaffAuth();
+      await clearStaffAuth();
       router.replace('/staff/login');
     }
   };
 
   if (isLoginPage) {
     return <>{children}</>;
+  }
+
+  if (isChecking || !staff) {
+    return <div className={styles.staffContent}>กำลังตรวจสอบสิทธิ์...</div>;
   }
 
   return (
@@ -34,13 +38,13 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontWeight: 800, fontSize: '15px', letterSpacing: '0.5px' }}>MEEPRO STAFF</span>
-                <span className={staff?.role === 'MANAGER' ? styles.managerBadge : styles.staffBadge}>
-                  {staff?.role || 'STAFF'}
+                <span className={staff.role === 'BRANCH_MANAGER' || staff.role === 'HQ' ? styles.managerBadge : styles.staffBadge}>
+                  {staff.role}
                 </span>
               </div>
               <div className={styles.branchText}>
-                <span>📍 {staff?.branch || 'สาขา CentralWorld'}</span>
-                <span>• {staff?.name || 'สมชาย รักบริการ'}</span>
+                <span>📍 {staff.branchId || 'ไม่กำหนดสาขา'}</span>
+                <span>• {staff.name}</span>
               </div>
             </div>
           </div>
@@ -66,27 +70,21 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           <span>ภาพรวม (Dashboard)</span>
         </Link>
         <Link
+          href="/staff/applications"
+          className={`${styles.navLink} ${pathname.startsWith('/staff/applications') ? styles.navLinkActive : ''}`}
+        >
+          <span>📋</span>
+          <span>คิวใบสมัคร (Applications)</span>
+        </Link>
+        <Link
           href="/staff/customer-lookup"
           className={`${styles.navLink} ${pathname === '/staff/customer-lookup' ? styles.navLinkActive : ''}`}
         >
           <span>🔍</span>
-          <span>ค้นหาลูกค้า (CRM)</span>
-        </Link>
-        <Link
-          href="/staff/homepage-builder"
-          className={`${styles.navLink} ${pathname === '/staff/homepage-builder' ? styles.navLinkActive : ''}`}
-        >
-          <span>🛠️</span>
-          <span>จัดหน้าแรก (Widget Builder)</span>
-        </Link>
-        <Link
-          href="/staff/banners"
-          className={`${styles.navLink} ${pathname === '/staff/banners' ? styles.navLinkActive : ''}`}
-        >
-          <span>🖼️</span>
-          <span>แบนเนอร์ & แคมเปญ</span>
+          <span>ค้นหาลูกค้า (Customer Lookup)</span>
         </Link>
       </nav>
+
 
       <main className={styles.staffContent}>{children}</main>
     </div>

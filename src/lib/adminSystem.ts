@@ -2,47 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { clearStaffAuth, getStaffAuth } from './staffAuth';
 
-export type AdminRole = 'ADMIN' | 'DEVELOPER';
+export type AdminRole = 'ADMIN' | 'HQ';
 
 export interface AdminUser {
   id: string;
-  username: string;
   name: string;
   role: AdminRole;
-  email: string;
-  token: string;
+  phone?: string;
 }
-
-export const DEMO_ADMIN_USERS: { [key: string]: { pin: string; user: AdminUser } } = {
-  'admin01': {
-    pin: '9999',
-    user: {
-      id: 'ADM-001',
-      username: 'admin01',
-      name: 'นรินทร์ ผู้ดูแลระบบ',
-      role: 'ADMIN',
-      email: 'narin.admin@meepro.co.th',
-      token: 'adm_token_sec999',
-    },
-  },
-  'dev01': {
-    pin: '7777',
-    user: {
-      id: 'DEV-001',
-      username: 'dev01',
-      name: 'ภัทร วิศวกรระบบ',
-      role: 'DEVELOPER',
-      email: 'phat.dev@meepro.co.th',
-      token: 'dev_token_eng777',
-    },
-  },
-};
 
 export interface SystemConfig {
   maintenanceMode: boolean;
   maintenanceMessage: string;
-  otpProvider: 'Mock' | 'ThaiBulkSMS' | 'Twilio' | 'AWS_SNS';
+  otpProvider: 'SupabaseAuth' | 'ThaiBulkSMS' | 'Twilio' | 'AWS_SNS';
   otpExpirySeconds: number;
   otpCooldownSeconds: number;
   botProtectionEnabled: boolean;
@@ -53,7 +27,7 @@ export interface SystemConfig {
 export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
   maintenanceMode: false,
   maintenanceMessage: 'ระบบกำลังปิดปรับปรุงชั่วคราวเพื่ออัปเกรดประสิทธิภาพ ขออภัยในความไม่สะดวก',
-  otpProvider: 'Mock',
+  otpProvider: 'SupabaseAuth',
   otpExpirySeconds: 300,
   otpCooldownSeconds: 60,
   botProtectionEnabled: true,
@@ -124,104 +98,94 @@ export interface RolePermissionRow {
   module: string;
   description: string;
   customer: boolean;
-  staff: boolean;
-  manager: boolean;
+  pcStaff: boolean;
+  branchManager: boolean;
+  hq: boolean;
   admin: boolean;
-  developer: boolean;
 }
 
 export const RBAC_MATRIX: RolePermissionRow[] = [
   {
     module: "Customer Frontend",
-    description: "เข้าชมสินค้า แคตตาล็อก โปรโมชั่น สาขา และยืนยันตัวตน OTP",
+    description: "เรียกดูข้อมูลสาธารณะที่เผยแพร่แล้วและเข้าสู่ระบบตามประเภทบัญชี",
     customer: true,
-    staff: true,
-    manager: true,
+    pcStaff: true,
+    branchManager: true,
+    hq: true,
     admin: true,
-    developer: true,
   },
   {
-    module: "Customer Lookup (CRM)",
-    description: "ค้นหาข้อมูลลูกค้า ตรวจสอบสัญญาผ่อน และประวัติการยืนยันเบอร์",
+    module: "Application Queue",
+    description: "ดูใบสมัครตามขอบเขตสาขาและสิทธิ์ที่บันทึกไว้",
     customer: false,
-    staff: true,
-    manager: true,
+    pcStaff: false,
+    branchManager: true,
+    hq: true,
     admin: true,
-    developer: true,
   },
   {
-    module: "Homepage Builder",
-    description: "จัดเรียงลำดับ Widget เปิด/ปิด และแก้ไขชื่อหัวข้อหน้าแรก",
+    module: "Branch Drafts",
+    description: "แก้ไขแบบร่างสาขาที่ได้รับมอบหมาย; การเผยแพร่เป็นสิทธิ์ส่วนกลาง",
     customer: false,
-    staff: false,
-    manager: true,
+    pcStaff: false,
+    branchManager: true,
+    hq: true,
     admin: true,
-    developer: true,
   },
   {
-    module: "Banner Publishing",
-    description: "สร้าง แก้ไข และกำหนดเวลาเผยแพร่แคมเปญแบนเนอร์",
+    module: "CMS Draft & Preview",
+    description: "แก้ไขและดูตัวอย่างแบบร่างเว็บไซต์โดยไม่กระทบข้อมูลสาธารณะ",
     customer: false,
-    staff: false,
-    manager: true,
+    pcStaff: false,
+    branchManager: false,
+    hq: true,
     admin: true,
-    developer: true,
   },
   {
-    module: "System Configuration",
-    description: "ตั้งค่า OTP Gateway, Bot Protection และโหมดปิดปรับปรุงระบบ",
+    module: "Global Publishing",
+    description: "ตรวจสอบและเผยแพร่หน้า เนื้อหา ข้อเสนอ และสาขา",
     customer: false,
-    staff: false,
-    manager: false,
+    pcStaff: false,
+    branchManager: false,
+    hq: true,
     admin: true,
-    developer: true,
   },
   {
-    module: "Observability Logs",
-    description: "ตรวจสอบ API Logs, Webhook Logs, Error Logs และ Audit Trail",
+    module: "User & Audit Administration",
+    description: "จัดการบัญชีเจ้าหน้าที่ การมอบหมายสาขา และอ่านบันทึกตรวจสอบ",
     customer: false,
-    staff: false,
-    manager: false,
+    pcStaff: false,
+    branchManager: false,
+    hq: true,
     admin: true,
-    developer: true,
   },
   {
-    module: "Database & Secrets",
-    description: "จัดการ Database Connection, API Keys และ Encryption Keys",
+    module: "System Secrets",
+    description: "ตั้งค่าลับผ่านสภาพแวดล้อมการปรับใช้ ไม่เปิดเผยผ่านหน้าเว็บ",
     customer: false,
-    staff: false,
-    manager: false,
-    admin: false,
-    developer: true,
+    pcStaff: false,
+    branchManager: false,
+    hq: false,
+    admin: true,
   },
 ];
 
-const ADMIN_AUTH_KEY = 'meepro_admin_session_v1';
 const SYSTEM_CONFIG_KEY = 'meepro_system_config_v1';
 
-export function getAdminAuth(): AdminUser | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem(ADMIN_AUTH_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as AdminUser;
-  } catch {
-    return null;
-  }
+export async function getAdminAuth(): Promise<AdminUser | null> {
+  const staff = await getStaffAuth();
+  if (!staff || (staff.role !== 'ADMIN' && staff.role !== 'HQ')) return null;
+
+  return {
+    id: staff.id,
+    name: staff.name,
+    role: staff.role,
+    phone: staff.phone,
+  };
 }
 
-export function setAdminAuth(user: AdminUser): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(ADMIN_AUTH_KEY, JSON.stringify(user));
-  } catch (e) {
-    console.error('Failed to set admin session:', e);
-  }
-}
-
-export function clearAdminAuth(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(ADMIN_AUTH_KEY);
+export async function clearAdminAuth(): Promise<void> {
+  await clearStaffAuth();
 }
 
 export function getSystemConfig(): SystemConfig {
@@ -251,18 +215,23 @@ export function useAdminGuard() {
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    const current = getAdminAuth();
-    setAdmin(current);
+    let active = true;
 
-    const isLoginPage = pathname === '/admin/login';
+    async function verifyAdmin() {
+      const current = await getAdminAuth();
+      if (!active) return;
 
-    if (!current && !isLoginPage) {
-      router.replace('/admin/login');
-    } else if (current && isLoginPage) {
-      router.replace('/admin/dashboard');
+      setAdmin(current);
+      const isLoginPage = pathname === '/admin/login';
+      if (!current && !isLoginPage) router.replace('/admin/login');
+      else if (current && isLoginPage) router.replace('/admin/dashboard');
+      setIsChecking(false);
     }
 
-    setIsChecking(false);
+    void verifyAdmin();
+    return () => {
+      active = false;
+    };
   }, [pathname, router]);
 
   return { admin, isChecking };

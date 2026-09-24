@@ -1,227 +1,161 @@
 'use client';
 
 import React, { useState } from 'react';
-import { lookupCustomerByPhone, CustomerRecord } from '@/lib/customerDatabase';
-import styles from '../staff.module.css';
+import Link from 'next/link';
+import { Search, User, Smartphone, MapPin, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
+import { useStaffGuard } from '@/lib/staffAuth';
+import type { PublicApplication } from '@/features/applications/types';
+import { STATUS_LABELS } from '@/features/applications/types';
 
-export default function StaffCustomerLookupPage() {
-  const [searchPhone, setSearchPhone] = useState('0891234567');
-  const [customer, setCustomer] = useState<CustomerRecord | null>(lookupCustomerByPhone('0891234567'));
-  const [searched, setSearched] = useState(true);
-  const [newNote, setNewNote] = useState('');
-  const [notes, setNotes] = useState<string[]>(customer?.notes || []);
+export default function CustomerLookupPage() {
+  const { staff, isChecking } = useStaffGuard();
+  const [phone, setPhone] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [customerData, setCustomerData] = useState<{
+    phone: string;
+    name?: string;
+    applications: PublicApplication[];
+  } | null>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = lookupCustomerByPhone(searchPhone);
-    setCustomer(result);
-    setNotes(result?.notes || []);
-    setSearched(true);
+    if (!phone.trim()) return;
+
+    setIsLoading(true);
+    setErrorMsg('');
+    setCustomerData(null);
+
+    try {
+      const res = await fetch(`/api/staff/customer-lookup?phone=${encodeURIComponent(phone.trim())}`);
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setErrorMsg(data.error || 'ไม่พบข้อมูลลูกค้าสำหรับหมายเลขนี้');
+        return;
+      }
+
+      setCustomerData(data.customer);
+    } catch {
+      setErrorMsg('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleAddNote = () => {
-    if (!newNote.trim()) return;
-    const updated = [...notes, `พนักงานบันทึก (${new Date().toLocaleDateString('th-TH')}): ${newNote.trim()}`];
-    setNotes(updated);
-    setNewNote('');
-  };
+  if (isChecking || !staff) {
+    return <div className="p-8 text-center text-slate-500">กำลังตรวจสอบสิทธิ์...</div>;
+  }
 
   return (
-    <div>
-      <div className={styles.panelCard}>
-        <div className={styles.panelTitle}>
-          <span>🔍</span>
-          <span>ระบบค้นหาข้อมูลลูกค้า (MeePro Customer Lookup — Spec Sec 4 & 22)</span>
-        </div>
-        <p style={{ fontSize: '12px', color: '#64748B', marginBottom: '16px' }}>
-          ระบุหมายเลขโทรศัพท์ลูกค้าที่ยืนยันผ่าน OTP เพื่อดูสิทธิ์สมาชิก ยอดสะสมพอยท์ สัญญาผ่อน 0% และประวัติ PDPA
+    <div className="space-y-4 max-w-4xl mx-auto">
+      <div className="bg-[#142B4A] text-white p-5 rounded-2xl">
+        <h1 className="text-xl font-bold">ค้นหาประวัติลูกค้า (Customer Lookup)</h1>
+        <p className="text-xs text-slate-300 mt-1">
+          ค้นหาด้วยหมายเลขโทรศัพท์เพื่อตรวจสอบประวัติใบสมัคร วงเงิน และการทำสัญญาในระบบ
         </p>
+      </div>
 
-        {/* Search Input */}
-        <form onSubmit={handleSearch} className={styles.formRow}>
-          <input
-            type="tel"
-            value={searchPhone}
-            onChange={(e) => setSearchPhone(e.target.value)}
-            placeholder="กรอกเบอร์โทรลูกค้า เช่น 0891234567 หรือ 0812345678"
-            className={styles.textInput}
-            required
-          />
-          <button type="submit" className={styles.actionButton}>
-            ค้นหาข้อมูลลูกค้า
+      <div className="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-sm">
+        <form onSubmit={handleSearch} className="flex gap-2">
+          <div className="relative flex-1">
+            <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="tel"
+              placeholder="กรอกเบอร์โทรศัพท์ลูกค้า เช่น 0812345678..."
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full h-11 pl-10 pr-4 rounded-xl border border-[#CBD5E1] text-xs text-[#142B4A] outline-none focus:border-[#FF6E00]"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="px-5 h-11 bg-[#FF6E00] hover:bg-[#E05D00] text-white text-xs font-bold rounded-xl shrink-0 transition-colors disabled:opacity-50"
+          >
+            {isLoading ? 'กำลังค้นหา...' : 'ค้นหาข้อมูล'}
           </button>
         </form>
 
-        {/* Quick Demo Numbers */}
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px', color: '#64748B' }}>
-          <span>เบอร์ตัวอย่าง:</span>
-          <button
-            type="button"
-            onClick={() => { setSearchPhone('0891234567'); setCustomer(lookupCustomerByPhone('0891234567')); }}
-            style={{ textDecoration: 'underline', color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px' }}
-          >
-            089-123-4567 (Gold / มีสัญญาผ่อน)
-          </button>
-          <span>•</span>
-          <button
-            type="button"
-            onClick={() => { setSearchPhone('0812345678'); setCustomer(lookupCustomerByPhone('0812345678')); }}
-            style={{ textDecoration: 'underline', color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px' }}
-          >
-            081-234-5678 (Silver)
-          </button>
-          <span>•</span>
-          <button
-            type="button"
-            onClick={() => { setSearchPhone('0869998877'); setCustomer(lookupCustomerByPhone('0869998877')); }}
-            style={{ textDecoration: 'underline', color: '#2563EB', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px' }}
-          >
-            086-999-8877 (Platinum VIP)
-          </button>
-        </div>
+        {errorMsg && (
+          <div className="mt-3 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+            <AlertCircle size={16} />
+            <span>{errorMsg}</span>
+          </div>
+        )}
       </div>
 
-      {/* Search Result */}
-      {customer ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Main Profile Info */}
-          <div className={styles.panelCard}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A' }}>{customer.name}</h2>
-                  <span className={styles.statusActive}>● บัญชีผ่านการยืนยันตัวตน</span>
-                </div>
-                <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
-                  รหัสลูกค้า: {customer.id} • อีเมล: {customer.email}
-                </div>
+      {customerData && (
+        <div className="space-y-4">
+          {/* Customer Summary Card */}
+          <div className="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-sm flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-blue-50 text-[#142B4A] flex items-center justify-center">
+                <User size={24} />
               </div>
-
-              <div style={{ textAlign: 'right' }}>
-                <span
-                  style={{
-                    background: customer.tier === 'Platinum' ? '#0F172A' : customer.tier === 'Gold' ? '#D97706' : '#475569',
-                    color: '#FFF',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '4px 10px',
-                    borderRadius: '20px',
-                  }}
-                >
-                  ⭐ {customer.tier} Member
-                </span>
-                <div style={{ fontSize: '16px', fontWeight: 800, color: '#2563EB', marginTop: '4px' }}>
-                  {customer.points.toLocaleString()} พอยท์
+              <div>
+                <h2 className="text-base font-bold text-[#142B4A]">
+                  {customerData.name || 'ลูกค้า MeePro'}
+                </h2>
+                <div className="text-xs text-[#64748B] flex items-center gap-1 mt-0.5">
+                  <ShieldCheck size={14} className="text-emerald-600" />
+                  <span>เบอร์ยืนยันแล้ว: {customerData.phone}</span>
                 </div>
               </div>
             </div>
+            <span className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-bold">
+              ประวัติ {customerData.applications.length} รายการ
+            </span>
+          </div>
 
-            {/* Verification & PDPA Details (Spec Sec 4 & 5) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', background: '#F8FAFC', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', marginBottom: '16px' }}>
-              <div>
-                <div style={{ fontSize: '11px', color: '#64748B' }}>หมายเลขโทรศัพท์ยืนยัน OTP:</div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{customer.phone}</div>
-                <div style={{ fontSize: '10px', color: '#10B981' }}>✓ ยืนยันเมื่อ {customer.phoneVerifiedAt}</div>
-              </div>
+          {/* Applications List */}
+          <div className="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-sm space-y-3">
+            <h3 className="text-sm font-bold text-[#142B4A]">ประวัติใบสมัครผ่อนชำระทั้งหมด</h3>
 
-              <div>
-                <div style={{ fontSize: '11px', color: '#64748B' }}>ความยินยอม PDPA Consent:</div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
-                  {customer.pdpaConsent.accepted ? 'ยินยอมแล้ว (Active)' : 'ยังไม่ยินยอม'}
-                </div>
-                <div style={{ fontSize: '10px', color: '#64748B' }}>
-                  เวอร์ชัน {customer.pdpaConsent.version} • {customer.pdpaConsent.acceptedAt}
-                </div>
-              </div>
+            <div className="space-y-3">
+              {customerData.applications.map((app) => {
+                const statusCfg = STATUS_LABELS[app.status] || {
+                  label: app.status,
+                  color: '#64748B',
+                  bg: '#F1F5F9',
+                };
 
-              <div>
-                <div style={{ fontSize: '11px', color: '#64748B' }}>ยอดซื้อสะสมตลอดการเป็นสมาชิก:</div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
-                  ฿{customer.totalSpent.toLocaleString()}
-                </div>
-              </div>
-            </div>
+                return (
+                  <div
+                    key={app.id}
+                    className="p-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] flex flex-col sm:flex-row justify-between sm:items-center gap-3"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono text-xs font-bold text-[#142B4A]">{app.reference}</span>
+                        <span
+                          className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                          style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
+                        >
+                          ● {statusCfg.label}
+                        </span>
+                      </div>
+                      <div className="text-sm font-bold text-[#142B4A]">{app.productSnapshot.name}</div>
+                      <div className="text-xs text-[#64748B] mt-0.5">
+                        {app.variantSnapshot.storage} • {app.variantSnapshot.color} • สาขา {app.branchSnapshot.name}
+                      </div>
+                    </div>
 
-            {/* Active 0% Installment Contracts */}
-            <div style={{ marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
-                💳 สัญญาผ่อนชำระ MeePro 0% ที่กำลังผ่อนอยู่ ({customer.activeContracts.length} สัญญา)
-              </h3>
-              {customer.activeContracts.length === 0 ? (
-                <div style={{ fontSize: '12px', color: '#94A3B8', padding: '8px', background: '#F8FAFC', borderRadius: '6px' }}>
-                  ไม่มีสัญญาผ่อนที่ค้างชำระ
-                </div>
-              ) : (
-                <table className={styles.dataTable}>
-                  <thead>
-                    <tr>
-                      <th>เลขที่สัญญา</th>
-                      <th>สินค้า</th>
-                      <th>ยอดเต็ม</th>
-                      <th>ค่างวด/เดือน</th>
-                      <th>งวดคงเหลือ</th>
-                      <th>ธนาคาร</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {customer.activeContracts.map((c) => (
-                      <tr key={c.id}>
-                        <td style={{ fontWeight: 700 }}>{c.id}</td>
-                        <td>{c.product}</td>
-                        <td>฿{c.totalAmount.toLocaleString()}</td>
-                        <td style={{ color: '#2563EB', fontWeight: 700 }}>฿{c.monthlyInstallment.toLocaleString()}</td>
-                        <td>{c.remainingMonths} เดือน</td>
-                        <td>{c.bank}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
-            {/* Staff Notes */}
-            <div>
-              <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
-                📝 บันทึกประวัติการให้บริการของสาขา
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
-                {notes.map((n, idx) => (
-                  <div key={idx} style={{ fontSize: '12px', color: '#334155', padding: '6px 10px', background: '#F1F5F9', borderRadius: '6px' }}>
-                    • {n}
+                    <Link
+                      href={`/staff/applications/${app.id}`}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#142B4A] hover:bg-[#0E1E34] text-white rounded-xl text-xs font-bold transition-colors self-start sm:self-center shrink-0"
+                    >
+                      <span>เปิดดูใบสมัคร</span>
+                      <ArrowRight size={14} />
+                    </Link>
                   </div>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="text"
-                  placeholder="พิมพ์ข้อความบันทึกเพิ่มเติมสำหรับลูกค้ารายนี้..."
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  className={styles.textInput}
-                  style={{ height: '36px', fontSize: '12px' }}
-                />
-                <button
-                  type="button"
-                  onClick={handleAddNote}
-                  className={styles.actionButton}
-                  style={{ height: '36px', padding: '0 14px', fontSize: '11px' }}
-                >
-                  เพิ่มบันทึก
-                </button>
-              </div>
+                );
+              })}
             </div>
           </div>
         </div>
-      ) : searched ? (
-        <div className={styles.panelCard} style={{ textAlign: 'center', padding: '40px' }}>
-          <div style={{ fontSize: '40px', marginBottom: '8px' }}>🔍</div>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>ไม่พบข้อมูลลูกค้าสำหรับเบอร์นี้</h3>
-          <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
-            ลูกค้าอาจยังไม่ได้ยืนยันตัวตนผ่าน OTP หรือระบุหมายเลขโทรศัพท์ผิด
-          </p>
-        </div>
-      ) : null}
+      )}
     </div>
   );
 }

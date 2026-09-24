@@ -31,10 +31,10 @@ export default function AdminRolesPage() {
                 <th style={{ minWidth: '180px' }}>โมดูลการทำงาน</th>
                 <th style={{ minWidth: '220px' }}>คำอธิบายหน้าที่</th>
                 <th style={{ textAlign: 'center', width: '90px' }}>CUSTOMER</th>
-                <th style={{ textAlign: 'center', width: '90px' }}>STAFF</th>
-                <th style={{ textAlign: 'center', width: '90px' }}>MANAGER</th>
+                <th style={{ textAlign: 'center', width: '100px' }}>PC STAFF</th>
+                <th style={{ textAlign: 'center', width: '120px' }}>BRANCH MANAGER</th>
+                <th style={{ textAlign: 'center', width: '90px' }}>HQ</th>
                 <th style={{ textAlign: 'center', width: '90px' }}>ADMIN</th>
-                <th style={{ textAlign: 'center', width: '90px' }}>DEVELOPER</th>
               </tr>
             </thead>
             <tbody>
@@ -46,16 +46,16 @@ export default function AdminRolesPage() {
                     {row.customer ? <span style={{ color: '#34D399' }}>✓</span> : <span style={{ color: '#475569' }}>✕</span>}
                   </td>
                   <td style={{ textAlign: 'center' }}>
-                    {row.staff ? <span style={{ color: '#34D399' }}>✓</span> : <span style={{ color: '#475569' }}>✕</span>}
+                    {row.pcStaff ? <span style={{ color: '#34D399' }}>✓</span> : <span style={{ color: '#475569' }}>✕</span>}
                   </td>
                   <td style={{ textAlign: 'center' }}>
-                    {row.manager ? <span style={{ color: '#34D399' }}>✓</span> : <span style={{ color: '#475569' }}>✕</span>}
+                    {row.branchManager ? <span style={{ color: '#34D399' }}>✓</span> : <span style={{ color: '#475569' }}>✕</span>}
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    {row.hq ? <span style={{ color: '#34D399' }}>✓</span> : <span style={{ color: '#475569' }}>✕</span>}
                   </td>
                   <td style={{ textAlign: 'center' }}>
                     {row.admin ? <span style={{ color: '#34D399' }}>✓</span> : <span style={{ color: '#475569' }}>✕</span>}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    {row.developer ? <span style={{ color: '#34D399' }}>✓</span> : <span style={{ color: '#475569' }}>✕</span>}
                   </td>
                 </tr>
               ))}

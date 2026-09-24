@@ -1,41 +1,37 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { normalizeThaiPhone } from './phone';
+import { supabase } from './supabase';
 
-// Public routes that don't require auth
 const publicRoutes = ['/login'];
 
-// Auth state type
 export interface AuthState {
+  userId: string;
   phone: string;
   phone_verified: boolean;
-  phone_verified_at: string;
 }
 
-// Get auth from localStorage
-export function getAuth(): AuthState | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem('meepro_auth');
-    if (!raw) return null;
-    const auth = JSON.parse(raw) as AuthState;
-    if (auth.phone_verified) return auth;
-    return null;
-  } catch {
-    return null;
-  }
+export async function getAuthUser(): Promise<AuthState | null> {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user?.phone) return null;
+
+  const phone = normalizeThaiPhone(data.user.phone);
+  if (!phone) return null;
+
+  return {
+    userId: data.user.id,
+    phone: phone.national,
+    phone_verified: Boolean(data.user.phone_confirmed_at),
+  };
 }
 
-export const getAuthUser = getAuth;
-
-// Clear auth
-export function clearAuth(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem('meepro_auth');
+export async function clearAuth(): Promise<void> {
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
 }
 
-// Auth guard hook
 export function useAuthGuard() {
   const router = useRouter();
   const pathname = usePathname();
@@ -43,20 +39,28 @@ export function useAuthGuard() {
   const [auth, setAuth] = useState<AuthState | null>(null);
 
   useEffect(() => {
-    const currentAuth = getAuth();
-    setAuth(currentAuth);
+    let active = true;
 
-    const isPublic = publicRoutes.some((route) => pathname?.startsWith(route));
+    async function verifySession() {
+      const currentAuth = await getAuthUser();
+      if (!active) return;
 
-    if (!currentAuth && !isPublic) {
-      // Not authenticated, redirect to login
-      router.replace('/login');
-    } else if (currentAuth && pathname === '/login') {
-      // Already authenticated, redirect to home
-      router.replace('/home');
+      setAuth(currentAuth);
+      const isPublic = publicRoutes.some((route) => pathname?.startsWith(route));
+
+      if (!currentAuth && !isPublic) {
+        router.replace('/login');
+      } else if (currentAuth && pathname === '/login') {
+        router.replace('/home');
+      }
+
+      setIsChecking(false);
     }
 
-    setIsChecking(false);
+    void verifySession();
+    return () => {
+      active = false;
+    };
   }, [pathname, router]);
 
   return { isChecking, auth };

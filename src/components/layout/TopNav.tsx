@@ -14,9 +14,9 @@ export default function TopNav() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/catalog?q=${encodeURIComponent(searchQuery.trim())}`);
+      router.push(`/products?q=${encodeURIComponent(searchQuery.trim())}`);
     } else {
-      router.push('/catalog');
+      router.push('/products');
     }
   };
 
@@ -44,6 +44,14 @@ export default function TopNav() {
               <span className={styles.mallBadge}>MALL</span>
             </div>
           </Link>
+
+          <nav className={styles.desktopNav} aria-label="เมนูหลัก">
+            <Link href="/products">สินค้า</Link>
+            <Link href="/services">บริการ</Link>
+            <Link href="/promotions">โปรโมชั่น</Link>
+            <Link href="/stores">Store</Link>
+            <Link href="/account">บัญชี</Link>
+          </nav>
 
           {/* Right Action Icons: Notification & Shopping Cart */}
           <div className={styles.rightActions}>

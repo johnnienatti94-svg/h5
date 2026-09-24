@@ -1,0 +1,462 @@
+.page {
+  width: 100%;
+  max-width: var(--max-content-width, 1200px);
+  margin: 0 auto;
+  padding: var(--space-4, 16px) var(--space-4, 16px) var(--space-16, 64px);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  font-size: var(--text-xs, 12px);
+  color: var(--color-text-secondary, #64748B);
+  margin-bottom: var(--space-4, 16px);
+}
+
+.breadcrumb a {
+  color: var(--color-navy, #142B4A);
+  text-decoration: none;
+  font-weight: var(--weight-semibold, 600);
+}
+
+.breadcrumb a:hover {
+  color: var(--color-primary, #FF6E00);
+  text-decoration: underline;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6, 24px);
+}
+
+@media (min-width: 1024px) {
+  .layout {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-10, 40px);
+    align-items: start;
+  }
+}
+
+/* Gallery Section */
+.galleryCard {
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E2E8F0);
+  border-radius: var(--radius-dialog, 24px);
+  padding: var(--space-4, 16px);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+  position: sticky;
+  top: 80px;
+}
+
+.mainImageFrame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-card, 16px);
+  overflow: hidden;
+  background: #F8FAFC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mainImage {
+  object-fit: contain;
+  transition: transform var(--transition-base, 0.2s ease);
+}
+
+.thumbnails {
+  display: flex;
+  gap: var(--space-2, 8px);
+  margin-top: var(--space-3, 12px);
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.thumbnailBtn {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  border-radius: var(--radius-button, 12px);
+  overflow: hidden;
+  border: 2px solid transparent;
+  background: #F8FAFC;
+  cursor: pointer;
+  padding: 0;
+}
+
+.thumbnailActive {
+  border-color: var(--color-primary, #FF6E00);
+}
+
+/* Details Section */
+.detailsCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+}
+
+.brandConditionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+}
+
+.brandBadge {
+  font-size: var(--text-xs, 12px);
+  font-weight: var(--weight-bold, 700);
+  color: var(--color-primary, #FF6E00);
+  background: var(--color-primary-light, #FFF6EF);
+  padding: 4px var(--space-3, 12px);
+  border-radius: var(--radius-full, 9999px);
+}
+
+.conditionBadge {
+  font-size: var(--text-xs, 12px);
+  font-weight: var(--weight-semibold, 600);
+  padding: 3px var(--space-2, 8px);
+  border-radius: var(--radius-full, 9999px);
+}
+
+.conditionNew {
+  background: #DCFCE7;
+  color: #15803D;
+}
+
+.conditionUsed {
+  background: #FEF3C7;
+  color: #B45309;
+}
+
+.productTitle {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 800;
+  color: var(--color-navy, #142B4A);
+  line-height: 1.25;
+  margin: 0;
+}
+
+.productSummary {
+  font-size: var(--text-sm, 14px);
+  color: var(--color-text-secondary, #64748B);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Price Box */
+.priceBox {
+  background: linear-gradient(135deg, #FFF6EF 0%, #FFFFFF 100%);
+  border: 1px solid #FFD9BD;
+  border-radius: var(--radius-card, 16px);
+  padding: var(--space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.cashPriceRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3, 12px);
+  flex-wrap: wrap;
+}
+
+.cashPrice {
+  font-size: clamp(1.75rem, 5vw, 2.25rem);
+  font-weight: 900;
+  color: var(--color-primary, #FF6E00);
+}
+
+.compareAtPrice {
+  font-size: var(--text-base, 16px);
+  color: #94A3B8;
+  text-decoration: line-through;
+}
+
+.saveBadge {
+  font-size: var(--text-xs, 12px);
+  font-weight: var(--weight-bold, 700);
+  color: #EF4444;
+  background: #FEE2E2;
+  padding: 2px var(--space-2, 8px);
+  border-radius: var(--radius-full, 9999px);
+}
+
+/* Selectors */
+.selectorSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.selectorLabel {
+  font-size: var(--text-sm, 14px);
+  font-weight: var(--weight-bold, 700);
+  color: var(--color-navy, #142B4A);
+}
+
+.pillGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+}
+
+.choicePill {
+  min-height: 44px;
+  padding: 0 var(--space-4, 16px);
+  border-radius: var(--radius-button, 12px);
+  border: 1px solid var(--color-border, #CBD5E1);
+  background: var(--color-surface, #FFFFFF);
+  color: var(--color-navy, #142B4A);
+  font-size: var(--text-sm, 14px);
+  font-weight: var(--weight-semibold, 600);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.choicePill:hover {
+  border-color: var(--color-primary, #FF6E00);
+}
+
+.choicePillActive {
+  border-color: var(--color-primary, #FF6E00);
+  background: var(--color-primary-light, #FFF6EF);
+  color: var(--color-primary, #FF6E00);
+  font-weight: var(--weight-bold, 700);
+  box-shadow: 0 0 0 1px var(--color-primary, #FF6E00);
+}
+
+.colorSwatch {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  display: inline-block;
+}
+
+/* Offers Card */
+.offersContainer {
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E2E8F0);
+  border-radius: var(--radius-card, 16px);
+  padding: var(--space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+.offerCard {
+  border: 1.5px solid #E2E8F0;
+  border-radius: var(--radius-card, 14px);
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.offerCard:hover {
+  border-color: #FFB380;
+}
+
+.offerCardActive {
+  border-color: var(--color-primary, #FF6E00);
+  background: #FFFBF7;
+  box-shadow: 0 0 0 1px var(--color-primary, #FF6E00);
+}
+
+.offerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+  margin-bottom: var(--space-1, 4px);
+}
+
+.offerTitle {
+  font-size: var(--text-sm, 14px);
+  font-weight: var(--weight-bold, 700);
+  color: var(--color-navy, #142B4A);
+}
+
+.offerMonthly {
+  font-size: var(--text-base, 16px);
+  font-weight: 800;
+  color: var(--color-primary, #FF6E00);
+}
+
+.offerTerms {
+  font-size: var(--text-xs, 12px);
+  color: var(--color-text-secondary, #64748B);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.offerBreakdown {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2, 8px);
+  margin-top: var(--space-2, 8px);
+  padding-top: var(--space-2, 8px);
+  border-top: 1px dashed #E2E8F0;
+  text-align: center;
+}
+
+.breakdownItem span:first-child {
+  display: block;
+  font-size: 11px;
+  color: #94A3B8;
+}
+
+.breakdownItem span:last-child {
+  display: block;
+  font-size: 12px;
+  font-weight: var(--weight-bold, 700);
+  color: var(--color-navy, #142B4A);
+}
+
+/* Branch Availability Checker */
+.branchSection {
+  background: #F8FAFC;
+  border: 1px solid var(--color-border, #E2E8F0);
+  border-radius: var(--radius-card, 16px);
+  padding: var(--space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+.branchList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.branchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: var(--space-2, 8px) 0;
+  border-bottom: 1px solid #E2E8F0;
+  font-size: var(--text-xs, 12px);
+}
+
+.branchRow:last-child {
+  border-bottom: 0;
+}
+
+.branchName {
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-navy, #142B4A);
+}
+
+.stockStatusIn {
+  color: #16A34A;
+  font-weight: var(--weight-bold, 700);
+}
+
+.stockStatusLow {
+  color: #D97706;
+  font-weight: var(--weight-bold, 700);
+}
+
+/* Actions */
+.actionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  margin-top: var(--space-2, 8px);
+}
+
+.applyButton {
+  min-height: 52px;
+  background: var(--color-primary, #FF6E00);
+  color: #FFFFFF;
+  border: 0;
+  border-radius: var(--radius-button, 14px);
+  font-size: var(--text-base, 16px);
+  font-weight: var(--weight-bold, 700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--transition-fast, 0.15s ease);
+  box-shadow: 0 4px 14px rgba(255, 110, 0, 0.35);
+}
+
+.applyButton:hover {
+  background: var(--color-primary-hover, #E56200);
+}
+
+.secondaryActionRow {
+  display: flex;
+  gap: var(--space-3, 12px);
+}
+
+.cartButton, .branchDialogBtn {
+  min-height: 44px;
+  flex: 1;
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #CBD5E1);
+  border-radius: var(--radius-button, 12px);
+  font-size: var(--text-sm, 14px);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--color-navy, #142B4A);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.cartButton:hover, .branchDialogBtn:hover {
+  border-color: var(--color-primary, #FF6E00);
+  background: #FFF6EF;
+}
+
+/* Specs Table */
+.specsSection {
+  margin-top: var(--space-8, 32px);
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E2E8F0);
+  border-radius: var(--radius-card, 16px);
+  padding: var(--space-5, 20px);
+}
+
+.specTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-3, 12px);
+  font-size: var(--text-sm, 14px);
+}
+
+.specRow {
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.specRow:last-child {
+  border-bottom: 0;
+}
+
+.specKey {
+  padding: var(--space-3, 12px) 0;
+  width: 35%;
+  color: var(--color-text-secondary, #64748B);
+  font-weight: var(--weight-semibold, 600);
+}
+
+.specVal {
+  padding: var(--space-3, 12px) 0;
+  color: var(--color-navy, #142B4A);
+}

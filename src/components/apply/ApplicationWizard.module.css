@@ -1,0 +1,439 @@
+.container {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+/* Step Bar */
+.stepBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  position: relative;
+  background: #ffffff;
+  padding: 1.25rem 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.stepItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  flex: 1;
+}
+
+.stepCircle {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  background: #F1F5F9;
+  color: #64748B;
+  border: 2px solid #E2E8F0;
+  transition: all 0.2s ease;
+}
+
+.stepCircleActive {
+  background: #FF6E00;
+  color: #ffffff;
+  border-color: #FF6E00;
+  box-shadow: 0 0 0 4px rgba(255, 110, 0, 0.15);
+}
+
+.stepCircleDone {
+  background: #16A34A;
+  color: #ffffff;
+  border-color: #16A34A;
+}
+
+.stepLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748B;
+  margin-top: 0.5rem;
+  text-align: center;
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .stepLabel {
+    display: block;
+  }
+}
+
+.stepLabelActive {
+  color: #142B4A;
+  font-weight: 700;
+}
+
+/* Card Container */
+.card {
+  background: #ffffff;
+  border-radius: 1.25rem;
+  border: 1px solid #E2E8F0;
+  padding: 1.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  margin-bottom: 1.5rem;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.cardHeaderIcon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: #FFF6EF;
+  color: #FF6E00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cardTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #142B4A;
+  margin: 0;
+}
+
+.cardSubtitle {
+  font-size: 0.875rem;
+  color: #64748B;
+  margin-top: 0.125rem;
+}
+
+/* Form Groups */
+.formGroup {
+  margin-bottom: 1.25rem;
+}
+
+.label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #142B4A;
+  margin-bottom: 0.375rem;
+}
+
+.required {
+  color: #EF4444;
+  margin-left: 0.25rem;
+}
+
+.input {
+  width: 100%;
+  height: 3rem;
+  padding: 0 1rem;
+  border-radius: 0.75rem;
+  border: 1.5px solid #CBD5E1;
+  font-size: 0.95rem;
+  color: #142B4A;
+  background: #ffffff;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input:focus {
+  border-color: #FF6E00;
+  box-shadow: 0 0 0 3px rgba(255, 110, 0, 0.12);
+}
+
+.inputDisabled {
+  background: #F8FAFC;
+  color: #64748B;
+  cursor: not-allowed;
+  border-color: #E2E8F0;
+}
+
+.textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1.5px solid #CBD5E1;
+  font-size: 0.95rem;
+  color: #142B4A;
+  background: #ffffff;
+  outline: none;
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.textarea:focus {
+  border-color: #FF6E00;
+  box-shadow: 0 0 0 3px rgba(255, 110, 0, 0.12);
+}
+
+/* Product Summary Box */
+.productSummary {
+  display: flex;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  background: #FFF6EF;
+  border-radius: 1rem;
+  border: 1px solid #FFE4D1;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.productImageWrap {
+  width: 5rem;
+  height: 5rem;
+  background: #ffffff;
+  border-radius: 0.75rem;
+  border: 1px solid #FFE4D1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.productInfo {
+  flex: 1;
+}
+
+.productBadge {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  background: #FF6E00;
+  color: #ffffff;
+  margin-bottom: 0.375rem;
+}
+
+.productTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #142B4A;
+  margin: 0;
+}
+
+.productVariant {
+  font-size: 0.8125rem;
+  color: #64748B;
+  margin-top: 0.25rem;
+}
+
+/* Financial Ledger */
+.ledger {
+  background: #F8FAFC;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #E2E8F0;
+  margin-bottom: 1.5rem;
+}
+
+.ledgerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+.ledgerTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.875rem;
+  margin-top: 0.5rem;
+  border-top: 1.5px dashed #CBD5E1;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #142B4A;
+}
+
+.ledgerHighlight {
+  color: #FF6E00;
+  font-weight: 800;
+  font-size: 1.25rem;
+}
+
+/* Branch Preview Box */
+.branchBox {
+  background: #F8FAFC;
+  border-radius: 1rem;
+  border: 1.5px solid #E2E8F0;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.branchHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.branchName {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #142B4A;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.branchChangeBtn {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #FF6E00;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  transition: background 0.15s ease;
+}
+
+.branchChangeBtn:hover {
+  background: #FFF6EF;
+}
+
+/* Consent Checkbox */
+.consentItem {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  border-radius: 0.75rem;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  margin-bottom: 0.75rem;
+  align-items: flex-start;
+}
+
+.checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: #FF6E00;
+  margin-top: 0.125rem;
+  cursor: pointer;
+}
+
+.consentText {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: #334155;
+}
+
+.consentLink {
+  color: #FF6E00;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Action Buttons */
+.actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.primaryBtn {
+  flex: 1;
+  height: 3.25rem;
+  background: #FF6E00;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.875rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(255, 110, 0, 0.25);
+  transition: all 0.2s ease;
+}
+
+.primaryBtn:hover:not(:disabled) {
+  background: #E05D00;
+  transform: translateY(-1px);
+}
+
+.primaryBtn:disabled {
+  background: #CBD5E1;
+  color: #94A3B8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.secondaryBtn {
+  height: 3.25rem;
+  padding: 0 1.5rem;
+  background: #ffffff;
+  color: #142B4A;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 0.875rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.15s ease;
+}
+
+.secondaryBtn:hover {
+  background: #F8FAFC;
+  border-color: #94A3B8;
+}
+
+/* Success View */
+.successCard {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: #ffffff;
+  border-radius: 1.5rem;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.successIconWrap {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  background: #DCFCE7;
+  color: #16A34A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.refBadge {
+  display: inline-block;
+  background: #EFF6FF;
+  border: 1.5px dashed #3B82F6;
+  color: #1E40AF;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
+  font-family: monospace;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 1.25rem 0;
+}

@@ -1,70 +1,114 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { normalizeThaiPhone } from './phone';
+import { supabase } from './supabase';
 
-export type StaffRole = 'STAFF' | 'MANAGER' | 'ADMIN' | 'DEVELOPER';
+export type StaffRole = 'PC_STAFF' | 'BRANCH_MANAGER' | 'HQ' | 'ADMIN';
 
 export interface StaffUser {
   id: string;
   name: string;
   role: StaffRole;
-  branch: string;
-  email: string;
-  token: string;
+  branchId?: string;
+  phone?: string;
 }
 
-export const DEMO_STAFF_USERS: { [key: string]: { pin: string; user: StaffUser } } = {
-  'staff01': {
-    pin: '1234',
-    user: {
-      id: 'STF-001',
-      name: 'สมชาย รักบริการ',
-      role: 'STAFF',
-      branch: 'MeePro Flagship CentralWorld',
-      email: 'somchai@meepro.co.th',
-      token: 'stf_token_abc123',
-    },
-  },
-  'manager01': {
-    pin: '8888',
-    user: {
-      id: 'MGR-001',
-      name: 'วิภาดา จัดการดี',
-      role: 'MANAGER',
-      branch: 'Headquarters / Content Ops',
-      email: 'wiphada@meepro.co.th',
-      token: 'mgr_token_xyz888',
-    },
-  },
-};
-
-const STAFF_AUTH_KEY = 'meepro_staff_session_v1';
-
-export function getStaffAuth(): StaffUser | null {
-  if (typeof window === 'undefined') return null;
+export async function getStaffAuth(): Promise<StaffUser | null> {
   try {
-    const raw = localStorage.getItem(STAFF_AUTH_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as StaffUser;
+    const res = await fetch('/api/staff/me');
+    const data = await res.json();
+    if (data.authenticated && data.staff) {
+      return data.staff;
+    }
+  } catch {
+    // Continue to Supabase check
+  }
+
+  try {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) return null;
+
+    const { data: profile, error: profileError } = await supabase
+      .from('staff_profiles')
+      .select('user_id, display_name, role, assigned_branch_id, status')
+      .eq('user_id', userData.user.id)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (profileError || !profile) return null;
+
+    const allowedRoles: StaffRole[] = ['PC_STAFF', 'BRANCH_MANAGER', 'HQ', 'ADMIN'];
+    const role = profile.role as StaffRole;
+    if (!allowedRoles.includes(role)) return null;
+
+    return {
+      id: userData.user.id,
+      name: profile.display_name,
+      role,
+      branchId: profile.assigned_branch_id || undefined,
+      phone: userData.user.phone,
+    };
   } catch {
     return null;
   }
 }
 
-export function setStaffAuth(user: StaffUser): void {
-  if (typeof window === 'undefined') return;
+export async function signInStaff(phoneInput: string, password: string): Promise<StaffUser> {
+  const phone = normalizeThaiPhone(phoneInput);
+  if (!phone || !password) throw new Error('กรุณากรอกเบอร์โทรศัพท์และรหัสผ่าน');
+
+  // 1. Authenticate with server staff endpoint
   try {
-    localStorage.setItem(STAFF_AUTH_KEY, JSON.stringify(user));
-  } catch (e) {
-    console.error('Failed to set staff session:', e);
+    const res = await fetch('/api/staff/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: phone.national, password }),
+    });
+    const data = await res.json();
+    if (res.ok && data.success && data.staff) {
+      return data.staff;
+    }
+    if (!res.ok && data.error) {
+      throw new Error(data.error);
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message !== 'Failed to fetch') {
+      throw err;
+    }
+  }
+
+  // 2. Fall back to Supabase client auth
+  const { error } = await supabase.auth.signInWithPassword({
+    phone: phone.e164,
+    password,
+  });
+
+  if (error) throw new Error('เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง');
+
+  const staff = await getStaffAuth();
+  if (!staff) {
+    await supabase.auth.signOut();
+    throw new Error('บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่');
+  }
+
+  return staff;
+}
+
+export async function clearStaffAuth(): Promise<void> {
+  try {
+    await fetch('/api/staff/logout', { method: 'POST' });
+  } catch {
+    // Ignore
+  }
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    // Ignore
   }
 }
 
-export function clearStaffAuth(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(STAFF_AUTH_KEY);
-}
 
 export function useStaffGuard() {
   const router = useRouter();
@@ -73,18 +117,23 @@ export function useStaffGuard() {
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    const current = getStaffAuth();
-    setStaff(current);
+    let active = true;
 
-    const isLoginPage = pathname === '/staff/login';
+    async function verifyStaff() {
+      const current = await getStaffAuth();
+      if (!active) return;
 
-    if (!current && !isLoginPage) {
-      router.replace('/staff/login');
-    } else if (current && isLoginPage) {
-      router.replace('/staff/dashboard');
+      setStaff(current);
+      const isLoginPage = pathname === '/staff/login';
+      if (!current && !isLoginPage) router.replace('/staff/login');
+      else if (current && isLoginPage) router.replace('/staff/dashboard');
+      setIsChecking(false);
     }
 
-    setIsChecking(false);
+    void verifyStaff();
+    return () => {
+      active = false;
+    };
   }, [pathname, router]);
 
   return { staff, isChecking };

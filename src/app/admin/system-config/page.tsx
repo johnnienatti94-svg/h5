@@ -60,10 +60,10 @@ export default function AdminSystemConfigPage() {
               <label className={styles.formLabel}>ผู้ให้บริการเกตเวย์ SMS/OTP</label>
               <select
                 value={config.otpProvider}
-                onChange={(e) => setConfig({ ...config, otpProvider: e.target.value as any })}
+                onChange={(e) => setConfig({ ...config, otpProvider: e.target.value as SystemConfig['otpProvider'] })}
                 className={styles.formInput}
               >
-                <option value="Mock">Mock Simulation Gateway (ยอมรับ 123456 ทุกเบอร์)</option>
+                <option value="SupabaseAuth">Supabase Auth Phone OTP</option>
                 <option value="ThaiBulkSMS">ThaiBulkSMS (ประเทศไทย - มาตรฐาน)</option>
                 <option value="Twilio">Twilio Verify API (ระดับนานาชาติ)</option>
                 <option value="AWS_SNS">Amazon SNS (AWS Cloud SMS)</option>
@@ -108,7 +108,7 @@ export default function AdminSystemConfigPage() {
               <label className={styles.formLabel}>ระดับความเข้มงวดของ Turnstile Bot Check</label>
               <select
                 value={config.botProtectionSensitivity}
-                onChange={(e) => setConfig({ ...config, botProtectionSensitivity: e.target.value as any })}
+                onChange={(e) => setConfig({ ...config, botProtectionSensitivity: e.target.value as SystemConfig['botProtectionSensitivity'] })}
                 className={styles.formInput}
               >
                 <option value="Low">Low (ตรวจสอบเฉพาะบอทที่พฤติกรรมชัดเจน)</option>

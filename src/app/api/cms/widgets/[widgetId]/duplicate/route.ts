@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { authenticateCmsRequest, hasPermission } from '@/lib/rbac';
 
 export async function POST(
@@ -8,7 +8,7 @@ export async function POST(
 ) {
   try {
     const { widgetId } = await params;
-    const auth = authenticateCmsRequest(request);
+    const auth = await authenticateCmsRequest(request);
 
     if (!auth || !hasPermission(auth.role, 'EDIT_WIDGETS')) {
       return NextResponse.json(

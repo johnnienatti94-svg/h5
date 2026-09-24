@@ -3,15 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PrivacyPolicyModal from '@/components/auth/PrivacyPolicyModal';
-
-const CAPTCHA_LIST = ['7K9B2', '4M3X8', '9P2Q1', '6W8Y4', '5R7T9'];
+import TurnstileWidget from '@/components/auth/TurnstileWidget';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
   const router = useRouter();
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phone, setPhone] = useState('');
-  const [captcha, setCaptcha] = useState('');
-  const [captchaIndex, setCaptchaIndex] = useState(0);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const [policyViewed, setPolicyViewed] = useState(false);
   const [consent, setConsent] = useState(false);
   const [showPolicy, setShowPolicy] = useState(false);
@@ -20,7 +20,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const currentCaptcha = CAPTCHA_LIST[captchaIndex];
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
+  const requiresBotVerification = process.env.NODE_ENV === 'production' || Boolean(turnstileSiteKey);
 
   useEffect(() => {
     if (step !== 'otp' || cooldown <= 0) return;
@@ -28,14 +29,9 @@ export default function LoginPage() {
     return () => window.clearTimeout(timer);
   }, [step, cooldown]);
 
-  const handleRefreshCaptcha = () => {
-    setCaptchaIndex((prev) => (prev + 1) % CAPTCHA_LIST.length);
-    setCaptcha('');
-  };
-
   const isPhoneValid = /^0[689]\d{8}$/.test(phone.replace(/\D/g, ''));
-  const isCaptchaValid = captcha.trim().toUpperCase() === currentCaptcha;
-  const isReady = isPhoneValid && isCaptchaValid && consent;
+  const isBotVerified = !requiresBotVerification || Boolean(captchaToken);
+  const isReady = isPhoneValid && isBotVerified && consent;
 
   const requestOtp = async () => {
     setError('');
@@ -45,7 +41,7 @@ export default function LoginPage() {
       const response = await fetch('/api/sms/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleanPhone }),
+        body: JSON.stringify({ phone: cleanPhone, captchaToken }),
       });
       const result = await response.json();
       if (!response.ok || !result.success) {
@@ -55,6 +51,8 @@ export default function LoginPage() {
       setStep('otp');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+      setCaptchaToken(null);
+      setTurnstileResetKey((value) => value + 1);
     } finally {
       setLoading(false);
     }
@@ -74,14 +72,14 @@ export default function LoginPage() {
       if (!response.ok || !result.success) {
         throw new Error(result.message || 'รหัส OTP ไม่ถูกต้อง');
       }
-      localStorage.setItem(
-        'meepro_auth',
-        JSON.stringify({
-          phone: cleanPhone,
-          phone_verified: true,
-          phone_verified_at: new Date().toISOString(),
-        })
-      );
+      if (!result.session?.access_token || !result.session?.refresh_token) {
+        throw new Error('ไม่สามารถสร้างเซสชันที่ปลอดภัยได้');
+      }
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: result.session.access_token,
+        refresh_token: result.session.refresh_token,
+      });
+      if (sessionError) throw sessionError;
       router.replace('/home');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'เกิดข้อผิดพลาดในการตรวจสอบรหัส OTP');
@@ -91,22 +89,10 @@ export default function LoginPage() {
   };
 
   const resendOtp = async () => {
-    setCooldown(60);
     setOtp('');
-    await requestOtp();
-  };
-
-  const handleDevBypass = () => {
-    const cleanPhone = phone.replace(/\D/g, '') || '0812345678';
-    localStorage.setItem(
-      'meepro_auth',
-      JSON.stringify({
-        phone: cleanPhone,
-        phone_verified: true,
-        phone_verified_at: new Date().toISOString(),
-      })
-    );
-    router.replace('/home');
+    setCaptchaToken(null);
+    setTurnstileResetKey((value) => value + 1);
+    setStep('phone');
   };
 
   const formatPhoneDisplay = (val: string) => {
@@ -210,39 +196,27 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* 4. CAPTCHA Verification Area */}
+                {/* 4. Bot verification */}
                 <div className="space-y-1.5 mb-3.5">
-                  <label className="block text-[13px] text-[#0F172A] font-semibold">
-                    รหัสความปลอดภัย (CAPTCHA)
-                  </label>
-                  <div className="grid grid-cols-12 gap-2">
-                    <div className="col-span-7">
-                      <input
-                        id="captcha-input"
-                        type="text"
-                        maxLength={5}
-                        value={captcha}
-                        onChange={(e) => setCaptcha(e.target.value.slice(0, 5).toUpperCase())}
-                        placeholder="กรอกรหัส 5 ตัว"
-                        className="w-full h-[50px] rounded-xl bg-white border border-[#E2E8F0] px-3 text-[14px] font-semibold text-[#0F172A] placeholder:text-slate-400 focus:border-[#007ACC] focus:ring-1 focus:ring-[#007ACC] focus:outline-none transition-all uppercase tracking-wider"
+                  <span className="block text-[13px] text-[#0F172A] font-semibold">ตรวจสอบความปลอดภัย</span>
+                  {turnstileSiteKey ? (
+                    <div className="min-h-[65px] overflow-hidden rounded-xl border border-[#E2E8F0] bg-white p-2">
+                      <TurnstileWidget
+                        key={turnstileResetKey}
+                        siteKey={turnstileSiteKey}
+                        onTokenChange={setCaptchaToken}
+                        onError={() => setError('ไม่สามารถตรวจสอบความปลอดภัยได้ กรุณาลองใหม่')}
                       />
                     </div>
-                    <div className="col-span-5 flex items-center justify-between bg-white rounded-xl border border-[#E2E8F0] px-2.5 h-[50px] shadow-xs">
-                      <div className="flex items-center justify-center flex-1 h-9 rounded-lg bg-slate-100 border border-slate-200/80 px-2 overflow-hidden select-none">
-                        <span className="text-[16px] tracking-[2px] text-slate-800 font-extrabold italic select-none line-through decoration-slate-400">
-                          {currentCaptcha}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleRefreshCaptcha}
-                        className="ml-1.5 p-1 text-[#64748B] hover:text-[#007ACC] active:scale-90 transition-transform rounded-lg focus:outline-none"
-                        title="เปลี่ยนรหัส"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">refresh</span>
-                      </button>
-                    </div>
-                  </div>
+                  ) : process.env.NODE_ENV === 'production' ? (
+                    <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700" role="alert">
+                      ระบบเข้าสู่ระบบยังไม่ได้ตั้งค่า Turnstile กรุณาติดต่อผู้ดูแลระบบ
+                    </p>
+                  ) : (
+                    <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                      โหมดพัฒนา: ยังไม่ได้ตั้งค่า Turnstile และไม่สามารถเปิดใช้เงื่อนไขนี้ใน production ได้
+                    </p>
+                  )}
                 </div>
 
                 {/* 5. Privacy Policy Link */}
@@ -331,21 +305,10 @@ export default function LoginPage() {
                 <div className="flex items-center justify-center gap-1.5 mt-3 text-[#64748B]">
                   <span className="material-symbols-outlined text-[14px] text-[#16A365]">verified</span>
                   <span className="text-[11px] text-slate-500 font-medium">
-                    ความปลอดภัยระดับธนาคาร ระบบเข้ารหัส 256-bit
+                    OTP และเซสชันจัดการโดย Supabase Auth
                   </span>
                 </div>
 
-                {/* 1-Click Dev Bypass Button */}
-                <div className="mt-3 pt-2.5 border-t border-dashed border-[#E2E8F0] flex justify-center">
-                  <button
-                    type="button"
-                    onClick={handleDevBypass}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold active:scale-98 transition-all"
-                  >
-                    <span className="material-symbols-outlined text-[16px] text-amber-600">bolt</span>
-                    <span>⚡ Dev Bypass (ข้ามหน้าล็อกอิน)</span>
-                  </button>
-                </div>
               </div>
             </div>
           ) : (
@@ -442,18 +405,6 @@ export default function LoginPage() {
                   <span>{loading ? 'กำลังยืนยัน...' : 'ยืนยัน'}</span>
                   <span className="material-symbols-outlined text-[18px]">check_circle</span>
                 </button>
-
-                {/* 1-Click Dev Bypass Button */}
-                <div className="mt-3 pt-2.5 border-t border-dashed border-[#E2E8F0] flex justify-center">
-                  <button
-                    type="button"
-                    onClick={handleDevBypass}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold active:scale-98 transition-all"
-                  >
-                    <span className="material-symbols-outlined text-[16px] text-amber-600">bolt</span>
-                    <span>⚡ Dev Bypass (ข้ามหน้าล็อกอิน)</span>
-                  </button>
-                </div>
               </div>
             </div>
           )}

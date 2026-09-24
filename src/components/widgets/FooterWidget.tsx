@@ -25,9 +25,11 @@ export default function FooterWidget({ widget }: Props) {
 
   const defaultLinks = [
     { label: 'เกี่ยวกับเรา', href: '/about' },
-    { label: 'ค้นหาสาขา (45 แห่ง)', href: '/location' },
-    { label: 'นโยบายความเป็นส่วนตัว', href: '/about' },
-    { label: 'เงื่อนไขการให้บริการ', href: '/about' },
+    { label: 'บริการของเรา', href: '/services' },
+    { label: 'ค้นหาสาขา', href: '/stores' },
+    { label: 'คำถามที่พบบ่อย', href: '/faq' },
+    { label: 'นโยบายความเป็นส่วนตัว', href: '/privacy' },
+    { label: 'เงื่อนไขการให้บริการ', href: '/terms' },
   ];
 
   const links = cfg.links || defaultLinks;

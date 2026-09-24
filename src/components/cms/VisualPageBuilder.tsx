@@ -38,6 +38,7 @@ import {
 import { WIDGET_CATALOG, WidgetCatalogItem } from '@/lib/widgetCatalogPresets';
 import { validateWidgetConfig } from '@/lib/widgetSchemas';
 import { ALL_PRODUCTS } from '@/lib/productsData';
+import { supabase } from '@/lib/supabase';
 import WidgetRenderer from '@/components/home/WidgetRenderer';
 import styles from './VisualPageBuilder.module.css';
 
@@ -105,9 +106,31 @@ export const CATEGORY_ICON_OPTIONS = [
 ];
 
 interface Props {
-  role?: 'admin' | 'staff';
-  pageId?: string;
+  role?: 'ADMIN' | 'HQ';
+  pageId: string;
   pageTitle?: string;
+}
+
+async function authenticatedCmsFetch<T>(url: string, init?: RequestInit): Promise<T> {
+  const { data, error: sessionError } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (sessionError || !accessToken) {
+    throw new Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+  }
+
+  const response = await fetch(url, {
+    ...init,
+    headers: {
+      ...init?.headers,
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  const payload = await response.json().catch(() => ({})) as { error?: string } & T;
+  if (!response.ok) {
+    throw new Error(payload.error || `คำขอล้มเหลว (${response.status})`);
+  }
+  return payload;
 }
 
 interface RevisionItem {
@@ -140,8 +163,8 @@ function normalizeWidget(w: AnyWidget): AnyWidget {
 }
 
 export default function VisualPageBuilder({
-  role = 'staff',
-  pageId = 'p-home-001',
+  role = 'HQ',
+  pageId,
   pageTitle = 'หน้าแรก MeePro (Homepage)',
 }: Props) {
   // 1. Core State
@@ -556,43 +579,40 @@ export default function VisualPageBuilder({
 
   // 5. Draft & Publish Workflow (Spec Sec 9)
   const handleSaveDraft = async () => {
-    saveHomepageWidgets(widgets);
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('meepro_widgets_updated'));
-    }
     try {
-      await fetch(`/api/cms/pages/${pageId}/widgets`, {
+      await authenticatedCmsFetch(`/api/cms/pages/${pageId}/widgets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ widgets }),
       });
-    } catch {
-      // Offline fallback
+      saveHomepageWidgets(widgets);
+      window.dispatchEvent(new Event('meepro_widgets_updated'));
+      setHasUnsavedChanges(false);
+      setLastSavedAt(new Date().toLocaleTimeString('th-TH'));
+      showToast('บันทึกแบบร่างลงฐานข้อมูลเรียบร้อยแล้ว');
+    } catch (cause) {
+      showToast(cause instanceof Error ? cause.message : 'ไม่สามารถบันทึกแบบร่างได้', 'error');
     }
-    setHasUnsavedChanges(false);
-    setLastSavedAt(new Date().toLocaleTimeString('th-TH'));
-    showToast('บันทึกแบบร่าง (Draft) และส่งข้อมูลไปยังหน้าร้านเรียบร้อย');
   };
 
   const handlePublishNow = async () => {
-    if (role !== 'admin') {
+    if (role !== 'ADMIN' && role !== 'HQ') {
       showToast('เฉพาะบทบาท Admin เท่านั้นที่มีสิทธิ์เผยแพร่หน้าสู่ Production (Spec Sec 8)', 'error');
       return;
     }
 
     if (confirm('คุณต้องการเผยแพร่ (Publish) หน้าแรกสู่ระบบ Live ให้ลูกค้าเห็นทันทีหรือไม่? ระบบจะสร้าง Snapshot Revision โดยอัตโนมัติ')) {
-      saveHomepageWidgets(widgets);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('meepro_widgets_updated'));
-      }
       try {
-        await fetch(`/api/cms/pages/${pageId}/publish`, {
+        await authenticatedCmsFetch(`/api/cms/pages/${pageId}/publish`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ widgets }),
         });
-      } catch {
-        // Offline fallback
+        saveHomepageWidgets(widgets);
+        window.dispatchEvent(new Event('meepro_widgets_updated'));
+      } catch (cause) {
+        showToast(cause instanceof Error ? cause.message : 'ไม่สามารถเผยแพร่หน้าได้', 'error');
+        return;
       }
 
       const newRev: RevisionItem = {
@@ -618,15 +638,12 @@ export default function VisualPageBuilder({
     setShowHistoryModal(true);
     setLoadingRevisions(true);
     try {
-      const res = await fetch(`/api/cms/pages/${pageId}/revisions`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.revisions && data.revisions.length > 0) {
-          setRevisions(data.revisions);
-        }
+      const data = await authenticatedCmsFetch<{ revisions?: RevisionItem[] }>(`/api/cms/pages/${pageId}/revisions`);
+      if (data.revisions && data.revisions.length > 0) {
+        setRevisions(data.revisions);
       }
-    } catch {
-      // Fallback to local memory revisions
+    } catch (cause) {
+      showToast(cause instanceof Error ? cause.message : 'ไม่สามารถโหลดประวัติเวอร์ชันได้', 'error');
     } finally {
       setLoadingRevisions(false);
     }
@@ -749,7 +766,7 @@ export default function VisualPageBuilder({
             type="button"
             className={styles.btnPublish}
             onClick={handlePublishNow}
-            title={role === 'admin' ? 'เผยแพร่สู่ Production' : 'ต้องใช้สิทธิ์ Admin เพื่อ Publish'}
+            title={role === 'ADMIN' || role === 'HQ' ? 'เผยแพร่สู่ Production' : 'ต้องใช้สิทธิ์ Admin หรือ HQ เพื่อ Publish'}
           >
             <Send size={13} />
             <span>เผยแพร่ Live</span>

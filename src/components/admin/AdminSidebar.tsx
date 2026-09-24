@@ -14,14 +14,14 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
 } from 'lucide-react';
-import { getAdminAuth, clearAdminAuth } from '@/lib/adminSystem';
+import { clearAdminAuth, type AdminUser } from '@/lib/adminSystem';
 import styles from '@/app/admin/admincn.module.css';
 
 interface Props {
   collapsed: boolean;
   onToggle: () => void;
+  adminUser: AdminUser;
 }
 
 interface NavItem {
@@ -37,13 +37,12 @@ interface NavGroup {
   items: NavItem[];
 }
 
-export default function AdminSidebar({ collapsed, onToggle }: Props) {
+export default function AdminSidebar({ collapsed, onToggle, adminUser }: Props) {
   const pathname = usePathname();
   const router = useRouter();
-  const adminUser = getAdminAuth();
 
-  const handleLogout = () => {
-    clearAdminAuth();
+  const handleLogout = async () => {
+    await clearAdminAuth();
     router.replace('/admin/login');
   };
 
@@ -61,6 +60,36 @@ export default function AdminSidebar({ collapsed, onToggle }: Props) {
           href: '/admin/page-builder',
           icon: <Palette size={18} />,
           badge: 'v2.1',
+        },
+        {
+          label: 'จัดการหน้าเว็บ (Pages)',
+          href: '/admin/pages',
+          icon: <FileText size={18} />,
+        },
+        {
+          label: 'คลังสื่อ (Media Library)',
+          href: '/admin/media',
+          icon: <Palette size={18} />,
+        },
+        {
+          label: 'จัดการสาขา (Branches)',
+          href: '/admin/branches',
+          icon: <ShoppingBag size={18} />,
+        },
+        {
+          label: 'สินค้า & สต็อก (Products)',
+          href: '/admin/products',
+          icon: <ShoppingBag size={18} />,
+        },
+        {
+          label: 'ข้อเสนอผ่อน 0% (Offers)',
+          href: '/admin/offers',
+          icon: <ShoppingBag size={18} />,
+        },
+        {
+          label: 'ตั้งค่าเว็บไซต์ (Site Settings)',
+          href: '/admin/settings',
+          icon: <Settings size={18} />,
         },
         {
           label: 'รายการสั่งซื้อ (Orders)',
@@ -158,12 +187,12 @@ export default function AdminSidebar({ collapsed, onToggle }: Props) {
         <div className={styles.userCard}>
           <div className={styles.userInfo}>
             <div className={styles.userAvatar}>
-              {adminUser?.username?.substring(0, 2).toUpperCase() || 'AD'}
+              {adminUser.name.substring(0, 2).toUpperCase() || 'AD'}
             </div>
             {!collapsed && (
               <div style={{ overflow: 'hidden' }}>
-                <div className={styles.userName}>{adminUser?.name || 'Administrator'}</div>
-                <div className={styles.userRole}>● {adminUser?.role || 'SUPER_ADMIN'}</div>
+                <div className={styles.userName}>{adminUser.name}</div>
+                <div className={styles.userRole}>● {adminUser.role}</div>
               </div>
             )}
           </div>

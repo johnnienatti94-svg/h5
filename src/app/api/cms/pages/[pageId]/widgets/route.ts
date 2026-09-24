@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { authenticateCmsRequest, hasPermission } from '@/lib/rbac';
 import { DEFAULT_HOMEPAGE_WIDGETS } from '@/lib/homepageWidgets';
 
@@ -9,7 +10,7 @@ export async function GET(
 ) {
   try {
     const { pageId } = await params;
-    const auth = authenticateCmsRequest(request);
+    const auth = await authenticateCmsRequest(request);
     const isStaffOrAdmin = auth && hasPermission(auth.role, 'PREVIEW_DRAFT');
 
     const client = isStaffOrAdmin ? supabaseAdmin : supabase;
@@ -62,12 +63,41 @@ export async function POST(
 ) {
   try {
     const { pageId } = await params;
-    const auth = authenticateCmsRequest(request);
+    const auth = await authenticateCmsRequest(request);
     if (!auth || !hasPermission(auth.role, 'EDIT_WIDGETS')) {
       return NextResponse.json({ error: 'Unauthorized — requires Staff or Admin role' }, { status: 403 });
     }
 
     const body = await request.json();
+
+    // Check if batch widgets array was submitted
+    if (Array.isArray(body.widgets)) {
+      const { cmsRepository } = await import('@/server/repositories/cmsRepository');
+      const result = await cmsRepository.saveDraft(pageId, {
+        widgets: body.widgets,
+        expectedRevision: body.expectedRevision,
+        updatedBy: auth.userId,
+      });
+
+      if ('conflict' in result) {
+        return NextResponse.json(
+          {
+            error: 'REVISION_CONFLICT',
+            message: result.message,
+            currentRevision: result.currentRevision,
+            latestDraft: result.latestDraft,
+          },
+          { status: 409 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        page: result.page,
+        widgets: result.widgets,
+      });
+    }
+
     const { widget_type, title, subtitle, sort_order, config } = body;
 
     if (!widget_type) {

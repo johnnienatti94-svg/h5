@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
 import { authenticateCmsRequest, hasPermission } from '@/lib/rbac';
+import { cmsRepository } from '@/server/repositories/cmsRepository';
 
 export async function GET(
   request: Request,
@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { pageId } = await params;
-    const auth = authenticateCmsRequest(request);
+    const auth = await authenticateCmsRequest(request);
 
     if (!auth || !hasPermission(auth.role, 'PREVIEW_DRAFT')) {
       return NextResponse.json(
@@ -17,17 +17,8 @@ export async function GET(
       );
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('page_revisions')
-      .select('id, page_id, revision_number, note, created_by, created_at')
-      .eq('page_id', pageId)
-      .order('revision_number', { ascending: false });
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ revisions: data || [] });
+    const revisions = await cmsRepository.getRevisions(pageId);
+    return NextResponse.json({ revisions });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Internal Server Error' },

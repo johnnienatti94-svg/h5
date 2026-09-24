@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useCart } from '@/context/CartContext';
 import styles from './CategoryDrawer.module.css';
 
 interface CategoryDrawerProps {
@@ -23,7 +22,7 @@ const QUICK_SERVICES = [
   { href: '/home?tab=tradein', label: 'มือถือแลกเงิน (Trade-In)', icon: 'currency_exchange', badge: 'ตีราคาสูง' },
   { href: '/promotion', label: 'Flash Sale & คูปองลดราคา', icon: 'local_fire_department', badge: 'HOT' },
   { href: '/billing', label: 'ตรวจสอบและชำระบิลค่างวด', icon: 'receipt_long' },
-  { href: '/location', label: 'ค้นหาสาขาใกล้คุณ (45 สาขา)', icon: 'storefront' },
+  { href: '/stores', label: 'ค้นหาสาขา MeePro', icon: 'storefront' },
   { href: '/about', label: 'เกี่ยวกับมีโปรโฟน', icon: 'info' },
   { href: '/account', label: 'บัญชีและการตั้งค่า', icon: 'person' },
 ];
@@ -34,27 +33,21 @@ export default function CategoryDrawer({ isOpen, onClose }: CategoryDrawerProps)
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.drawer} onClick={(e) => e.stopPropagation()}>
-        {/* User Profile Header */}
+        {/* Navigation Header */}
         <div className={styles.profileCard}>
           <div className={styles.userRow}>
             <div className={styles.avatar}>
-              <span className="material-symbols-outlined text-[26px] text-white">person</span>
+              <span className="material-symbols-outlined text-[26px] text-white" aria-hidden="true">storefront</span>
             </div>
             <div className={styles.userInfo}>
-              <div className={styles.userName}>คุณสมชาย มีความสุข</div>
-              <div className={styles.userPhone}>081-987-6543</div>
-              <span className={styles.memberBadge}>MeePro Member Gold ✦</span>
+              <div className={styles.userName}>MeePro</div>
+              <div className={styles.userPhone}>สินค้า บริการ และสาขา</div>
             </div>
             <button className={styles.closeBtn} onClick={onClose} aria-label="ปิดเมนู">
               <span className="material-symbols-outlined text-[20px]">close</span>
             </button>
           </div>
 
-          <div className={styles.creditBox}>
-            <div className={styles.creditLabel}>วงเงินผ่อนชำระพร้อมใช้</div>
-            <div className={styles.creditValue}>฿50,000</div>
-            <div className={styles.creditSub}>อนุมัติพร้อมทำสัญญาผ่านสาขาได้ทันที</div>
-          </div>
         </div>
 
         {/* Drawer Content Body */}
@@ -112,13 +105,12 @@ export default function CategoryDrawer({ isOpen, onClose }: CategoryDrawerProps)
           </div>
         </div>
 
-        {/* Footer Support & Hotline */}
+        {/* Footer */}
         <div className={styles.footer}>
           <div className={styles.hotlineBox}>
-            <span className="material-symbols-outlined text-[18px] text-[#007ACC]">support_agent</span>
+            <span className="material-symbols-outlined text-[18px] text-[#142B4A]" aria-hidden="true">verified_user</span>
             <div className={styles.hotlineText}>
-              <div>มีโปรแคร์ คอลเซ็นเตอร์: <strong>02-000-0000</strong></div>
-              <div className="text-[10px] text-[#94A3B8]">เปิดบริการทุกวัน 09:00 - 20:00 น.</div>
+              <div>ข้อมูลบัญชีและใบสมัครต้องเข้าสู่ระบบก่อนใช้งาน</div>
             </div>
           </div>
         </div>

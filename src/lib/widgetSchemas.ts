@@ -442,7 +442,52 @@ export const WIDGET_SCHEMAS: Record<string, z.ZodTypeAny> = {
   SPACER_DIVIDER: spacerDividerSchema,
   FOOTER: footerSchema,
   CUSTOM_EMBED: customEmbedSchema,
+  // Phase 6: Spec 11 Blocks & Aliases
+  HERO_CAROUSEL: bannerCarouselSchema,
+  PRODUCT_COLLECTION: productGridSchema,
+  TRUST_FEATURES: trustBadgesSchema,
+  APPROVED_REVIEWS: reviewsTestimonialsSchema,
+  PROCESS_STEPS: z.object({
+    title: z.string().optional(),
+    subtitle: z.string().optional(),
+    steps: z.array(z.any()).optional(),
+    ctaLabel: z.string().optional(),
+    ctaHref: z.string().optional(),
+  }).passthrough(),
+  ARTICLE_CARDS: z.object({
+    title: z.string().optional(),
+    subtitle: z.string().optional(),
+    articles: z.array(z.any()).optional(),
+    viewAllHref: z.string().optional(),
+  }).passthrough(),
+  BRANCH_PREVIEW: z.object({
+    title: z.string().optional(),
+    subtitle: z.string().optional(),
+    maxBranches: z.number().optional(),
+  }).passthrough(),
+  SERVICE_GRID: z.object({
+    title: z.string().optional(),
+    subtitle: z.string().optional(),
+    services: z.array(z.any()).optional(),
+  }).passthrough(),
+  PROMOTION_STRIP: z.object({
+    headline: z.string().optional(),
+    subheadline: z.string().optional(),
+    badgeText: z.string().optional(),
+    ctaText: z.string().optional(),
+    ctaHref: z.string().optional(),
+  }).passthrough(),
+  CTA_SECTION: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    primaryButtonLabel: z.string().optional(),
+    primaryButtonHref: z.string().optional(),
+    secondaryButtonLabel: z.string().optional(),
+    secondaryButtonHref: z.string().optional(),
+    badgeText: z.string().optional(),
+  }).passthrough(),
 };
+
 
 /**
  * Validates a widget configuration against its registered Zod schema at runtime.

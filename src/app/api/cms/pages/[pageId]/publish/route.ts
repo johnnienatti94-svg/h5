@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
 import { authenticateCmsRequest, hasPermission } from '@/lib/rbac';
-import { validateWidgetConfig } from '@/lib/widgetSchemas';
-import { createPageRevision } from '@/lib/cmsDb';
+import { cmsRepository } from '@/server/repositories/cmsRepository';
 
 export async function POST(
   request: Request,
@@ -10,7 +8,7 @@ export async function POST(
 ) {
   try {
     const { pageId } = await params;
-    const auth = authenticateCmsRequest(request);
+    const auth = await authenticateCmsRequest(request);
 
     if (!auth || !hasPermission(auth.role, 'PUBLISH')) {
       return NextResponse.json(
@@ -19,77 +17,35 @@ export async function POST(
       );
     }
 
-    // 1. Fetch current page and widgets
-    const { data: page, error: pageError } = await supabaseAdmin
-      .from('pages')
-      .select('*')
-      .eq('id', pageId)
-      .single();
-
-    if (pageError || !page) {
-      return NextResponse.json({ error: 'Page not found' }, { status: 404 });
+    let note = '';
+    try {
+      const body = await request.json();
+      note = body?.note || '';
+    } catch {
+      // optional body
     }
 
-    const { data: widgets, error: widgetsError } = await supabaseAdmin
-      .from('page_widgets')
-      .select('*')
-      .eq('page_id', pageId)
-      .order('sort_order', { ascending: true });
+    const result = await cmsRepository.publishPage(pageId, {
+      userId: auth.userId,
+      userName: auth.name,
+      note,
+    });
 
-    if (widgetsError) {
-      return NextResponse.json({ error: widgetsError.message }, { status: 500 });
-    }
-
-    // 2. Validate all active widgets with Zod runtime schemas
-    const validationErrors: string[] = [];
-    for (const w of widgets || []) {
-      if (w.is_active) {
-        const check = validateWidgetConfig(w.widget_type, w.config);
-        if (!check.isValid) {
-          validationErrors.push(`Widget [${w.title || w.widget_type}]: ${check.error}`);
-        }
-      }
-    }
-
-    if (validationErrors.length > 0) {
+    if (!result.success) {
       return NextResponse.json(
         {
-          error: 'Page cannot be published due to widget validation errors',
-          details: validationErrors,
+          error: 'PAGE_VALIDATION_FAILED',
+          message: 'Page cannot be published due to widget validation errors',
+          details: result.errors,
         },
         { status: 422 }
       );
     }
 
-    // 3. Create immutable revision snapshot
-    const revResult = await createPageRevision(
-      pageId,
-      `Published by ${auth.name} (${auth.role})`,
-      auth.userId
-    );
-
-    // 4. Atomically mark page as published
-    const now = new Date().toISOString();
-    const { data: updatedPage, error: updateError } = await supabaseAdmin
-      .from('pages')
-      .update({
-        status: 'published',
-        published_at: now,
-        updated_by: auth.userId,
-      })
-      .eq('id', pageId)
-      .select()
-      .single();
-
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
-    }
-
     return NextResponse.json({
       success: true,
-      page: updatedPage,
-      revision: revResult.revision,
-      published_at: now,
+      page: result.page,
+      revision: result.revision,
     });
   } catch (err) {
     return NextResponse.json(

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { authenticateCmsRequest, hasPermission } from '@/lib/rbac';
 import { validateWidgetConfig } from '@/lib/widgetSchemas';
 
@@ -9,7 +9,7 @@ export async function PUT(
 ) {
   try {
     const { widgetId } = await params;
-    const auth = authenticateCmsRequest(request);
+    const auth = await authenticateCmsRequest(request);
 
     if (!auth || !hasPermission(auth.role, 'EDIT_WIDGETS')) {
       return NextResponse.json(
@@ -70,7 +70,7 @@ export async function DELETE(
 ) {
   try {
     const { widgetId } = await params;
-    const auth = authenticateCmsRequest(request);
+    const auth = await authenticateCmsRequest(request);
 
     if (!auth || !hasPermission(auth.role, 'DELETE_WIDGET')) {
       return NextResponse.json(

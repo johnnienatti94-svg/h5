@@ -1,35 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Environment variables
-const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  process.env.SUPABASE_URL ||
-  'https://htfhkhldftzqfutatswi.supabase.co';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabasePublishableKey =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const supabaseAnonKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  process.env.SUPABASE_PUBLISHABLE_KEY ||
-  'sb_publishable_4KrYiHeYZ6d_e7LvjmAUdQ_x99NnhYX';
-
-const supabaseServiceKey =
-  process.env.SUPABASE_SECRET_KEY ||
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  '';
+if (!supabaseUrl || !supabasePublishableKey) {
+  throw new Error(
+    'Supabase public configuration is missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.'
+  );
+}
 
 /**
  * Public Supabase client for client-side authentication and safe queries
  */
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-/**
- * Privileged Supabase client using service-role secret key (Server-side only)
- */
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
+export const supabase = createClient(supabaseUrl, supabasePublishableKey);
 
 // Database TypeScript interfaces matching MeePro Specification
 export interface CustomerRecord {

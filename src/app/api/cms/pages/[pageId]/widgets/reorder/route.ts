@@ -8,7 +8,7 @@ export async function POST(
 ) {
   try {
     const { pageId } = await params;
-    const auth = authenticateCmsRequest(request);
+    const auth = await authenticateCmsRequest(request);
 
     if (!auth || !hasPermission(auth.role, 'REORDER_WIDGETS')) {
       return NextResponse.json(

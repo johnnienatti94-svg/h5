@@ -1,73 +1,116 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-orange: #FF6E00;
-  --color-primary-container: #007ACC;
-  --color-primary: #0061A3;
-  --color-primary-ink: #0F172A;
-  --color-secondary-text: #64748B;
-  --color-structural-border: #E2E8F0;
-  --color-canvas: #F8FAFC;
+  /* ===== MeePro Brand Colors (Spec §4) ===== */
+  --color-primary: #FF6E00;
+  --color-primary-hover: #E56200;
+  --color-primary-on: #FFFFFF;
+  --color-navy: #142B4A;
+  --color-navy-light: #1E3A5F;
+
+  /* Surfaces */
+  --color-bg: #F6F7F9;
+  --color-bg-hero: #FFF6EF;
   --color-surface: #FFFFFF;
-  --color-surface-container: #EBEEF5;
-  --color-surface-container-low: #F1F3FB;
-  --color-surface-container-high: #E6E8EF;
-  --color-surface-dim: #D7DAE1;
-  --color-success: #16A365;
-  --color-error-logout: #DC3345;
-  --color-secondary: #9F4200;
-  --color-secondary-container: #F86B00;
-  --color-brand: #FF6E00;
-  --color-action: #007ACC;
-  --color-promo: #29BDD1;
-  --color-ink: #0F172A;
-  --color-muted: #64748B;
+  --color-body-text: #172B46;
+  --color-text-secondary: #64748B;
   --color-border: #E2E8F0;
-  --color-disabled: #EDF2F7;
+
+  /* Semantic */
+  --color-success: #16A365;
+  --color-destructive: #DC2626;
+  --color-warning: #F59E0B;
+  --color-info: #142B4A;
+
+  /* Compatibility aliases used by existing CSS modules */
+  --color-accent: #142B4A;
+  --color-error: #DC2626;
+  --color-primary-dark: #C94F00;
+  --color-primary-light: #FFF0E5;
+  --color-surface-hover: #F8FAFC;
+  --color-bg-tertiary: #E2E8F0;
+
+  /* Legacy Tailwind aliases */
+  --color-brand: #FF6E00;
+  --color-brand-orange: #FF6E00;
+  --color-ink: #172B46;
+  --color-muted: #64748B;
+  --color-canvas: #F6F7F9;
+  --color-action: #FF6E00;
+
+  /* Radii */
   --radius-screen: 28px;
   --radius-xl: 12px;
   --radius-2xl: 16px;
 }
 
 :root {
-  /* Stitch MeePro Core Design Tokens */
-  --color-brand-orange: #FF6E00;
-  --color-primary-container: #007ACC;
-  --color-primary: #0061A3;
-  --color-primary-ink: #0F172A;
-  --color-secondary-text: #64748B;
-  --color-structural-border: #E2E8F0;
-  --color-canvas: #F8FAFC;
-  --color-surface: #FFFFFF;
-  --color-surface-container: #EBEEF5;
-  --color-surface-container-low: #F1F3FB;
-  --color-surface-container-high: #E6E8EF;
-  --color-surface-dim: #D7DAE1;
-  --color-success: #16A365;
-  --color-error-logout: #DC3345;
-  --color-secondary: #9F4200;
-  --color-secondary-container: #F86B00;
+  /* ===== MeePro Core Design Tokens (Spec §4) ===== */
 
-  /* Legacy & Helper Aliases */
-  --color-brand: var(--color-brand-orange);
-  --color-action: var(--color-primary-container);
-  --color-ink: var(--color-primary-ink);
-  --color-text: var(--color-primary-ink);
-  --color-text-primary: var(--color-primary-ink);
-  --color-text-secondary: var(--color-secondary-text);
+  /* Brand Colors */
+  --color-primary: #FF6E00;
+  --color-primary-hover: #E56200;
+  --color-primary-on: #FFFFFF;
+  --color-navy: #142B4A;
+  --color-navy-light: #1E3A5F;
+
+  /* Surface Colors */
+  --color-bg: #F6F7F9;
+  --color-bg-hero: #FFF6EF;
+  --color-surface: #FFFFFF;
+  --color-body-text: #172B46;
+  --color-text-secondary: #64748B;
   --color-text-tertiary: #94A3B8;
-  --color-muted: var(--color-secondary-text);
-  --color-border: var(--color-structural-border);
-  --color-border-light: var(--color-structural-border);
-  --color-bg: var(--color-canvas);
-  --color-bg-secondary: #F1F5F9;
+  --color-border: #E2E8F0;
+
+  /* Semantic States */
+  --color-success: #16A365;
+  --color-success-light: #DCFCE7;
+  --color-destructive: #DC2626;
+  --color-destructive-light: #FEE2E2;
+  --color-warning: #F59E0B;
+  --color-warning-light: #FEF3CD;
+  --color-info: #142B4A;
+
+  /* Legacy Aliases (backward compatibility) */
+  --color-brand: var(--color-primary);
+  --color-brand-orange: var(--color-primary);
+  --color-ink: var(--color-body-text);
+  --color-text: var(--color-body-text);
+  --color-text-primary: var(--color-body-text);
+  --color-muted: var(--color-text-secondary);
+  --color-action: var(--color-primary);
+  --color-canvas: var(--color-bg);
   --color-bg-card: var(--color-surface);
+  --color-bg-secondary: #EDF2F7;
+  --color-border-light: var(--color-border);
+  --color-promo: #FF6E00;
+
+  /* Nav token aliases */
   --color-nav-bg: #FFFFFF;
   --color-nav-border: #E2E8F0;
+  --color-bottom-nav-bg: #FFFFFF;
+  --color-bottom-nav-border: #E2E8F0;
+  --color-bottom-nav-icon: #64748B;
+  --color-bottom-nav-active: #FF6E00;
+  --color-top-nav-bg: #FFFFFF;
+  --color-top-nav-border: #E2E8F0;
 
-  /* Spacing & Radii */
+  /* ===== Spacing Scale (Spec §4: 4/8/12/16/24/32/48/64px) ===== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ===== Border Radius ===== */
   --radius-screen: 28px;
   --radius-card: 16px;
+  --radius-dialog: 20px;
   --radius-button: 12px;
   --radius-input: 10px;
   --radius-full: 9999px;
@@ -75,52 +118,76 @@
   --radius-md: 8px;
   --radius-lg: 12px;
 
-  /* Layout Dimensions */
+  /* ===== Layout Dimensions ===== */
   --top-nav-height: 104px;
   --bottom-nav-height: 64px;
-  --max-content-width: 1280px;
+  --max-content-width: 1200px;
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 
-  /* Solid Nav Tokens (Opaque Solid Backgrounds) */
-  --color-bottom-nav-bg: #FFFFFF;
-  --color-bottom-nav-border: #E2E8F0;
-  --color-bottom-nav-icon: #64748B;
-  --color-bottom-nav-active: #007ACC;
-  --color-top-nav-bg: #FFFFFF;
-  --color-top-nav-border: #E2E8F0;
-
-  /* Z-Index Hierarchy */
+  /* ===== Z-Index Hierarchy ===== */
   --z-sticky: 100;
   --z-fixed: 200;
   --z-modal: 500;
+  --z-toast: 600;
 
-  /* Elevation Shadows */
+  /* ===== Elevation Shadows ===== */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(20, 43, 74, 0.12), 0 8px 10px -6px rgba(20, 43, 74, 0.08);
   --shadow-nav: 0 -2px 10px rgba(0, 0, 0, 0.06);
+  --shadow-dialog: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 
-  /* Transitions */
+  /* ===== Transitions ===== */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: var(--transition-base);
   --transition-spring: 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Typography */
+  --font-sans: 'Noto Sans Thai', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
 }
 
+/* ===== Base Resets ===== */
 * { box-sizing: border-box; }
-html { background: var(--color-canvas, #F8FAFC); -webkit-text-size-adjust: 100%; }
+html { background: var(--color-bg); -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
   min-height: 100dvh;
-  color: var(--color-primary-ink);
-  font-family: 'Outfit', 'Noto Sans Thai', sans-serif;
-  background-color: var(--color-canvas, #F8FAFC);
+  color: var(--color-body-text);
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  font-size: 16px;
+  line-height: 1.6;
 }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
-:focus-visible { outline: 2px solid var(--color-primary-container); outline-offset: 2px; }
 
-/* Material Symbols Utility */
+/* Focus visible ring — primary orange */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ===== Heading Typography (Kanit) ===== */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Kanit', 'Noto Sans Thai', sans-serif;
+  color: var(--color-navy);
+  line-height: 1.3;
+}
+
+/* ===== Material Symbols Utility ===== */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
   font-weight: normal;
@@ -139,3 +206,24 @@ button { cursor: pointer; }
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
+/* ===== Utility Classes ===== */
+.skeleton {
+  background: linear-gradient(90deg, #E2E8F0 25%, #EDF2F7 50%, #E2E8F0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -3,7 +3,11 @@
  * Specification Reference: MeePro_Project_Update_v2.1.md Section 8
  */
 
-export type CmsRole = 'CUSTOMER' | 'STAFF' | 'MANAGER' | 'ADMIN' | 'DEVELOPER';
+import 'server-only';
+
+import { supabaseAdmin } from './supabaseAdmin';
+
+export type CmsRole = 'CUSTOMER' | 'PC_STAFF' | 'BRANCH_MANAGER' | 'HQ' | 'ADMIN';
 
 export type CmsAction =
   | 'READ_PUBLISHED'
@@ -21,14 +25,9 @@ export type CmsAction =
  */
 const ROLE_PERMISSIONS: Record<CmsRole, Set<CmsAction>> = {
   CUSTOMER: new Set(['READ_PUBLISHED']),
-  STAFF: new Set([
-    'READ_PUBLISHED',
-    'PREVIEW_DRAFT',
-    'EDIT_WIDGETS',
-    'REORDER_WIDGETS',
-    'MANAGE_MEDIA',
-  ]),
-  MANAGER: new Set([
+  PC_STAFF: new Set(['READ_PUBLISHED']),
+  BRANCH_MANAGER: new Set(['READ_PUBLISHED']),
+  HQ: new Set([
     'READ_PUBLISHED',
     'PREVIEW_DRAFT',
     'EDIT_WIDGETS',
@@ -39,17 +38,6 @@ const ROLE_PERMISSIONS: Record<CmsRole, Set<CmsAction>> = {
     'MANAGE_MEDIA',
   ]),
   ADMIN: new Set([
-    'READ_PUBLISHED',
-    'PREVIEW_DRAFT',
-    'EDIT_WIDGETS',
-    'REORDER_WIDGETS',
-    'PUBLISH',
-    'ROLLBACK',
-    'DELETE_WIDGET',
-    'MANAGE_MEDIA',
-    'CUSTOM_EMBED',
-  ]),
-  DEVELOPER: new Set([
     'READ_PUBLISHED',
     'PREVIEW_DRAFT',
     'EDIT_WIDGETS',
@@ -75,54 +63,100 @@ export interface AuthContext {
   userId: string;
   name: string;
   role: CmsRole;
+  assignedBranchId?: string;
   email?: string;
 }
 
+import { verifyStaffToken } from '@/server/auth/staffServerAuth';
+
 /**
  * Server-side request authenticator for Next.js CMS API routes.
- * Inspects Authorization bearer tokens, custom x-staff-role/x-admin-role headers,
- * or privileged service keys.
+ * Supports:
+ * 1. Bearer tokens (dev tokens, signed staff HMAC sessions, or Supabase JWTs)
+ * 2. HttpOnly cookie (meepro_staff_session)
  */
-export function authenticateCmsRequest(req: Request): AuthContext | null {
+export async function authenticateCmsRequest(req: Request): Promise<AuthContext | null> {
   const authHeader = req.headers.get('authorization') || '';
-  const staffRoleHeader = req.headers.get('x-staff-role') as CmsRole | null;
-  const staffIdHeader = req.headers.get('x-staff-id') || 'STF-ANON';
-  const staffNameHeader = req.headers.get('x-staff-name') || 'MeePro Staff';
+  const token = authHeader.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
 
-  // 1. Bearer Token Check
-  if (authHeader.startsWith('Bearer ')) {
-    const token = authHeader.replace('Bearer ', '').trim();
-    if (token.startsWith('adm_') || token === 'meepro_admin_secret') {
-      return {
-        userId: 'ADM-001',
-        name: 'MeePro Admin',
-        role: 'ADMIN',
-      };
-    }
-    if (token.startsWith('mgr_')) {
-      return {
-        userId: 'MGR-001',
-        name: 'Content Manager',
-        role: 'MANAGER',
-      };
-    }
-    if (token.startsWith('stf_')) {
-      return {
-        userId: staffIdHeader,
-        name: staffNameHeader,
-        role: 'STAFF',
-      };
-    }
-  }
-
-  // 2. Verified Header Context (from staff/admin session proxy)
-  if (staffRoleHeader && (staffRoleHeader === 'ADMIN' || staffRoleHeader === 'MANAGER' || staffRoleHeader === 'STAFF' || staffRoleHeader === 'DEVELOPER')) {
+  // 1. Development token shortcuts
+  if (token === 'dev-admin-token') {
     return {
-      userId: staffIdHeader,
-      name: staffNameHeader,
-      role: staffRoleHeader,
+      userId: 'staff-admin-001',
+      name: 'วิชัย ผู้ดูแลระบบ HQ',
+      role: 'ADMIN',
+    };
+  }
+  if (token === 'dev-manager-token') {
+    return {
+      userId: 'staff-bm-001',
+      name: 'สมศักดิ์ ผู้จัดการสาขา',
+      role: 'BRANCH_MANAGER',
+      assignedBranchId: '00000000-0000-4000-8000-000000000001',
     };
   }
 
-  return null;
+  // 2. Check signed staff token from Bearer header
+  if (token) {
+    const verified = verifyStaffToken(token);
+    if (verified) {
+      return {
+        userId: verified.id,
+        name: verified.name,
+        role: verified.role as CmsRole,
+        assignedBranchId: verified.branchId,
+      };
+    }
+  }
+
+  // 3. Check HttpOnly cookie meepro_staff_session
+  const cookieHeader = req.headers.get('cookie') || '';
+  const matchCookie = cookieHeader.match(/meepro_staff_session=([^;]+)/);
+  if (matchCookie?.[1]) {
+    const verifiedCookie = verifyStaffToken(decodeURIComponent(matchCookie[1]));
+    if (verifiedCookie) {
+      return {
+        userId: verifiedCookie.id,
+        name: verifiedCookie.name,
+        role: verifiedCookie.role as CmsRole,
+        assignedBranchId: verifiedCookie.branchId,
+      };
+    }
+  }
+
+  // 4. Fallback to Supabase Auth token if present
+  if (!token) return null;
+
+  try {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseAdmin.auth.getUser(token);
+
+    if (userError || !user) return null;
+
+    const { data: staff, error: staffError } = await supabaseAdmin
+      .from('staff_profiles')
+      .select('user_id, display_name, role, assigned_branch_id, status')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (staffError || !staff) return null;
+
+    const allowedRoles: CmsRole[] = ['PC_STAFF', 'BRANCH_MANAGER', 'HQ', 'ADMIN'];
+    const role = staff.role as CmsRole;
+    if (!allowedRoles.includes(role)) return null;
+
+    return {
+      userId: user.id,
+      name: staff.display_name,
+      role,
+      assignedBranchId: staff.assigned_branch_id || undefined,
+      email: user.email,
+    };
+  } catch {
+    return null;
+  }
 }
+

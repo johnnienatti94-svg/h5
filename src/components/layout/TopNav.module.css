@@ -145,6 +145,35 @@
   gap: 6px;
 }
 
+.desktopNav {
+  display: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.desktopNav a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  color: var(--color-navy);
+  border-radius: var(--radius-button);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.desktopNav a:hover {
+  color: var(--color-primary-dark);
+  background: var(--color-primary-light);
+}
+
+@media (min-width: 1024px) {
+  .desktopNav { display: flex; }
+  .tierPrimary { height: 52px; }
+  .tierPrimary > .iconBtn:first-child { display: none; }
+}
+
 /* Tier 2: Search Bar */
 .tierSearch {
   margin-top: 8px;
