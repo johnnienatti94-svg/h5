@@ -215,19 +215,39 @@ export async function authenticateStaff(
       password: passwordInput.trim(),
     });
 
-    if (authError || !authData.user) {
+    let authUser = authData?.user;
+
+    // Fallback: If Supabase Phone provider is disabled, attempt synthetic internal staff email
+    if (!authUser) {
+      const syntheticEmails = [
+        `${normalized.national}@meepro.internal`,
+        `${normalized.e164.replace('+', '')}@meepro.internal`,
+      ];
+      for (const email of syntheticEmails) {
+        const { data: emailData } = await authClient.auth.signInWithPassword({
+          email,
+          password: passwordInput.trim(),
+        });
+        if (emailData?.user) {
+          authUser = emailData.user;
+          break;
+        }
+      }
+    }
+
+    if (!authUser) {
       return { success: false, error: 'เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง' };
     }
 
     // 3. Query public.staff_profiles using authenticated user's UUID
-    const staffProfile = await resolveStaffProfile(authData.user.id);
+    const staffProfile = await resolveStaffProfile(authUser.id);
     if (!staffProfile) {
       return { success: false, error: 'บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่' };
     }
 
     const staffUser: StaffUser = {
       ...staffProfile,
-      phone: authData.user.phone || normalized.national,
+      phone: authUser.phone || normalized.national,
     };
 
     // 4. Issue cryptographically signed HttpOnly staff session
