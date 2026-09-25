@@ -205,10 +205,50 @@ export default function VisualPageBuilder({
 
   // 2. Load and Normalize Widgets on Mount
   useEffect(() => {
-    const rawLoaded = getHomepageWidgets();
-    const normalized = rawLoaded.map(normalizeWidget);
-    setWidgets(normalized);
-  }, []);
+    let active = true;
+
+    async function fetchServerWidgets() {
+      try {
+        const res = await fetch(`/api/cms/pages/${pageId}/widgets`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.widgets) && data.widgets.length > 0) {
+            const serverWidgets = data.widgets.map((w: any) =>
+              normalizeWidget({
+                id: w.id,
+                type: (w.widget_type || w.type || '').toUpperCase() as any,
+                title: w.title,
+                subtitle: w.subtitle,
+                sortOrder: w.sort_order ?? w.sortOrder,
+                isActive: w.is_active ?? w.isActive ?? true,
+                config: w.config || {},
+                ...(w.config || {}),
+              })
+            );
+            if (active) {
+              setWidgets(serverWidgets);
+              saveHomepageWidgets(serverWidgets);
+              return;
+            }
+          }
+        }
+      } catch {
+        // Fallback to local storage
+      }
+
+      if (active) {
+        const rawLoaded = getHomepageWidgets();
+        const normalized = rawLoaded.map(normalizeWidget);
+        setWidgets(normalized);
+      }
+    }
+
+    void fetchServerWidgets();
+
+    return () => {
+      active = false;
+    };
+  }, [pageId]);
 
   // Sync inspector when selected widget changes
   useEffect(() => {

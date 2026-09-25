@@ -19,7 +19,7 @@ function HomeContent() {
 
     const loadWidgetsFromBackend = async () => {
       try {
-        const res = await fetch('/api/cms/pages/page-home-001/widgets');
+        const res = await fetch('/api/cms/pages/home/widgets');
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.widgets) && data.widgets.length > 0) {
