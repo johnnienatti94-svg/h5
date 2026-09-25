@@ -249,7 +249,7 @@ export class CmsRepository {
     widgets: PageWidgetRecord[];
   }> {
     try {
-      const client = isPreview ? supabaseAdmin : supabase;
+      const client = supabaseAdmin;
       let pageQuery = client.from('pages').select('*');
 
       if (isUuid(identifier)) {
@@ -381,22 +381,23 @@ export class CmsRepository {
     const now = new Date().toISOString();
     const targetPageId = existing.page.id;
 
-    const formattedWidgets: PageWidgetRecord[] = payload.widgets.map((w, index) => {
+    const formattedWidgets: PageWidgetRecord[] = payload.widgets.map((w: any, index) => {
       const widgetUuid = isUuid(w.id) ? (w.id as string) : crypto.randomUUID();
       const originalKey = w.id && !isUuid(w.id) ? w.id : undefined;
       const config = { ...(w.config || {}) };
       if (originalKey && !config._widget_key) {
         config._widget_key = originalKey;
       }
+      const widgetType = (w.widget_type || w.type || '').toUpperCase();
       return {
         id: widgetUuid,
         page_id: targetPageId,
-        widget_type: w.widget_type,
+        widget_type: widgetType,
         config_version: w.config_version || 1,
         title: w.title || '',
         subtitle: w.subtitle || '',
-        sort_order: typeof w.sort_order === 'number' ? w.sort_order : index + 1,
-        is_active: w.is_active !== false,
+        sort_order: typeof w.sort_order === 'number' ? w.sort_order : (typeof w.sortOrder === 'number' ? w.sortOrder : index + 1),
+        is_active: w.is_active !== undefined ? Boolean(w.is_active) : (w.isActive !== undefined ? Boolean(w.isActive) : true),
         visible_from: w.visible_from,
         visible_until: w.visible_until,
         config,
@@ -487,7 +488,7 @@ export class CmsRepository {
    */
   async publishPage(
     pageId: string,
-    options: { userId?: string; userName?: string; note?: string }
+    options: { userId?: string; userName?: string; note?: string; widgets?: any[] } = {}
   ): Promise<{
     success: boolean;
     page: ExtendedPageRecord;
@@ -499,9 +500,42 @@ export class CmsRepository {
       throw new Error(`Page ${pageId} not found`);
     }
 
+    const targetPageId = existing.page.id;
+    const now = new Date().toISOString();
+
+    let widgetsToPublish: PageWidgetRecord[] = existing.widgets;
+    if (Array.isArray(options.widgets) && options.widgets.length > 0) {
+      widgetsToPublish = options.widgets.map((w: any, index: number) => {
+        const widgetUuid = isUuid(w.id) ? (w.id as string) : crypto.randomUUID();
+        const originalKey = w.id && !isUuid(w.id) ? w.id : undefined;
+        const config = { ...(w.config || {}) };
+        if (originalKey && !config._widget_key) {
+          config._widget_key = originalKey;
+        }
+        const widgetType = (w.widget_type || w.type || '').toUpperCase();
+        return {
+          id: widgetUuid,
+          page_id: targetPageId,
+          widget_type: widgetType,
+          config_version: w.config_version || 1,
+          title: w.title || '',
+          subtitle: w.subtitle || '',
+          sort_order: typeof w.sort_order === 'number' ? w.sort_order : (typeof w.sortOrder === 'number' ? w.sortOrder : index + 1),
+          is_active: w.is_active !== undefined ? Boolean(w.is_active) : (w.isActive !== undefined ? Boolean(w.isActive) : true),
+          visible_from: w.visible_from,
+          visible_until: w.visible_until,
+          config,
+          created_by: isUuid(w.created_by) ? w.created_by : (isUuid(options.userId) ? options.userId : undefined),
+          updated_by: isUuid(options.userId) ? options.userId : undefined,
+          created_at: w.created_at || now,
+          updated_at: now,
+        };
+      });
+    }
+
     // Validate all active widgets against their Zod schemas
     const validationErrors: string[] = [];
-    for (const w of existing.widgets) {
+    for (const w of widgetsToPublish) {
       if (w.is_active) {
         const check = validateWidgetConfig(w.widget_type, w.config);
         if (!check.isValid) {
@@ -519,8 +553,6 @@ export class CmsRepository {
       };
     }
 
-    const targetPageId = existing.page.id;
-    const now = new Date().toISOString();
     const revNumber = (existing.page.current_revision || 1) + 1;
     const revisionUuid = crypto.randomUUID();
     const revisionId = `rev-${pageId}-${revNumber}-${Date.now().toString(36)}`;
@@ -531,7 +563,7 @@ export class CmsRepository {
       revision_number: revNumber,
       snapshot: {
         page: { ...existing.page, status: 'published', published_at: now },
-        widgets: [...existing.widgets],
+        widgets: [...widgetsToPublish],
       },
       note: options.note || `Published by ${options.userName || 'Admin'}`,
       created_by: options.userId,
@@ -561,9 +593,32 @@ export class CmsRepository {
     };
     DEV_PAGES.set(pageId, updatedPage);
     DEV_PAGES.set(targetPageId, updatedPage);
+    DEV_WIDGETS.set(pageId, widgetsToPublish);
+    DEV_WIDGETS.set(targetPageId, widgetsToPublish);
 
     if (isUuid(targetPageId)) {
       try {
+        await supabaseAdmin.from('page_widgets').delete().eq('page_id', targetPageId);
+        if (widgetsToPublish.length > 0) {
+          const dbRows = widgetsToPublish.map((fw) => ({
+            id: fw.id,
+            page_id: fw.page_id,
+            widget_type: fw.widget_type,
+            config_version: fw.config_version,
+            title: fw.title,
+            subtitle: fw.subtitle || null,
+            sort_order: fw.sort_order,
+            is_active: fw.is_active,
+            visible_from: fw.visible_from || null,
+            visible_until: fw.visible_until || null,
+            config: fw.config,
+            created_by: isUuid(fw.created_by) ? fw.created_by : null,
+            updated_by: isUuid(options.userId) ? options.userId : null,
+            updated_at: now,
+          }));
+          await supabaseAdmin.from('page_widgets').insert(dbRows);
+        }
+
         await supabaseAdmin.from('page_revisions').insert({
           id: revisionUuid,
           page_id: targetPageId,

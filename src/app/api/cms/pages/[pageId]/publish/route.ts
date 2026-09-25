@@ -18,9 +18,13 @@ export async function POST(
     }
 
     let note = '';
+    let bodyWidgets: any[] | undefined = undefined;
     try {
       const body = await request.json();
       note = body?.note || '';
+      if (Array.isArray(body?.widgets)) {
+        bodyWidgets = body.widgets;
+      }
     } catch {
       // optional body
     }
@@ -29,6 +33,7 @@ export async function POST(
       userId: auth.userId,
       userName: auth.name,
       note,
+      widgets: bodyWidgets,
     });
 
     if (!result.success) {
