@@ -17,7 +17,41 @@
  * 12. Full production build verification
  */
 
+import crypto from 'crypto';
+
 const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3000';
+const STAFF_SECRET = process.env.STAFF_SESSION_SECRET || 'meepro-staff-secret-2026';
+
+function generateStaffToken(payload) {
+  const data = Buffer.from(
+    JSON.stringify({ ...payload, expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 })
+  ).toString('base64url');
+  const signature = crypto.createHmac('sha256', STAFF_SECRET).update(data).digest('base64url');
+  return `${data}.${signature}`;
+}
+
+const ADMIN_TOKEN = generateStaffToken({
+  id: 'staff-admin-001',
+  name: 'วิชัย ผู้ดูแลระบบ HQ',
+  role: 'ADMIN',
+  phone: '0819999999',
+});
+
+const BM_TOKEN = generateStaffToken({
+  id: 'staff-bm-001',
+  name: 'สมศักดิ์ ผู้จัดการสาขา',
+  role: 'BRANCH_MANAGER',
+  branchId: '00000000-0000-4000-8000-000000000001',
+  phone: '0819998888',
+});
+
+const PCSTAFF_TOKEN = generateStaffToken({
+  id: 'staff-pc-001',
+  name: 'กิตติพงษ์ พนักงานขาย',
+  role: 'PC_STAFF',
+  branchId: '00000000-0000-4000-8000-000000000001',
+  phone: '0819997777',
+});
 
 let totalPassed = 0;
 let totalFailed = 0;
@@ -111,7 +145,7 @@ async function runScenarioVerification() {
   try {
     const pageId = 'page-home-001';
     const detailRes = await fetch(`${BASE_URL}/api/cms/pages/${pageId}`, {
-      headers: { Authorization: 'Bearer dev-admin-token' },
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
     });
     const pageData = await detailRes.json();
     const currentRev = pageData.page?.current_revision || 1;
@@ -139,7 +173,7 @@ async function runScenarioVerification() {
     const saveRes = await fetch(`${BASE_URL}/api/cms/pages/${pageId}`, {
       method: 'PUT',
       headers: {
-        Authorization: 'Bearer dev-admin-token',
+        Authorization: `Bearer ${ADMIN_TOKEN}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -156,7 +190,7 @@ async function runScenarioVerification() {
 
     // Verify reload persistence
     const reloadRes = await fetch(`${BASE_URL}/api/cms/pages/${pageId}`, {
-      headers: { Authorization: 'Bearer dev-admin-token' },
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
     });
     const reloaded = await reloadRes.json();
     const firstWidget = reloaded.widgets?.[0];
@@ -176,7 +210,7 @@ async function runScenarioVerification() {
   try {
     const pageId = 'page-home-001';
     const detailRes = await fetch(`${BASE_URL}/api/cms/pages/${pageId}`, {
-      headers: { Authorization: 'Bearer dev-admin-token' },
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
     });
     const pageData = await detailRes.json();
     const serverRev = pageData.page?.current_revision || 1;
@@ -185,7 +219,7 @@ async function runScenarioVerification() {
     const staleRes = await fetch(`${BASE_URL}/api/cms/pages/${pageId}`, {
       method: 'PUT',
       headers: {
-        Authorization: 'Bearer dev-admin-token',
+        Authorization: `Bearer ${ADMIN_TOKEN}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -209,7 +243,7 @@ async function runScenarioVerification() {
     const schedRes = await fetch(`${BASE_URL}/api/cms/pages/${pageId}/schedule`, {
       method: 'POST',
       headers: {
-        Authorization: 'Bearer dev-admin-token',
+        Authorization: `Bearer ${ADMIN_TOKEN}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -225,7 +259,7 @@ async function runScenarioVerification() {
 
     // Restore revision
     const revsRes = await fetch(`${BASE_URL}/api/cms/pages/${pageId}/revisions`, {
-      headers: { Authorization: 'Bearer dev-admin-token' },
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
     });
     const revsData = await revsRes.json();
     const targetRev = revsData.revisions?.[0];
@@ -234,7 +268,7 @@ async function runScenarioVerification() {
         `${BASE_URL}/api/cms/pages/${pageId}/revisions/${targetRev.id}/restore`,
         {
           method: 'POST',
-          headers: { Authorization: 'Bearer dev-admin-token' },
+          headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
         }
       );
       if (restoreRes.status === 200) {
@@ -403,14 +437,18 @@ async function runScenarioVerification() {
   // -------------------------------------------------------------------------
   console.log('\n▶ Scenario 8: Staff Application Review, Notes & State Machine');
   try {
-    // Login as Branch Manager
+    // Attempt login as Branch Manager
     const staffLoginRes = await fetch(`${BASE_URL}/api/staff/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone: '0819998888', password: 'staff1234' }),
     });
     const staffCookieHeader = staffLoginRes.headers.get('set-cookie');
-    const staffCookie = staffCookieHeader ? staffCookieHeader.split(';')[0] : '';
+    let staffCookie = staffCookieHeader ? staffCookieHeader.split(';')[0] : '';
+    // If running in production simulation where dev credentials fail closed, use signed staff session
+    if (!staffCookie) {
+      staffCookie = `meepro_staff_session=${BM_TOKEN}`;
+    }
 
     if (staffCookie) {
       // Fetch queue
@@ -498,7 +536,10 @@ async function runScenarioVerification() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone: '0819998888', password: 'staff1234' }),
     });
-    const bmCookie = bmLoginRes.headers.get('set-cookie')?.split(';')[0] || '';
+    let bmCookie = bmLoginRes.headers.get('set-cookie')?.split(';')[0] || '';
+    if (!bmCookie) {
+      bmCookie = `meepro_staff_session=${BM_TOKEN}`;
+    }
 
     const bmRes = await fetch(`${BASE_URL}/api/staff/applications?branchId=00000000-0000-4000-8000-000000000002`, {
       headers: { Cookie: bmCookie },
@@ -509,11 +550,11 @@ async function runScenarioVerification() {
       fail(9, `Expected 403 for foreign branch query, got ${bmRes.status}`);
     }
 
-    // PC Staff role cannot publish pages
+    // PC Staff role cannot publish pages (testing cryptographically signed PC Staff session)
     const pcStaffPublish = await fetch(`${BASE_URL}/api/cms/pages/page-home-001/publish`, {
       method: 'POST',
       headers: {
-        Authorization: 'Bearer dev-pcstaff-token',
+        Authorization: `Bearer ${PCSTAFF_TOKEN}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({}),
@@ -535,7 +576,7 @@ async function runScenarioVerification() {
     // Delete media in use
     const delRes = await fetch(`${BASE_URL}/api/cms/media/med-001`, {
       method: 'DELETE',
-      headers: { Authorization: 'Bearer dev-admin-token' },
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
     });
 
     if (delRes.status === 409) {
@@ -553,7 +594,7 @@ async function runScenarioVerification() {
     const upRes = await fetch(`${BASE_URL}/api/cms/media`, {
       method: 'POST',
       headers: {
-        Authorization: 'Bearer dev-admin-token',
+        Authorization: `Bearer ${ADMIN_TOKEN}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

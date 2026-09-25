@@ -3,10 +3,14 @@ import {
   reorderProducts,
   moveProductOrder,
 } from '@/server/repositories/catalogStore';
+import { requireAdminOrHqAuth } from '@/lib/rbac';
 
 export const dynamic = 'force-dynamic';
 
 export async function PUT(request: NextRequest) {
+  const authCheck = await requireAdminOrHqAuth(request);
+  if (authCheck.errorResponse) return authCheck.errorResponse;
+
   try {
     const body = await request.json();
 

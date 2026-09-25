@@ -59,41 +59,17 @@ export async function signInStaff(phoneInput: string, password: string): Promise
   const phone = normalizeThaiPhone(phoneInput);
   if (!phone || !password) throw new Error('กรุณากรอกเบอร์โทรศัพท์และรหัสผ่าน');
 
-  // 1. Authenticate with server staff endpoint
-  try {
-    const res = await fetch('/api/staff/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: phone.national, password }),
-    });
-    const data = await res.json();
-    if (res.ok && data.success && data.staff) {
-      return data.staff;
-    }
-    if (!res.ok && data.error) {
-      throw new Error(data.error);
-    }
-  } catch (err) {
-    if (err instanceof Error && err.message !== 'Failed to fetch') {
-      throw err;
-    }
-  }
-
-  // 2. Fall back to Supabase client auth
-  const { error } = await supabase.auth.signInWithPassword({
-    phone: phone.e164,
-    password,
+  // Authenticate via authoritative server endpoint (/api/staff/login)
+  const res = await fetch('/api/staff/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone: phone.national, password }),
   });
-
-  if (error) throw new Error('เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง');
-
-  const staff = await getStaffAuth();
-  if (!staff) {
-    await supabase.auth.signOut();
-    throw new Error('บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่');
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.success && data.staff) {
+    return data.staff;
   }
-
-  return staff;
+  throw new Error(data.error || 'เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง');
 }
 
 export async function clearStaffAuth(): Promise<void> {

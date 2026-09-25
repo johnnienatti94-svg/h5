@@ -1,15 +1,56 @@
 import 'server-only';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import crypto from 'crypto';
+import { createClient } from '@supabase/supabase-js';
 import { normalizeThaiPhone } from '@/lib/phone';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import type { StaffUser, StaffRole } from '@/features/staff/types';
 
 const STAFF_COOKIE_NAME = 'meepro_staff_session';
-const STAFF_SECRET = process.env.STAFF_SESSION_SECRET || 'meepro-staff-secret-2026';
 const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
-// Validated development staff directory
+/**
+ * Explicit development and test mode gate.
+ * MUST NEVER evaluate to true when NODE_ENV === 'production'.
+ */
+export function isDevAuthAllowed(): boolean {
+  if (process.env.NODE_ENV === 'production') {
+    return false;
+  }
+  return (
+    process.env.NODE_ENV === 'development' ||
+    process.env.NODE_ENV === 'test' ||
+    process.env.ALLOW_DEV_AUTH === 'true'
+  );
+}
+
+/**
+ * Resolve staff session secret.
+ * IN PRODUCTION: Must fail closed (return null) if STAFF_SESSION_SECRET is missing or empty.
+ * IN DEVELOPMENT/TEST: Falls back to a deterministic development secret.
+ */
+export function getStaffSessionSecret(): string | null {
+  const secret = process.env.STAFF_SESSION_SECRET;
+  if (secret && secret.trim().length > 0) {
+    return secret.trim();
+  }
+  // In production, missing secret must fail closed
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
+  return 'meepro-staff-secret-2026';
+}
+
+// Validated development staff directory (PERMITTED ONLY IN DEV/TEST VIA isDevAuthAllowed)
 const DEV_STAFF_ACCOUNTS: Array<StaffUser & { passwordHash: string }> = [
+  {
+    id: 'staff-pc-001',
+    name: 'กิตติพงษ์ พนักงานขาย',
+    role: 'PC_STAFF',
+    branchId: '00000000-0000-4000-8000-000000000001',
+    phone: '0819997777',
+    passwordHash: 'staff1234',
+  },
   {
     id: 'staff-bm-001',
     name: 'สมศักดิ์ ผู้จัดการสาขา',
@@ -18,7 +59,6 @@ const DEV_STAFF_ACCOUNTS: Array<StaffUser & { passwordHash: string }> = [
     phone: '0819998888',
     passwordHash: 'staff1234',
   },
-
   {
     id: 'staff-admin-001',
     name: 'วิชัย ผู้ดูแลระบบ HQ',
@@ -28,23 +68,28 @@ const DEV_STAFF_ACCOUNTS: Array<StaffUser & { passwordHash: string }> = [
   },
 ];
 
-function signPayload(user: StaffUser): string {
+function signPayload(user: StaffUser): string | null {
+  const secret = getStaffSessionSecret();
+  if (!secret) return null;
+
   const payload = {
     ...user,
     expiresAt: Date.now() + SESSION_TTL_SECONDS * 1000,
   };
   const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  const signature = crypto.createHmac('sha256', STAFF_SECRET).update(data).digest('base64url');
+  const signature = crypto.createHmac('sha256', secret).update(data).digest('base64url');
   return `${data}.${signature}`;
 }
 
 export function verifyStaffToken(token: string): StaffUser | null {
+  const secret = getStaffSessionSecret();
+  if (!secret) return null;
+
   try {
     const [data, signature] = token.split('.');
     if (!data || !signature) return null;
 
-
-    const expected = crypto.createHmac('sha256', STAFF_SECRET).update(data).digest('base64url');
+    const expected = crypto.createHmac('sha256', secret).update(data).digest('base64url');
     if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
       return null;
     }
@@ -67,7 +112,40 @@ export function verifyStaffToken(token: string): StaffUser | null {
 }
 
 /**
+ * Query public.staff_profiles using the authenticated user UUID to verify
+ * that they have an active status and an authorized staff role.
+ */
+export async function resolveStaffProfile(userId: string): Promise<StaffUser | null> {
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('staff_profiles')
+    .select('user_id, display_name, role, assigned_branch_id, status')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .maybeSingle();
+
+  if (profileError || !profile) {
+    return null;
+  }
+
+  const allowedRoles: StaffRole[] = ['PC_STAFF', 'BRANCH_MANAGER', 'HQ', 'ADMIN'];
+  if (!allowedRoles.includes(profile.role as StaffRole)) {
+    return null;
+  }
+
+  return {
+    id: profile.user_id,
+    name: profile.display_name,
+    role: profile.role as StaffRole,
+    branchId: profile.assigned_branch_id || undefined,
+  };
+}
+
+/**
  * Authenticate staff user on server with phone + password and issue session cookie.
+ * 1. In dev/test: allows DEV_STAFF_ACCOUNTS shortcuts if isDevAuthAllowed() is true.
+ * 2. In production (or when dev credentials do not match): authenticates against
+ *    Supabase Auth using a fresh per-request client with publishable credentials,
+ *    then verifies active role authorization against public.staff_profiles.
  */
 export async function authenticateStaff(
   phoneInput: string,
@@ -78,22 +156,88 @@ export async function authenticateStaff(
     return { success: false, error: 'กรุณากรอกเบอร์โทรศัพท์และรหัสผ่าน' };
   }
 
-  // 1. Check development staff accounts
-  const devAccount = DEV_STAFF_ACCOUNTS.find(
-    (a) => a.phone === normalized.national && a.passwordHash === passwordInput.trim()
-  );
+  // 1. Development staff accounts are strictly prohibited in production
+  if (isDevAuthAllowed()) {
+    const devAccount = DEV_STAFF_ACCOUNTS.find(
+      (a) => a.phone === normalized.national && a.passwordHash === passwordInput.trim()
+    );
 
-  if (devAccount) {
+    if (devAccount) {
+      const staffUser: StaffUser = {
+        id: devAccount.id,
+        name: devAccount.name,
+        role: devAccount.role,
+        branchId: devAccount.branchId,
+        phone: devAccount.phone,
+      };
+
+      const signedToken = signPayload(staffUser);
+      if (!signedToken) {
+        return { success: false, error: 'ระบบยืนยันตัวตนเซิร์ฟเวอร์ยังไม่ได้รับการกำหนดค่าความปลอดภัย' };
+      }
+
+      const cookieStore = await cookies();
+      cookieStore.set(STAFF_COOKIE_NAME, signedToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: SESSION_TTL_SECONDS,
+      });
+
+      return { success: true, staff: staffUser };
+    }
+  }
+
+  // 2. Production phone/password authentication via Supabase Auth
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabasePublishableKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY;
+
+  if (!supabaseUrl || !supabasePublishableKey) {
+    return { success: false, error: 'ระบบยืนยันตัวตนเซิร์ฟเวอร์ยังไม่ได้รับการกำหนดค่าความปลอดภัย' };
+  }
+
+  try {
+    // Fresh unprivileged client per login request (never share session state, never use service role for password validation)
+    const authClient = createClient(supabaseUrl, supabasePublishableKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false,
+      },
+    });
+
+    const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
+      phone: normalized.e164,
+      password: passwordInput.trim(),
+    });
+
+    if (authError || !authData.user) {
+      return { success: false, error: 'เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง' };
+    }
+
+    // 3. Query public.staff_profiles using authenticated user's UUID
+    const staffProfile = await resolveStaffProfile(authData.user.id);
+    if (!staffProfile) {
+      return { success: false, error: 'บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่' };
+    }
+
     const staffUser: StaffUser = {
-      id: devAccount.id,
-      name: devAccount.name,
-      role: devAccount.role,
-      branchId: devAccount.branchId,
-      phone: devAccount.phone,
+      ...staffProfile,
+      phone: authData.user.phone || normalized.national,
     };
 
+    // 4. Issue cryptographically signed HttpOnly staff session
+    const signedToken = signPayload(staffUser);
+    if (!signedToken) {
+      return { success: false, error: 'ระบบยืนยันตัวตนเซิร์ฟเวอร์ยังไม่ได้รับการกำหนดค่าความปลอดภัย' };
+    }
+
     const cookieStore = await cookies();
-    cookieStore.set(STAFF_COOKIE_NAME, signPayload(staffUser), {
+    cookieStore.set(STAFF_COOKIE_NAME, signedToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -102,20 +246,92 @@ export async function authenticateStaff(
     });
 
     return { success: true, staff: staffUser };
+  } catch (err) {
+    console.error('[authenticateStaff] Supabase Auth error:', err);
+    return { success: false, error: 'เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง' };
   }
-
-  return { success: false, error: 'เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง' };
 }
 
 /**
- * Read current staff session from HttpOnly cookie.
+ * Read current staff session from HttpOnly cookie or Authorization Bearer header.
  */
 export async function getCurrentStaff(): Promise<StaffUser | null> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get(STAFF_COOKIE_NAME)?.value;
-    if (!token) return null;
-    return verifyStaffToken(token);
+    if (token) {
+      const verified = verifyStaffToken(token);
+      if (verified) return verified;
+    }
+
+    const headerStore = await headers();
+    const authHeader = headerStore.get('authorization') || '';
+    const bearer = authHeader.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+    if (bearer) {
+      // 1. Development shortcuts are strictly prohibited in production
+      if (isDevAuthAllowed()) {
+        if (bearer === 'dev-admin-token') {
+          return {
+            id: 'staff-admin-001',
+            name: 'วิชัย ผู้ดูแลระบบ HQ',
+            role: 'ADMIN',
+            phone: '0819999999',
+          };
+        }
+        if (bearer === 'dev-hq-token') {
+          return {
+            id: 'staff-hq-001',
+            name: 'ศิริพร ฝ่ายการตลาดส่วนกลาง',
+            role: 'HQ',
+            phone: '0819996666',
+          };
+        }
+        if (bearer === 'dev-manager-token') {
+          return {
+            id: 'staff-bm-001',
+            name: 'สมศักดิ์ ผู้จัดการสาขา',
+            role: 'BRANCH_MANAGER',
+            branchId: '00000000-0000-4000-8000-000000000001',
+            phone: '0819998888',
+          };
+        }
+        if (bearer === 'dev-pcstaff-token') {
+          return {
+            id: 'staff-pc-001',
+            name: 'กิตติพงษ์ พนักงานขาย',
+            role: 'PC_STAFF',
+            branchId: '00000000-0000-4000-8000-000000000001',
+            phone: '0819997777',
+          };
+        }
+      }
+
+      // 2. Check signed staff session token
+      const verifiedBearer = verifyStaffToken(bearer);
+      if (verifiedBearer) return verifiedBearer;
+
+      // 3. Fallback to Supabase Auth token if present
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabaseAdmin.auth.getUser(bearer);
+
+        if (!userError && user) {
+          const staffProfile = await resolveStaffProfile(user.id);
+          if (staffProfile) {
+            return {
+              ...staffProfile,
+              phone: user.phone,
+            };
+          }
+        }
+      } catch {
+        // Supabase lookup failed or bypassed
+      }
+    }
+
+    return null;
   } catch {
     return null;
   }

@@ -1,9 +1,15 @@
 import 'server-only';
+import crypto from 'crypto';
 
 import { supabase } from '@/lib/supabase';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { validateWidgetConfig } from '@/lib/widgetSchemas';
 import type { PageRecord, PageWidgetRecord, PageRevisionRecord, MediaAssetRecord } from '@/lib/cmsDb';
+
+function isUuid(val?: string | null): boolean {
+  if (!val || typeof val !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+}
 
 export interface PublishJobRecord {
   id: string;
@@ -221,7 +227,7 @@ export class CmsRepository {
       if (!error && data && data.length > 0) {
         return data.map((p) => ({
           ...p,
-          current_revision: p.current_revision || 1,
+          current_revision: (p as any).draft_revision || p.current_revision || 1,
         }));
       }
     } catch {
@@ -244,10 +250,14 @@ export class CmsRepository {
   }> {
     try {
       const client = isPreview ? supabaseAdmin : supabase;
-      let pageQuery = client
-        .from('pages')
-        .select('*')
-        .or(`id.eq.${identifier},slug.eq.${identifier}`);
+      let pageQuery = client.from('pages').select('*');
+
+      if (isUuid(identifier)) {
+        pageQuery = pageQuery.eq('id', identifier);
+      } else {
+        const slug = identifier === 'page-home-001' ? 'home' : identifier;
+        pageQuery = pageQuery.eq('slug', slug);
+      }
 
       if (!isPreview) {
         pageQuery = pageQuery.eq('status', 'published');
@@ -265,7 +275,7 @@ export class CmsRepository {
         return {
           page: {
             ...pageData,
-            current_revision: pageData.current_revision || 1,
+            current_revision: (pageData as any).draft_revision || pageData.current_revision || 1,
           },
           widgets,
         };
@@ -277,7 +287,7 @@ export class CmsRepository {
     // Match in dev fixtures
     const page =
       DEV_PAGES.get(identifier) ||
-      Array.from(DEV_PAGES.values()).find((p) => p.slug === identifier) ||
+      Array.from(DEV_PAGES.values()).find((p) => p.slug === identifier || p.id === identifier) ||
       null;
 
     if (!page) {
@@ -369,62 +379,101 @@ export class CmsRepository {
 
     const nextRevision = currentRevision + 1;
     const now = new Date().toISOString();
+    const targetPageId = existing.page.id;
 
-    const formattedWidgets: PageWidgetRecord[] = payload.widgets.map((w, index) => ({
-      id: w.id || `w-${pageId}-${index + 1}-${Date.now().toString(36)}`,
-      page_id: pageId,
-      widget_type: w.widget_type,
-      config_version: w.config_version || 1,
-      title: w.title || '',
-      subtitle: w.subtitle || '',
-      sort_order: typeof w.sort_order === 'number' ? w.sort_order : index + 1,
-      is_active: w.is_active !== false,
-      visible_from: w.visible_from,
-      visible_until: w.visible_until,
-      config: w.config || {},
-      created_by: w.created_by || payload.updatedBy,
-      updated_by: payload.updatedBy,
-      created_at: w.created_at || now,
-      updated_at: now,
-    }));
-
-    // Update in Supabase if reachable
-    try {
-      await supabaseAdmin.from('page_widgets').delete().eq('page_id', pageId);
-      if (formattedWidgets.length > 0) {
-        await supabaseAdmin.from('page_widgets').insert(formattedWidgets);
+    const formattedWidgets: PageWidgetRecord[] = payload.widgets.map((w, index) => {
+      const widgetUuid = isUuid(w.id) ? (w.id as string) : crypto.randomUUID();
+      const originalKey = w.id && !isUuid(w.id) ? w.id : undefined;
+      const config = { ...(w.config || {}) };
+      if (originalKey && !config._widget_key) {
+        config._widget_key = originalKey;
       }
-      const { data: updatedPage } = await supabaseAdmin
-        .from('pages')
-        .update({
-          current_revision: nextRevision,
-          updated_by: payload.updatedBy,
-          updated_at: now,
-        })
-        .eq('id', pageId)
-        .select()
-        .single();
+      return {
+        id: widgetUuid,
+        page_id: targetPageId,
+        widget_type: w.widget_type,
+        config_version: w.config_version || 1,
+        title: w.title || '',
+        subtitle: w.subtitle || '',
+        sort_order: typeof w.sort_order === 'number' ? w.sort_order : index + 1,
+        is_active: w.is_active !== false,
+        visible_from: w.visible_from,
+        visible_until: w.visible_until,
+        config,
+        created_by: isUuid(w.created_by) ? w.created_by : (isUuid(payload.updatedBy) ? payload.updatedBy : undefined),
+        updated_by: isUuid(payload.updatedBy) ? payload.updatedBy : undefined,
+        created_at: w.created_at || now,
+        updated_at: now,
+      };
+    });
 
-      if (updatedPage) {
-        return {
-          success: true,
-          page: { ...updatedPage, current_revision: nextRevision },
-          widgets: formattedWidgets,
-        };
+    // Update in Supabase if page is backed by Supabase
+    if (isUuid(targetPageId)) {
+      try {
+        await supabaseAdmin.from('page_widgets').delete().eq('page_id', targetPageId);
+        if (formattedWidgets.length > 0) {
+          const dbRows = formattedWidgets.map((fw) => ({
+            id: fw.id,
+            page_id: fw.page_id,
+            widget_type: fw.widget_type,
+            config_version: fw.config_version,
+            title: fw.title,
+            subtitle: fw.subtitle || null,
+            sort_order: fw.sort_order,
+            is_active: fw.is_active,
+            visible_from: fw.visible_from || null,
+            visible_until: fw.visible_until || null,
+            config: fw.config,
+            created_by: isUuid(fw.created_by) ? fw.created_by : null,
+            updated_by: isUuid(payload.updatedBy) ? payload.updatedBy : null,
+            updated_at: now,
+          }));
+          await supabaseAdmin.from('page_widgets').insert(dbRows);
+        }
+        const { data: updatedPage } = await supabaseAdmin
+          .from('pages')
+          .update({
+            draft_revision: nextRevision,
+            updated_by: isUuid(payload.updatedBy) ? payload.updatedBy : null,
+            updated_at: now,
+          })
+          .eq('id', targetPageId)
+          .select()
+          .single();
+
+        if (updatedPage) {
+          existing.page = {
+            ...existing.page,
+            id: targetPageId,
+            slug: (updatedPage as any).slug || existing.page.slug,
+            name: (updatedPage as any).name || existing.page.name,
+            status: (updatedPage as any).status || existing.page.status,
+            created_at: (updatedPage as any).created_at || existing.page.created_at,
+            current_revision: nextRevision,
+          };
+        }
+      } catch (err) {
+        console.error('[saveDraft] Supabase error:', err);
       }
-    } catch {
-      // Fallback
     }
 
     // Persist in memory fixtures
+    const basePage = existing.page;
     const updatedDevPage: ExtendedPageRecord = {
-      ...existing.page,
+      ...basePage,
+      id: targetPageId,
+      slug: basePage.slug || pageId,
+      name: basePage.name || pageId,
+      status: basePage.status || 'draft',
+      created_at: basePage.created_at || now,
       current_revision: nextRevision,
       updated_by: payload.updatedBy,
       updated_at: now,
     };
     DEV_PAGES.set(pageId, updatedDevPage);
+    DEV_PAGES.set(targetPageId, updatedDevPage);
     DEV_WIDGETS.set(pageId, formattedWidgets);
+    DEV_WIDGETS.set(targetPageId, formattedWidgets);
 
     return {
       success: true,
@@ -470,13 +519,15 @@ export class CmsRepository {
       };
     }
 
+    const targetPageId = existing.page.id;
     const now = new Date().toISOString();
     const revNumber = (existing.page.current_revision || 1) + 1;
+    const revisionUuid = crypto.randomUUID();
     const revisionId = `rev-${pageId}-${revNumber}-${Date.now().toString(36)}`;
 
     const newRevision: PageRevisionRecord = {
       id: revisionId,
-      page_id: pageId,
+      page_id: targetPageId,
       revision_number: revNumber,
       snapshot: {
         page: { ...existing.page, status: 'published', published_at: now },
@@ -491,10 +542,16 @@ export class CmsRepository {
     const pageRevs = DEV_REVISIONS.get(pageId) || [];
     pageRevs.unshift(newRevision);
     DEV_REVISIONS.set(pageId, pageRevs);
+    DEV_REVISIONS.set(targetPageId, pageRevs);
 
     // Update page
+    const publishBasePage = existing.page;
     const updatedPage: ExtendedPageRecord = {
-      ...existing.page,
+      ...publishBasePage,
+      id: targetPageId,
+      slug: publishBasePage.slug || pageId,
+      name: publishBasePage.name || pageId,
+      created_at: publishBasePage.created_at || now,
       status: 'published',
       published_version_id: revisionId,
       published_at: now,
@@ -503,28 +560,32 @@ export class CmsRepository {
       updated_at: now,
     };
     DEV_PAGES.set(pageId, updatedPage);
+    DEV_PAGES.set(targetPageId, updatedPage);
 
-    try {
-      await supabaseAdmin.from('page_revisions').insert({
-        id: revisionId,
-        page_id: pageId,
-        revision_number: revNumber,
-        snapshot: newRevision.snapshot,
-        note: newRevision.note,
-        created_by: options.userId,
-      });
+    if (isUuid(targetPageId)) {
+      try {
+        await supabaseAdmin.from('page_revisions').insert({
+          id: revisionUuid,
+          page_id: targetPageId,
+          revision_number: revNumber,
+          snapshot: newRevision.snapshot,
+          note: newRevision.note,
+          created_by: isUuid(options.userId) ? options.userId : null,
+        });
 
-      await supabaseAdmin
-        .from('pages')
-        .update({
-          status: 'published',
-          published_at: now,
-          updated_by: options.userId,
-          updated_at: now,
-        })
-        .eq('id', pageId);
-    } catch {
-      // Fallback
+        await supabaseAdmin
+          .from('pages')
+          .update({
+            status: 'published',
+            published_at: now,
+            published_version_id: revisionUuid,
+            draft_revision: revNumber,
+            updated_at: now,
+          })
+          .eq('id', targetPageId);
+      } catch (err) {
+        console.error('[publishPage] Supabase error:', err);
+      }
     }
 
     return {
@@ -647,20 +708,25 @@ export class CmsRepository {
    * Get page revisions
    */
   async getRevisions(pageId: string): Promise<PageRevisionRecord[]> {
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('page_revisions')
-        .select('*')
-        .eq('page_id', pageId)
-        .order('revision_number', { ascending: false });
-      if (!error && data && data.length > 0) {
-        return data as PageRevisionRecord[];
+    const existing = await this.getPage(pageId, true);
+    const targetPageId = existing.page?.id || pageId;
+
+    if (isUuid(targetPageId)) {
+      try {
+        const { data, error } = await supabaseAdmin
+          .from('page_revisions')
+          .select('*')
+          .eq('page_id', targetPageId)
+          .order('revision_number', { ascending: false });
+        if (!error && data && data.length > 0) {
+          return data as PageRevisionRecord[];
+        }
+      } catch {
+        // Fallback
       }
-    } catch {
-      // Fallback
     }
 
-    return DEV_REVISIONS.get(pageId) || [];
+    return DEV_REVISIONS.get(pageId) || DEV_REVISIONS.get(targetPageId) || [];
   }
 
   /**
@@ -681,31 +747,68 @@ export class CmsRepository {
     }
 
     const snapshotWidgets = targetRev.snapshot?.widgets || [];
-    const page = DEV_PAGES.get(pageId);
-    if (!page) {
+    const existing = await this.getPage(pageId, true);
+    if (!existing.page) {
       throw new Error(`Page ${pageId} not found`);
     }
 
-    const nextDraftRev = page.current_revision + 1;
+    const nextDraftRev = (existing.page.current_revision || 1) + 1;
     const now = new Date().toISOString();
+    const targetPageId = existing.page.id;
 
     // Create cloned widgets with new timestamps
-    const restoredWidgets: PageWidgetRecord[] = snapshotWidgets.map((w, idx) => ({
+    const restoredWidgets: PageWidgetRecord[] = snapshotWidgets.map((w) => ({
       ...w,
-      id: `w-restored-${Date.now().toString(36)}-${idx}`,
-      page_id: pageId,
+      id: crypto.randomUUID(),
+      page_id: targetPageId,
       updated_by: userId,
       updated_at: now,
     }));
 
-    // Update draft widgets without touching published pointer or offers
+    if (isUuid(targetPageId)) {
+      try {
+        await supabaseAdmin.from('page_widgets').delete().eq('page_id', targetPageId);
+        if (restoredWidgets.length > 0) {
+          const dbRows = restoredWidgets.map((fw) => ({
+            id: fw.id,
+            page_id: fw.page_id,
+            widget_type: fw.widget_type,
+            config_version: fw.config_version || 1,
+            title: fw.title,
+            subtitle: fw.subtitle || null,
+            sort_order: fw.sort_order,
+            is_active: fw.is_active,
+            visible_from: fw.visible_from || null,
+            visible_until: fw.visible_until || null,
+            config: fw.config,
+            updated_at: now,
+          }));
+          await supabaseAdmin.from('page_widgets').insert(dbRows);
+        }
+        await supabaseAdmin
+          .from('pages')
+          .update({
+            draft_revision: nextDraftRev,
+            updated_at: now,
+          })
+          .eq('id', targetPageId);
+      } catch (err) {
+        console.error('[restoreRevision] Supabase error:', err);
+      }
+    }
+
     DEV_WIDGETS.set(pageId, restoredWidgets);
-    DEV_PAGES.set(pageId, {
-      ...page,
+    DEV_WIDGETS.set(targetPageId, restoredWidgets);
+    const updatedPage: ExtendedPageRecord = {
+      ...existing.page,
       current_revision: nextDraftRev,
       updated_by: userId,
       updated_at: now,
-    });
+    };
+    DEV_PAGES.set(pageId, updatedPage);
+    DEV_PAGES.set(targetPageId, updatedPage);
+
+
 
     return {
       success: true,

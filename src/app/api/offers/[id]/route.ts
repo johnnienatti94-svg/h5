@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOfferById, updateOffer, deleteOffer } from '@/server/repositories/offersStore';
+import { requireAdminOrHqAuth } from '@/lib/rbac';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const authCheck = await requireAdminOrHqAuth(request);
+  if (authCheck.errorResponse) return authCheck.errorResponse;
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -38,9 +42,12 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const authCheck = await requireAdminOrHqAuth(request);
+  if (authCheck.errorResponse) return authCheck.errorResponse;
+
   const { id } = await params;
   const result = deleteOffer(id);
   if (!result.success) {

@@ -25,30 +25,30 @@
 - **Side Effects**: None (Read-only)
 - **Errors**: 400 (Invalid slug format), 404 (Store not found), 503 (Unavailable)
 
-### `POST /api/admin/branches` [SECURITY REVIEW REQUIRED]
+### `POST /api/admin/branches`
 - **Route Handler**: `src/app/api/admin/branches/route.ts`
-- **Authentication**: None present in route handler `[SECURITY REVIEW REQUIRED — route handler does not contain an explicit authorization guard]`
-- **Authorization**: None present in route handler `[SECURITY REVIEW REQUIRED]`
+- **Authentication**: Required (`meepro_staff_session` cookie or Bearer token via `authenticateCmsRequest()`)
+- **Authorization**: Requires `ADMIN` or `HQ` role enforced server-side via `requireAdminOrHqAuth()`
 - **Request Body**: `{ name: string, slug?: string, fullAddress: string, province?: string, region?: string, displayPhone: string, googleMapsUrl?: string, openingHours?: string | string[], directions?: string }`
 - **Response**: 201 Created `{ success: true, data: PublicBranch }`
-- **Errors**: 400 (Validation failure, duplicate slug, invalid phone format), 500 (Parse error)
+- **Errors**: 401 Unauthorized, 403 Forbidden, 400 (Validation failure, duplicate slug, invalid phone format), 500 (Parse error)
 - **Side Effects**: Inserts new branch into `branchesStore` (and DB when connected).
 
-### `PUT /api/admin/branches/[id]` [SECURITY REVIEW REQUIRED]
+### `PUT /api/admin/branches/[id]`
 - **Route Handler**: `src/app/api/admin/branches/[id]/route.ts`
-- **Authentication**: None present in route handler `[SECURITY REVIEW REQUIRED — route handler does not contain an explicit authorization guard]`
-- **Authorization**: None present in route handler `[SECURITY REVIEW REQUIRED]`
+- **Authentication**: Required (`meepro_staff_session` cookie or Bearer token via `authenticateCmsRequest()`)
+- **Authorization**: Requires `ADMIN` or `HQ` role enforced server-side via `requireAdminOrHqAuth()`
 - **Request Body**: Partial branch fields
 - **Response**: 200 OK `{ success: true, data: PublicBranch }`
-- **Errors**: 400 (Validation error), 404 (Branch not found), 500 (Server error)
+- **Errors**: 401 Unauthorized, 403 Forbidden, 400 (Validation error), 404 (Branch not found), 500 (Server error)
 - **Side Effects**: Mutates branch record in `branchesStore`.
 
-### `DELETE /api/admin/branches/[id]` [SECURITY REVIEW REQUIRED]
+### `DELETE /api/admin/branches/[id]`
 - **Route Handler**: `src/app/api/admin/branches/[id]/route.ts`
-- **Authentication**: None present in route handler `[SECURITY REVIEW REQUIRED — route handler does not contain an explicit authorization guard]`
-- **Authorization**: None present in route handler `[SECURITY REVIEW REQUIRED]`
+- **Authentication**: Required (`meepro_staff_session` cookie or Bearer token via `authenticateCmsRequest()`)
+- **Authorization**: Requires `ADMIN` or `HQ` role enforced server-side via `requireAdminOrHqAuth()`
 - **Response**: 200 OK `{ success: true, message: string }`
-- **Errors**: 404 (Branch not found)
+- **Errors**: 401 Unauthorized, 403 Forbidden, 404 (Branch not found)
 - **Side Effects**: Deletes branch from `branchesStore`.
 
 ---
@@ -70,25 +70,29 @@
 - **Response**: `{ success: true, data: { product: PublicProductDetail } }`
 - **Errors**: 400 (Invalid slug), 404 (Product not found)
 
-### `POST /api/admin/products` [SECURITY REVIEW REQUIRED]
+### `POST /api/admin/products`
 - **Route Handler**: `src/app/api/admin/products/route.ts`
-- **Authentication**: None present in route handler `[SECURITY REVIEW REQUIRED — route handler does not contain an explicit authorization guard]`
-- **Authorization**: None present in route handler `[SECURITY REVIEW REQUIRED]`
+- **Authentication**: Required (`meepro_staff_session` cookie or Bearer token via `authenticateCmsRequest()`)
+- **Authorization**: Requires `ADMIN` or `HQ` role enforced server-side via `requireAdminOrHqAuth()`
 - **Request Body**: `{ name: string, slug?: string, brandSlug: string, categorySlug: string, basePriceBaht: number, monthlyFromBaht?: number, imageUrl?: string, summary?: string, description?: string, inStock?: boolean }`
 - **Response**: 201 Created `{ success: true, product: PublicProductDetail }`
-- **Errors**: 400 (Validation failure or duplicate slug), 500 (Server error)
+- **Errors**: 401 Unauthorized, 403 Forbidden, 400 (Validation failure or duplicate slug), 500 (Server error)
 - **Side Effects**: Inserts product into `catalogStore`.
 
-### `PUT /api/admin/products/[id]` & `DELETE /api/admin/products/[id]` [SECURITY REVIEW REQUIRED]
+### `PUT /api/admin/products/[id]` & `DELETE /api/admin/products/[id]`
 - **Route Handler**: `src/app/api/admin/products/[id]/route.ts`
-- **Authentication & Authorization**: None present in route handler `[SECURITY REVIEW REQUIRED]`
+- **Authentication**: Required (`meepro_staff_session` cookie or Bearer token via `authenticateCmsRequest()`)
+- **Authorization**: Requires `ADMIN` or `HQ` role enforced server-side via `requireAdminOrHqAuth()`
+- **Errors**: 401 Unauthorized, 403 Forbidden, 400 (Bad request), 404 (Product not found)
 - **Side Effects**: Updates or deletes product in `catalogStore`.
 
-### `PUT /api/admin/products/reorder` [SECURITY REVIEW REQUIRED]
+### `PUT /api/admin/products/reorder`
 - **Route Handler**: `src/app/api/admin/products/reorder/route.ts`
-- **Authentication & Authorization**: None present in route handler `[SECURITY REVIEW REQUIRED]`
+- **Authentication**: Required (`meepro_staff_session` cookie or Bearer token via `authenticateCmsRequest()`)
+- **Authorization**: Requires `ADMIN` or `HQ` role enforced server-side via `requireAdminOrHqAuth()`
 - **Request Body**: `{ action: 'move', id: string, direction: 'up' | 'down' }` OR `{ orderedIds: string[] }`
 - **Response**: 200 OK `{ success: true, count: number }`
+- **Errors**: 401 Unauthorized, 403 Forbidden, 400 (Invalid payload)
 - **Side Effects**: Rearranges product sequence in `catalogStore`.
 
 ---
@@ -101,16 +105,20 @@
 - **Response**: `{ success: true, offers: OfferWithStatus[] }`
 - **Side Effects**: None
 
-### `POST /api/offers` [SECURITY REVIEW REQUIRED]
+### `POST /api/offers`
 - **Route Handler**: `src/app/api/offers/route.ts`
-- **Authentication & Authorization**: None present in route handler `[SECURITY REVIEW REQUIRED — route handler does not contain an explicit authorization guard]`
+- **Authentication**: Required (`meepro_staff_session` cookie or Bearer token via `authenticateCmsRequest()`)
+- **Authorization**: Requires `ADMIN` or `HQ` role enforced server-side via `requireAdminOrHqAuth()`
 - **Request Body**: `{ name: string, planCode?: string, months: number, interestRateAnnual: number, isZeroPercent?: boolean, minPriceBaht?: number, effectiveFrom: string, effectiveUntil?: string | null, description: string, badge?: string, isActive?: boolean }`
 - **Response**: 201 Created `{ success: true, offer: OfferWithStatus }`
+- **Errors**: 401 Unauthorized, 403 Forbidden, 400 (Validation failure), 500 (Server error)
 - **Side Effects**: Inserts offer with computed status into `offersStore`.
 
-### `PUT /api/offers/[id]` & `DELETE /api/offers/[id]` [SECURITY REVIEW REQUIRED]
+### `PUT /api/offers/[id]` & `DELETE /api/offers/[id]`
 - **Route Handler**: `src/app/api/offers/[id]/route.ts`
-- **Authentication & Authorization**: None present in route handler `[SECURITY REVIEW REQUIRED]`
+- **Authentication**: Required (`meepro_staff_session` cookie or Bearer token via `authenticateCmsRequest()`)
+- **Authorization**: Requires `ADMIN` or `HQ` role enforced server-side via `requireAdminOrHqAuth()`
+- **Errors**: 401 Unauthorized, 403 Forbidden, 400 (Bad request), 404 (Offer not found)
 - **Side Effects**: Updates or deletes offer in `offersStore`.
 
 ---
@@ -164,3 +172,43 @@
 - **Request Body**: `{ expectedRevision: number, widgets: PageWidgetRecord[] }`
 - **Errors**: 409 Conflict (`REVISION_CONFLICT`) if `expectedRevision` does not match server revision.
 - **Side Effects**: Saves page draft widgets and increments draft revision.
+
+---
+
+## 6. Authentication Boundary & Session Specification [VERIFIED FROM CODE]
+
+All authenticated administrative and staff endpoints rely on two server-side authentication gateways:
+- `authenticateCmsRequest(req: Request)` in `src/lib/rbac.ts`
+- `getCurrentStaff()` and `authenticateStaff()` in `src/server/auth/staffServerAuth.ts`
+
+### 6.1 Authentication Transport
+1. **HttpOnly Cookie**: `meepro_staff_session` containing cryptographically signed HMAC-SHA256 session token.
+2. **Authorization Bearer Header**: `Authorization: Bearer <token>` containing either:
+   - Cryptographically signed HMAC-SHA256 session token, OR
+   - Supabase Auth JWT access token (verified via `supabaseAdmin.auth.getUser()` and resolved against active rows in `public.staff_profiles`).
+
+### 6.2 Production Secret Hardening (`STAFF_SESSION_SECRET`)
+- **Environment Variable**: `STAFF_SESSION_SECRET`
+- **Production Invariant**: In production (`NODE_ENV === 'production'`), if `STAFF_SESSION_SECRET` is unset or empty, `getStaffSessionSecret()` returns `null`.
+- **Fail-Closed Behavior**: When the secret is `null`, `signPayload()` and `verifyStaffToken()` strictly return `null`. All mutation and staff requests fail closed with HTTP 401 Unauthorized.
+- **Forbidden Practices**: The system does NOT generate runtime random secrets (which would cause horizontal inconsistency), does NOT hard-code production secrets, and NEVER falls back to default secrets in production.
+- **Non-Production Fallback**: A deterministic fallback secret (`meepro-staff-secret-2026`) is permitted ONLY in non-production environments (`NODE_ENV !== 'production'`).
+
+### 6.3 Development Shortcut Isolation (`isDevAuthAllowed()`)
+- **Shortcut Tokens**: `dev-admin-token`, `dev-hq-token`, `dev-manager-token`, `dev-pcstaff-token`
+- **Development Directory & Passwords**: `DEV_STAFF_ACCOUNTS` (`staff1234`, `admin1234`)
+- **Production Invariant**: When `process.env.NODE_ENV === 'production'`, `isDevAuthAllowed()` strictly evaluates to `false`.
+- **Enforcement**: Development tokens and passwords MUST NEVER authenticate a request in production mode. Any request carrying development shortcuts in production is rejected with HTTP 401 Unauthorized.
+
+### 6.4 Staff Login Endpoint (`POST /api/staff/login`)
+- **Route Handler**: `src/app/api/staff/login/route.ts` calling `authenticateStaff()` in `src/server/auth/staffServerAuth.ts`
+- **Request Body**: `{ phone: string, password: string }`
+- **Production Authentication Flow**:
+  1. Validates and normalizes phone number to Thai E.164 format via `normalizeThaiPhone()`.
+  2. In production (`NODE_ENV === 'production'`), bypasses development accounts and instantiates a fresh, isolated Supabase client using publishable credentials (`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) with `persistSession: false`. The privileged service-role client is strictly forbidden for password verification.
+  3. Authenticates via Supabase Auth `signInWithPassword({ phone: normalized.e164, password })`. If credentials fail, returns generic 401: `เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง`.
+  4. Queries `public.staff_profiles` using authenticated user's UUID. Requires `status = 'active'` and allowed roles (`PC_STAFF`, `BRANCH_MANAGER`, `HQ`, `ADMIN`). If profile is missing, inactive, or holds an unauthorized role (e.g., `CUSTOMER`), returns 401: `บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่`.
+  5. Upon successful validation, issues cryptographically signed `meepro_staff_session` HttpOnly cookie via `signPayload()` with 7-day TTL (`httpOnly: true, secure: production, sameSite: 'lax', path: '/'`).
+  6. Fails closed with error if `STAFF_SESSION_SECRET` is unset or unavailable.
+- **Client Fallback Policy**: The `/api/staff/login` endpoint is the authoritative login pathway. Client-side double-authentication fallbacks are eliminated to avoid session divergence.
+

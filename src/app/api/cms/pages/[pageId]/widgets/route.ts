@@ -11,28 +11,22 @@ export async function GET(
   try {
     const { pageId } = await params;
     const auth = await authenticateCmsRequest(request);
-    const isStaffOrAdmin = auth && hasPermission(auth.role, 'PREVIEW_DRAFT');
+    const isStaffOrAdmin = Boolean(auth && hasPermission(auth.role, 'PREVIEW_DRAFT'));
 
-    const client = isStaffOrAdmin ? supabaseAdmin : supabase;
+    const { cmsRepository } = await import('@/server/repositories/cmsRepository');
+    const { page, widgets } = await cmsRepository.getPage(pageId, isStaffOrAdmin);
 
-    let query = client
-      .from('page_widgets')
-      .select('*')
-      .eq('page_id', pageId)
-      .order('sort_order', { ascending: true });
-
-    if (!isStaffOrAdmin) {
-      query = query.eq('is_active', true);
+    if (!page && pageId !== 'home' && pageId !== 'page-home-001') {
+      return NextResponse.json({ error: `Page ${pageId} not found` }, { status: 404 });
     }
 
-    const { data, error } = await query;
-
-    if (error || !data || data.length === 0) {
+    if (!widgets || widgets.length === 0) {
       // Fallback: if page is 'home' or page-home-001, return default widget presets
-      if (pageId === 'home' || pageId === 'page-home-001') {
+      if (!page || page.slug === 'home' || pageId === 'home' || pageId === 'page-home-001') {
+        const resolvedPageId = page?.id || pageId;
         const mappedDefaults = DEFAULT_HOMEPAGE_WIDGETS.map((w, index) => ({
           id: w.id,
-          page_id: pageId,
+          page_id: resolvedPageId,
           widget_type: w.type.toUpperCase(),
           config_version: 1,
           title: w.title,
@@ -43,12 +37,12 @@ export async function GET(
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         }));
-        return NextResponse.json({ widgets: mappedDefaults });
+        return NextResponse.json({ pageId: resolvedPageId, pageSlug: page?.slug || 'home', widgets: mappedDefaults });
       }
-      return NextResponse.json({ widgets: [] });
+      return NextResponse.json({ pageId: page.id, pageSlug: page.slug, widgets: [] });
     }
 
-    return NextResponse.json({ widgets: data });
+    return NextResponse.json({ pageId: page?.id || pageId, pageSlug: page?.slug, widgets });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Internal Server Error' },

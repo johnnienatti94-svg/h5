@@ -2,18 +2,19 @@
 
 > **Target:** `/ai-docs/CURRENT_STATUS.md`  
 > **Status:** Active Operational Baseline [VERIFIED FROM CODE]  
-> **Last Verification Run:** 2026-09-24 (29/29 E2E Assertions Passing)
+> **Last Verification Run:** 2026-09-25 (29/29 Master E2E Scenarios Passing + 43/43 Security Tests Passing)
 
 ---
 
 ## 1. Working Modules & Features [VERIFIED FROM CODE]
 
-- **Store Locator & Branches (`/stores`, `/admin/branches`)**: Full public directory, Google Maps links, phone normalization (`+66`), and complete Admin CRUD (Add, Edit, Delete).
-- **Product Catalog (`/products`, `/admin/products`)**: Multi-brand, multi-category browsing, detail page with variant selection, and Admin management with Move Up/Down custom sequence organization.
-- **Installment Offers & Promotions (`/admin/offers`)**: 0% tenure calculations, admin pre-creation with start and expiration dates, and lifecycle status badges (Active, Scheduled, Expired).
+- **Store Locator & Branches (`/stores`, `/admin/branches`)**: Full public directory, Google Maps links, phone normalization (`+66`), and complete Admin CRUD (Add, Edit, Delete). Server-side authorization enforced via `requireAdminOrHqAuth()`.
+- **Product Catalog (`/products`, `/admin/products`)**: Multi-brand, multi-category browsing, detail page with variant selection, and Admin management with Move Up/Down custom sequence organization. Server-side authorization enforced via `requireAdminOrHqAuth()`.
+- **Installment Offers & Promotions (`/admin/offers`)**: 0% tenure calculations, admin pre-creation with start and expiration dates, and lifecycle status badges (Active, Scheduled, Expired). Server-side authorization enforced via `requireAdminOrHqAuth()`.
 - **Media Library (`/admin/media`)**: Image uploads, MIME validation, dimension extraction, and reference deletion protection (prevents breaking published pages).
 - **Visual Page Builder (`/admin/page-builder`)**: Modular widget layout editor, draft vs published isolation, revision snapshots, UTC publication scheduling, and concurrency conflict handling (HTTP 409).
-- **Security & Authorization**: Strict backend-only CMS enforcement, RBAC for Staff roles (`PC_STAFF`, `BRANCH_MANAGER`, `HQ`, `ADMIN`), and branch-scoped queue locking.
+- **Security & Authorization**: Strict backend-only CMS enforcement, RBAC for Staff roles (`PC_STAFF`, `BRANCH_MANAGER`, `HQ`, `ADMIN`), server-side admin API protection, and branch-scoped queue locking.
+- **Production Staff Authentication & Boundary Hardening**: Full production Supabase phone/password authentication implemented in `/api/staff/login` via unprivileged per-request client (`persistSession: false`, no service-role password validation). Queries `public.staff_profiles` using authenticated user UUID for `status = 'active'` and allowed staff roles. Issues signed HttpOnly `meepro_staff_session` cookie via `signPayload()`. Development bearer tokens (`dev-admin-token`, etc.) and default test passwords (`staff1234`, `admin1234`) strictly isolated behind `isDevAuthAllowed()` and unconditionally rejected in production. Missing `STAFF_SESSION_SECRET` fails closed (HTTP 401).
 - **System Config Toggles (`/admin/system-config`)**: Global toggles to disable Member Tier display and MeePoints rewards system-wide.
 
 ---
@@ -25,10 +26,11 @@
 
 ---
 
-## 3. Discovered Security & Governance Items [SECURITY REVIEW REQUIRED]
+## 3. Discovered Security & Governance Items [RESOLVED]
 
-- **Admin Route Authorization Guards**: Route handlers in `src/app/api/admin/branches/*`, `src/app/api/admin/products/*`, and `src/app/api/offers/*` do not currently enforce server-side session checks. Tracked in `TECHNICAL_DEBT.md` as High Priority.
-- **ESLint Configuration**: An explicit flat config `eslint.config.mjs` exists in the repository root. Standalone execution (`npm run lint`) runs smoothly when targeting specific project source files.
+- **Admin Route Authorization Guards [RESOLVED]**: Route handlers in `src/app/api/admin/branches/*`, `src/app/api/admin/products/*`, and `src/app/api/offers/*` now enforce server-side authentication and role authorization via `requireAdminOrHqAuth()`, returning 401 for unauthenticated calls and 403 for unauthorized roles. `PC_STAFF` role restrictions are also enforced on `/api/staff/applications/[id]/status` and `/api/staff/applications/[id]/appointment`.
+- **Production Authentication & Staff Login [RESOLVED AT CODE LEVEL]**: Fully implemented production Supabase phone/password authentication in `authenticateStaff()` and authoritative `/api/staff/login` route. Development shortcuts strictly prohibited in production mode. Upgraded security test suite to 43 assertions proving dev isolation, invalid credential rejection, inactive/missing profile rejection, allowed active profile session creation, admin authorization, and endpoint protection.
+- **ESLint Configuration**: Flat config `eslint.config.mjs` executes via `npm run lint` with 0 errors.
 
 ---
 

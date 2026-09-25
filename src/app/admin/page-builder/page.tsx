@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import VisualPageBuilder from '@/components/cms/VisualPageBuilder';
 import { useAdminGuard } from '@/lib/adminSystem';
 import { supabase } from '@/lib/supabase';
@@ -10,7 +11,9 @@ interface EditablePage {
   name: string;
 }
 
-export default function AdminPageBuilderPage() {
+function AdminPageBuilderContent() {
+  const searchParams = useSearchParams();
+  const slug = searchParams.get('slug') || 'home';
   const { admin, isChecking } = useAdminGuard();
   const [page, setPage] = useState<EditablePage | null>(null);
   const [loadError, setLoadError] = useState('');
@@ -22,11 +25,27 @@ export default function AdminPageBuilderPage() {
     void supabase
       .from('pages')
       .select('id, name')
-      .eq('slug', 'home')
+      .eq('slug', slug)
       .maybeSingle()
       .then(({ data, error }) => {
         if (!active) return;
         if (error || !data) {
+          if (slug !== 'home') {
+            void supabase
+              .from('pages')
+              .select('id, name')
+              .eq('slug', 'home')
+              .maybeSingle()
+              .then(({ data: homeData }) => {
+                if (!active) return;
+                if (homeData) {
+                  setPage(homeData as EditablePage);
+                } else {
+                  setLoadError('ไม่พบหน้า home ที่แก้ไขได้ กรุณาตรวจสอบ migration และข้อมูลเริ่มต้น');
+                }
+              });
+            return;
+          }
           setLoadError('ไม่พบหน้า home ที่แก้ไขได้ กรุณาตรวจสอบ migration และข้อมูลเริ่มต้น');
           return;
         }
@@ -36,7 +55,7 @@ export default function AdminPageBuilderPage() {
     return () => {
       active = false;
     };
-  }, [admin]);
+  }, [admin, slug]);
 
   if (isChecking || !admin) {
     return <div style={{ color: '#CBD5E1' }}>กำลังตรวจสอบสิทธิ์...</div>;
@@ -62,5 +81,13 @@ export default function AdminPageBuilderPage() {
       </div>
       <VisualPageBuilder role={admin.role} pageId={page.id} pageTitle={page.name} />
     </div>
+  );
+}
+
+export default function AdminPageBuilderPage() {
+  return (
+    <Suspense fallback={<div style={{ color: '#CBD5E1' }}>กำลังโหลด...</div>}>
+      <AdminPageBuilderContent />
+    </Suspense>
   );
 }
