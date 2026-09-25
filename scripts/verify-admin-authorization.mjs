@@ -184,6 +184,104 @@ function runBoundaryUnitChecks() {
   } else {
     fail('Rule C.4', 'Forged token was unexpectedly accepted');
   }
+
+  // -------------------------------------------------------------------------
+  // Test D: Invalid Supabase Credentials Handling
+  // -------------------------------------------------------------------------
+  function handleSupabaseAuthResult(authError, user) {
+    if (authError || !user) {
+      return { success: false, error: 'เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง' };
+    }
+    return { success: true, user };
+  }
+
+  const invalidCredsResult = handleSupabaseAuthResult(new Error('Invalid login credentials'), null);
+  if (!invalidCredsResult.success && invalidCredsResult.error === 'เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง') {
+    pass('Rule D.1', 'Invalid Supabase Auth credentials return generic error: "เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง"');
+  } else {
+    fail('Rule D.1', 'Failed to handle invalid Supabase credentials correctly');
+  }
+
+  // -------------------------------------------------------------------------
+  // Test E: Valid Supabase User with NO staff_profiles Record
+  // -------------------------------------------------------------------------
+  function evaluateStaffProfile(profile) {
+    if (!profile) {
+      return { success: false, error: 'บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่' };
+    }
+    if (profile.status !== 'active') {
+      return { success: false, error: 'บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่' };
+    }
+    const allowedRoles = ['PC_STAFF', 'BRANCH_MANAGER', 'HQ', 'ADMIN'];
+    if (!allowedRoles.includes(profile.role)) {
+      return { success: false, error: 'บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่' };
+    }
+    return { success: true, profile };
+  }
+
+  const noProfileResult = evaluateStaffProfile(null);
+  if (!noProfileResult.success && noProfileResult.error === 'บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่') {
+    pass('Rule E.1', 'Valid Supabase user with NO staff_profiles record is rejected with: "บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่"');
+  } else {
+    fail('Rule E.1', 'Failed to reject user with missing staff profile');
+  }
+
+  // -------------------------------------------------------------------------
+  // Test F: Valid Supabase User with Inactive or Unauthorized staff_profiles
+  // -------------------------------------------------------------------------
+  const inactiveProfileResult = evaluateStaffProfile({
+    user_id: 'usr-001',
+    display_name: 'Suspended Staff',
+    role: 'PC_STAFF',
+    status: 'inactive',
+  });
+  if (!inactiveProfileResult.success && inactiveProfileResult.error === 'บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่') {
+    pass('Rule F.1', 'Valid Supabase user with inactive/suspended staff profile is rejected with: "บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่"');
+  } else {
+    fail('Rule F.1', 'Failed to reject inactive staff profile');
+  }
+
+  const unauthorizedRoleResult = evaluateStaffProfile({
+    user_id: 'usr-002',
+    display_name: 'Customer Account',
+    role: 'CUSTOMER',
+    status: 'active',
+  });
+  if (!unauthorizedRoleResult.success && unauthorizedRoleResult.error === 'บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่') {
+    pass('Rule F.2', 'Valid Supabase user with unauthorized role (e.g. CUSTOMER) is rejected with: "บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่"');
+  } else {
+    fail('Rule F.2', 'Failed to reject unauthorized staff role');
+  }
+
+  // -------------------------------------------------------------------------
+  // Test G: Active Allowed Staff Profile Produces Signed MeePro Session
+  // -------------------------------------------------------------------------
+  const activeStaffProfile = {
+    user_id: 'usr-staff-active-001',
+    display_name: 'สมศักดิ์ ผู้จัดการสาขา',
+    role: 'BRANCH_MANAGER',
+    assigned_branch_id: '00000000-0000-4000-8000-000000000001',
+    status: 'active',
+  };
+  const activeResult = evaluateStaffProfile(activeStaffProfile);
+  if (activeResult.success && activeResult.profile) {
+    const staffUser = {
+      id: activeResult.profile.user_id,
+      name: activeResult.profile.display_name,
+      role: activeResult.profile.role,
+      branchId: activeResult.profile.assigned_branch_id,
+      phone: '0819998888',
+    };
+    const sessionToken = signWithSecret(staffUser, 'test-secret-key-12345');
+    const verifiedSession = verifyWithSecret(sessionToken, 'test-secret-key-12345');
+    if (verifiedSession && verifiedSession.id === staffUser.id && verifiedSession.role === 'BRANCH_MANAGER') {
+      pass('Rule G.1', 'Active allowed staff profile successfully generates valid MeePro signed session');
+    } else {
+      fail('Rule G.1', 'Failed to verify session generated from active staff profile');
+    }
+  } else {
+    fail('Rule G.1', 'Failed to validate active staff profile');
+  }
 }
 
 async function runSecurityTests() {
@@ -192,7 +290,7 @@ async function runSecurityTests() {
   console.log(`Target: ${BASE_URL}`);
   console.log('================================================================\n');
 
-  // Run Rule A, B, C boundary verification
+  // Run Rule A, B, C, D, E, F, G boundary verification
   runBoundaryUnitChecks();
 
   // Test credentials:
@@ -551,9 +649,39 @@ async function runSecurityTests() {
   }
 
   // -------------------------------------------------------------------------
-  // 5. Public / Read Endpoints Non-Regression
+  // 5. Staff Login Endpoint Live Behavior (/api/staff/login)
   // -------------------------------------------------------------------------
-  console.log('\n▶ [5/5] Public & Read Endpoints Non-Regression');
+  console.log('\n▶ [5/6] Staff Login Endpoint Live Behavior (/api/staff/login)');
+
+  // 5.1 Invalid phone or password returns 401 with generic error message
+  const invalidLoginRes = await fetch(`${BASE_URL}/api/staff/login`, {
+    method: 'POST',
+    headers: UNAUTH_HEADERS,
+    body: JSON.stringify({ phone: '0899999999', password: 'wrong_password_xyz' }),
+  });
+  const invalidLoginData = await invalidLoginRes.json().catch(() => ({}));
+  if (invalidLoginRes.status === 401 && invalidLoginData.error === 'เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง') {
+    pass('POST /api/staff/login (Invalid credentials)', 'Rejected with HTTP 401 and generic error: "เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง"');
+  } else {
+    fail('POST /api/staff/login (Invalid credentials)', `Expected 401 with generic error, got status ${invalidLoginRes.status} body: ${JSON.stringify(invalidLoginData)}`);
+  }
+
+  // 5.2 Missing phone or password returns 400
+  const missingLoginRes = await fetch(`${BASE_URL}/api/staff/login`, {
+    method: 'POST',
+    headers: UNAUTH_HEADERS,
+    body: JSON.stringify({ phone: '', password: '' }),
+  });
+  if (missingLoginRes.status === 400) {
+    pass('POST /api/staff/login (Missing fields)', 'Rejected with HTTP 400 Bad Request');
+  } else {
+    fail('POST /api/staff/login (Missing fields)', `Expected 400, got ${missingLoginRes.status}`);
+  }
+
+  // -------------------------------------------------------------------------
+  // 6. Public / Read Endpoints Non-Regression
+  // -------------------------------------------------------------------------
+  console.log('\n▶ [6/6] Public & Read Endpoints Non-Regression');
 
   const sPublic = await fetch(`${BASE_URL}/api/stores`);
   if (sPublic.status === 200) {

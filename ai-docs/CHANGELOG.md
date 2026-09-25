@@ -5,6 +5,43 @@
 
 ---
 
+## 2026-09-25 — Real Production Staff Login Implementation
+### Requested
+- Complete the final missing production authentication flow for MeePro staff login on branch `fix/admin-api-authorization`.
+- Implement production phone/password authentication in `src/server/auth/staffServerAuth.ts -> authenticateStaff()`:
+  - Normalize Thai phone number using `normalizeThaiPhone()`.
+  - Authenticate against Supabase Auth using `signInWithPassword({ phone: normalized.e164, password })`.
+  - DO NOT use the Supabase service-role client for password validation; instantiate a fresh per-request client using publishable credentials (`auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false }`).
+  - Query `public.staff_profiles` using authenticated user's UUID; require `status = 'active'` and allowed roles (`PC_STAFF`, `BRANCH_MANAGER`, `HQ`, `ADMIN`). Fail with `"บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่"` if missing/inactive. Do NOT create profiles automatically.
+  - Return generic `"เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง"` on invalid Supabase Auth credentials.
+  - Issue cryptographically signed `meepro_staff_session` HttpOnly cookie with 7-day TTL (`httpOnly: true, secure: production, sameSite: 'lax', path: '/'`).
+  - Fail closed if `STAFF_SESSION_SECRET` is missing in production.
+- Keep all existing development authentication mechanisms strictly disabled in production (`NODE_ENV === 'production'`).
+- Keep login UX intact on `/staff/login` with role-based routing (ADMIN/HQ -> `/admin/dashboard`, BM/PC_STAFF -> `/staff/dashboard`).
+- Review `src/lib/staffAuth.ts` and make `/api/staff/login` authoritative; remove unnecessary client-side password fallback.
+- Extend test suite with tests for rules A-J and verify build, lint, and all master scenarios.
+### Changed
+- `src/server/auth/staffServerAuth.ts`:
+  - Implemented unprivileged, per-request Supabase Auth client for `signInWithPassword`.
+  - Added and exported `resolveStaffProfile()` querying `public.staff_profiles` for active status and allowed roles (`PC_STAFF`, `BRANCH_MANAGER`, `HQ`, `ADMIN`).
+  - Implemented complete production authentication flow in `authenticateStaff()` issuing signed HttpOnly session cookies.
+  - Updated `getCurrentStaff()` to resolve authenticated user profiles via `resolveStaffProfile()`.
+- `src/lib/staffAuth.ts`:
+  - Removed client-side Supabase password fallback; established `/api/staff/login` as authoritative login pathway.
+- `scripts/verify-admin-authorization.mjs`:
+  - Added unit/contract and live HTTP verification for invalid credentials (Rule D), missing staff profiles (Rule E), inactive/unauthorized staff profiles (Rule F), active allowed profile session generation (Rule G), and live `/api/staff/login` error responses (43/43 assertions passing).
+- `ai-docs/API_CONTRACTS.md`, `ai-docs/PERMISSIONS.md`, `ai-docs/TECHNICAL_DEBT.md`, `ai-docs/CURRENT_STATUS.md`:
+  - Documented production staff authentication architecture, contract, security boundaries, and operational readiness.
+### Tests Performed
+- `next build`: Passed (TypeScript 0 errors, 57 routes compiled successfully)
+- `npm run lint`: Passed (0 errors, 92 pre-existing layout warnings)
+- `node scripts/verify-admin-authorization.mjs`: Passed (43/43 assertions, 100%)
+- `node scripts/verify-scenarios.mjs`: Passed (29/29 master scenario assertions, 100%)
+### Status
+- Committed and pushed to `fix/admin-api-authorization`. NOT MERGED to main. NOT DEPLOYED.
+
+---
+
 ## 2026-09-25 — Security Review Correction: Production Authentication Hardening
 ### Requested
 - Audit authentication boundary on branch `fix/admin-api-authorization` to ensure development authentication mechanisms cannot work in production.

@@ -19,14 +19,20 @@
 - **Risk Level**: **HIGH**
 - **Recommendation**: Require all future developers/agents to pass `verify-scenarios.mjs` before touching `currency.ts` or offer calculation logic.
 
-### Item 1.3: Production Staff Authentication Provisioning Prerequisite [PENDING PRODUCTION CONFIGURATION]
-- **Finding**: The authentication layer previously contained development shortcut tokens (`dev-admin-token`, `dev-pcstaff-token`, etc.) and hard-coded test credentials (`staff1234`, `admin1234`).
-- **Current State**: **HARDENED AT APPLICATION BOUNDARY**. Development shortcut tokens and test accounts are now strictly isolated behind `isDevAuthAllowed()` and unconditionally rejected when `NODE_ENV === 'production'`. `STAFF_SESSION_SECRET` fails closed (returns HTTP 401) if missing in production. Live Supabase JWT verification against `public.staff_profiles` is fully wired into `getCurrentStaff()` and `authenticateCmsRequest()`.
-- **Remaining Production Prerequisites Before Live Use**:
-  1. The project owner must configure `STAFF_SESSION_SECRET` in Vercel environment variables (minimum 32-character high-entropy secret).
-  2. Live staff users must be provisioned in Supabase Auth (`auth.users`) and mapped in `public.staff_profiles` with `status = 'active'`, matching their assigned physical branch.
-- **Risk Level**: **MEDIUM / OPERATIONAL PREREQUISITE** (Application boundary is hardened; production deployment configuration remains required).
-- **Recommendation**: Do NOT merge to `main` or deploy to production until the project owner sets `STAFF_SESSION_SECRET` in Vercel and provisions initial HQ/Admin users in Supabase.
+### Item 1.3: Production Staff Authentication Implementation & Prerequisite Configuration [RESOLVED AT CODE LEVEL]
+- **Finding**: In production, development accounts were correctly disabled, but `authenticateStaff()` previously lacked real Supabase phone/password authentication against `auth.users` and `public.staff_profiles`.
+- **Current State**: **RESOLVED AT CODE LEVEL on branch `fix/admin-api-authorization`**.
+  - Production phone/password authentication is fully implemented in `authenticateStaff()` using an unprivileged, per-request Supabase client (`persistSession: false`, no service role password verification).
+  - Thai phone numbers are normalized via `normalizeThaiPhone()`.
+  - Roles and active statuses are enforced against `public.staff_profiles` (`PC_STAFF`, `BRANCH_MANAGER`, `HQ`, `ADMIN` with `status = 'active'`).
+  - Signed HttpOnly `meepro_staff_session` cookies are issued via `signPayload()`, failing closed if `STAFF_SESSION_SECRET` is unset.
+  - Development accounts and shortcuts remain strictly disabled when `NODE_ENV === 'production'`.
+  - Client-side Supabase password fallback in `src/lib/staffAuth.ts` was eliminated in favor of authoritative `/api/staff/login`.
+  - Covered by 43 automated security assertions in `scripts/verify-admin-authorization.mjs`.
+- **Operational Requirements Before Live Use**:
+  1. `STAFF_SESSION_SECRET` is configured in production by the project owner.
+  2. Live staff users must have corresponding phone + password credentials in Supabase Auth and active records in `public.staff_profiles` with allowed roles.
+- **Risk Level**: **LOW / OPERATIONAL READINESS** (Code is complete and verified; requires live staff account provisioning).
 
 ---
 

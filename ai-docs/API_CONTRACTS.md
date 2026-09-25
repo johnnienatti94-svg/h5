@@ -200,3 +200,15 @@ All authenticated administrative and staff endpoints rely on two server-side aut
 - **Production Invariant**: When `process.env.NODE_ENV === 'production'`, `isDevAuthAllowed()` strictly evaluates to `false`.
 - **Enforcement**: Development tokens and passwords MUST NEVER authenticate a request in production mode. Any request carrying development shortcuts in production is rejected with HTTP 401 Unauthorized.
 
+### 6.4 Staff Login Endpoint (`POST /api/staff/login`)
+- **Route Handler**: `src/app/api/staff/login/route.ts` calling `authenticateStaff()` in `src/server/auth/staffServerAuth.ts`
+- **Request Body**: `{ phone: string, password: string }`
+- **Production Authentication Flow**:
+  1. Validates and normalizes phone number to Thai E.164 format via `normalizeThaiPhone()`.
+  2. In production (`NODE_ENV === 'production'`), bypasses development accounts and instantiates a fresh, isolated Supabase client using publishable credentials (`NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) with `persistSession: false`. The privileged service-role client is strictly forbidden for password verification.
+  3. Authenticates via Supabase Auth `signInWithPassword({ phone: normalized.e164, password })`. If credentials fail, returns generic 401: `เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง`.
+  4. Queries `public.staff_profiles` using authenticated user's UUID. Requires `status = 'active'` and allowed roles (`PC_STAFF`, `BRANCH_MANAGER`, `HQ`, `ADMIN`). If profile is missing, inactive, or holds an unauthorized role (e.g., `CUSTOMER`), returns 401: `บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่`.
+  5. Upon successful validation, issues cryptographically signed `meepro_staff_session` HttpOnly cookie via `signPayload()` with 7-day TTL (`httpOnly: true, secure: production, sameSite: 'lax', path: '/'`).
+  6. Fails closed with error if `STAFF_SESSION_SECRET` is unset or unavailable.
+- **Client Fallback Policy**: The `/api/staff/login` endpoint is the authoritative login pathway. Client-side double-authentication fallbacks are eliminated to avoid session divergence.
+

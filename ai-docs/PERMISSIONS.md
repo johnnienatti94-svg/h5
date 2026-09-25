@@ -99,7 +99,11 @@ Authorization guards depend directly on the authentication boundary (`authentica
    - Development shortcuts (`dev-admin-token`, `dev-hq-token`, `dev-manager-token`, `dev-pcstaff-token`) and development passwords (`staff1234`, `admin1234`) are gated by `isDevAuthAllowed()`.
    - When `process.env.NODE_ENV === 'production'`, `isDevAuthAllowed()` returns `false` unconditionally.
    - Development shortcuts are strictly rejected in production with HTTP 401 Unauthorized.
-3. **Database-Backed Staff Accounts**:
-   - In production, staff users must be provisioned in Supabase Auth (`auth.users`) and have an active row in `public.staff_profiles`.
-   - `getCurrentStaff()` and `authenticateCmsRequest()` verify the caller's JWT and look up the assigned role and branch from `public.staff_profiles`.
+3. **Database-Backed Staff Accounts & Authorization**:
+   - In production, staff users must be provisioned in Supabase Auth (`auth.users`) and have an active row in `public.staff_profiles` with an allowed role (`PC_STAFF`, `BRANCH_MANAGER`, `HQ`, `ADMIN`).
+   - `authenticateStaff()` authenticates the user via unprivileged Supabase Auth client (`signInWithPassword`) and verifies active status and role in `public.staff_profiles`. Profiles are NEVER created automatically.
+   - If profile is missing, inactive, or holds an unauthorized role, login fails with `บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานระบบเจ้าหน้าที่`.
+4. **Session Cookie Issuance**:
+   - Upon successful Supabase Auth + `staff_profiles` authorization, `authenticateStaff()` issues the signed HttpOnly `meepro_staff_session` cookie via `signPayload()`.
+   - `getCurrentStaff()` and `authenticateCmsRequest()` verify the HMAC signature of this cookie or Bearer token, or verify Supabase Auth JWTs against `public.staff_profiles`.
 
