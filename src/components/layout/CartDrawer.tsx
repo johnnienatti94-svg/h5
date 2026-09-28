@@ -816,12 +816,12 @@ export default function CartDrawer() {
               {/* Order Summary Recap */}
               <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs text-xs space-y-1.5">
                 <div className="flex justify-between text-slate-600">
-                  <span>ยอดรวมสินค้า ({items.length} รายการ):</span>
+                  <span>ยอดเงินดาวน์รวม ({items.length} รายการ):</span>
                   <span>฿{subtotal.toLocaleString()}</span>
                 </div>
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-emerald-600 font-semibold">
-                    <span>ส่วนลดคูปอง:</span>
+                    <span>ส่วนลดค่าดาวน์:</span>
                     <span>-฿{discountAmount.toLocaleString()}</span>
                   </div>
                 )}
@@ -830,11 +830,11 @@ export default function CartDrawer() {
                   <span className="text-emerald-600 font-bold">ฟรี (฿0)</span>
                 </div>
                 <div className="flex justify-between pt-1 border-t border-slate-200 font-bold text-slate-900 text-sm">
-                  <span>ยอดสุทธิ:</span>
+                  <span>ยอดเงินดาวน์สุทธิ:</span>
                   <span className="text-[#FF6E00]">฿{totalPrice.toLocaleString()}</span>
                 </div>
                 <div className="text-[11px] text-slate-500 text-right">
-                  ผ่อน 0% (10 เดือน) ~ ฿{estimatedMonthlyInstallment.toLocaleString()}/ด.
+                  ผ่อน 0% ({items[0]?.product.installmentMonths || 24} เดือน) ~ ฿{estimatedMonthlyInstallment.toLocaleString()}/ด.
                 </div>
               </div>
             </div>
@@ -908,7 +908,7 @@ export default function CartDrawer() {
                     <h4 className={styles.itemName}>{product.name}</h4>
                     <div className={styles.itemPriceRow}>
                       <span className={styles.itemPrice}>
-                        ฿{product.promoPrice.toLocaleString()}
+                        ดาวน์ ฿{product.promoPrice.toLocaleString()}
                       </span>
                       {product.originalPrice > product.promoPrice && (
                         <span className={styles.itemOriginalPrice}>
@@ -917,8 +917,7 @@ export default function CartDrawer() {
                       )}
                     </div>
                     <div className={styles.installmentNote}>
-                      ผ่อน 0% {product.installmentMonths} ด. ~ ฿
-                      {Math.round(product.promoPrice / product.installmentMonths).toLocaleString()}/ด.
+                      ผ่อน 0% {product.installmentMonths || 24} ด.
                     </div>
 
                     {/* Quantity controls */}

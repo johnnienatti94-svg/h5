@@ -3,6 +3,7 @@
 import React from 'react';
 import { resolveProductsFromDataSource, DetailedProduct } from '@/lib/productsData';
 import { useCart } from '@/context/CartContext';
+import { calculateDownPayment, getLowestInstallmentPackage } from '@/lib/financing';
 
 interface Props {
   widget: {
@@ -26,6 +27,20 @@ export default function ProductCarouselWidget({ widget }: Props) {
   const cfg = widget.config || {};
   const products = resolveProductsFromDataSource(cfg.dataSource);
 
+  const handleAdd = (p: DetailedProduct) => {
+    const downInfo = calculateDownPayment(p.promoPrice);
+    const lowestPkg = getLowestInstallmentPackage(p.promoPrice, downInfo.downPayment);
+    addToCart(
+      {
+        ...p,
+        originalPrice: downInfo.originalDownPayment,
+        promoPrice: downInfo.downPayment,
+        installmentMonths: lowestPkg.months,
+      },
+      1
+    );
+  };
+
   return (
     <div className="w-full my-5">
       <div className="flex items-center justify-between mb-3 px-1">
@@ -44,42 +59,54 @@ export default function ProductCarouselWidget({ widget }: Props) {
 
       {/* Swipeable Carousel */}
       <div className="flex gap-3 overflow-x-auto no-scrollbar py-2 px-1 snap-x">
-        {products.map((p) => (
-          <div
-            key={p.id}
-            className="min-w-[170px] sm:min-w-[210px] snap-start rounded-2xl bg-white border border-[#E2E8F0] shadow-xs p-3 flex flex-col justify-between group hover:border-[#007ACC]/40 transition-all shrink-0"
-          >
-            <div>
-              <div className="relative aspect-square rounded-xl bg-slate-50 flex items-center justify-center text-4xl mb-2 overflow-hidden">
-                {p.badge && (
-                  <span className="absolute top-1.5 left-1.5 bg-[#FF6E00] text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-full">
-                    {p.badge}
-                  </span>
-                )}
-                <span>{p.imageUrl}</span>
-              </div>
-              <div className="text-[10px] font-bold text-[#007ACC] uppercase tracking-wider">{p.brand}</div>
-              <h3 className="text-xs font-bold text-[#0F172A] line-clamp-2 leading-snug mb-1">{p.name}</h3>
-            </div>
+        {products.map((p) => {
+          const downInfo = calculateDownPayment(p.promoPrice);
+          const lowestPkg = getLowestInstallmentPackage(p.promoPrice, downInfo.downPayment);
 
-            <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col gap-1">
-              <div className="flex items-baseline gap-1">
-                <span className="text-sm font-extrabold text-[#007ACC]">฿{p.promoPrice.toLocaleString()}</span>
-                {p.originalPrice > p.promoPrice && (
-                  <span className="text-[10px] text-slate-400 line-through">฿{p.originalPrice.toLocaleString()}</span>
-                )}
+          return (
+            <div
+              key={p.id}
+              className="min-w-[170px] sm:min-w-[210px] snap-start rounded-2xl bg-white border border-[#E2E8F0] shadow-xs p-3 flex flex-col justify-between group hover:border-[#FF6E00]/40 transition-all shrink-0"
+            >
+              <div>
+                <div className="relative aspect-square rounded-xl bg-slate-50 flex items-center justify-center text-4xl mb-2 overflow-hidden">
+                  {p.badge && (
+                    <span className="absolute top-1.5 left-1.5 bg-[#FF6E00] text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-full">
+                      {p.badge}
+                    </span>
+                  )}
+                  <span>{p.imageUrl}</span>
+                </div>
+                <div className="text-[10px] font-bold text-[#FF6E00] uppercase tracking-wider">{p.brand}</div>
+                <h3 className="text-xs font-bold text-[#0F172A] line-clamp-2 leading-snug mb-1">{p.name}</h3>
               </div>
-              <button
-                type="button"
-                onClick={() => addToCart(p, 1)}
-                className="mt-1 h-7 bg-slate-100 hover:bg-[#007ACC] text-[#0F172A] hover:text-white rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 active:scale-95"
-              >
-                <span className="material-symbols-outlined text-[14px]">add_shopping_cart</span>
-                <span>ใส่ตะกร้า</span>
-              </button>
+
+              <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col gap-1">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-extrabold text-[#142B4A]">
+                    ดาวน์ ฿{downInfo.downPayment.toLocaleString()}
+                  </span>
+                  {downInfo.originalDownPayment > downInfo.downPayment && (
+                    <span className="text-[10px] text-slate-400 line-through">
+                      ฿{downInfo.originalDownPayment.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] text-[#FF6E00] bg-[#FFF6EF] font-bold px-1.5 py-0.5 rounded self-start">
+                  ผ่อน ฿{lowestPkg.monthlyAmount.toLocaleString()}/ด. ({lowestPkg.months}ด.)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleAdd(p)}
+                  className="mt-1 h-7 bg-slate-100 hover:bg-[#FF6E00] text-[#0F172A] hover:text-white rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[14px]">add_shopping_cart</span>
+                  <span>ใส่ตะกร้า</span>
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

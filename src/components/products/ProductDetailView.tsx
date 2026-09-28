@@ -23,6 +23,11 @@ import type {
 import type { PublicBranch } from '@/features/branches/types';
 import { formatBaht } from '@/features/catalog/types';
 import { useCart } from '@/context/CartContext';
+import {
+  calculateDownPayment,
+  calculateInstallmentPackages,
+  InstallmentTerm,
+} from '@/lib/financing';
 import BranchDetailsDialog from '@/components/branches/BranchDetailsDialog';
 import styles from './ProductDetail.module.css';
 
@@ -36,14 +41,27 @@ export default function ProductDetailView({ product, availableBranches = [] }: P
     product.variants[0]
   );
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [selectedOfferIndex, setSelectedOfferIndex] = useState(0);
+  const [selectedTerm, setSelectedTerm] = useState<InstallmentTerm>(24);
   const [selectedBranchSlug, setSelectedBranchSlug] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const { addToCart } = useCart();
 
-  const activeOffer: PublicOfferVersion | undefined =
-    product.offers[selectedOfferIndex] || product.offers[0];
+  // Down payment and 6 installment packages (6, 9, 12, 15, 18, 24)
+  const downPaymentInfo = calculateDownPayment(
+    selectedVariant.cashPriceMinor,
+    (selectedVariant as any).downPaymentMinor,
+    (selectedVariant as any).originalDownPaymentMinor
+  );
+
+  const installmentPackages = calculateInstallmentPackages(
+    selectedVariant.cashPriceMinor,
+    downPaymentInfo.downPayment
+  );
+
+  const activePackage =
+    installmentPackages.find((p) => p.months === selectedTerm) ||
+    installmentPackages[installmentPackages.length - 1];
 
   const currentImage =
     product.images[selectedImageIndex] || product.images[0] || { url: '', alt: product.name };
@@ -64,7 +82,7 @@ export default function ProductDetailView({ product, availableBranches = [] }: P
   };
 
   const handleAddToCart = () => {
-    // Adapt to CartContext format
+    // Adapt to CartContext format with Down Payment as product price
     const cartItem = {
       id: selectedVariant.id,
       name: `${product.name} (${selectedVariant.name})`,
@@ -72,28 +90,25 @@ export default function ProductDetailView({ product, availableBranches = [] }: P
       categoryName: product.category.name,
       brand: (product.brand.name as any) || 'Apple',
       imageUrl: currentImage.url,
-      originalPrice: Math.round((selectedVariant.compareAtPriceMinor || selectedVariant.cashPriceMinor) / 100),
-      promoPrice: Math.round(selectedVariant.cashPriceMinor / 100),
-      discountPercent: selectedVariant.compareAtPriceMinor
-        ? Math.round(
-            ((selectedVariant.compareAtPriceMinor - selectedVariant.cashPriceMinor) /
-              selectedVariant.compareAtPriceMinor) *
-              100
-          )
-        : 0,
-      installmentMonths: activeOffer?.installmentCount || 10,
+      originalPrice: downPaymentInfo.originalDownPayment,
+      promoPrice: downPaymentInfo.downPayment,
+      discountPercent:
+        downPaymentInfo.downDiscount > 0
+          ? Math.round(
+              (downPaymentInfo.downDiscount / downPaymentInfo.originalDownPayment) * 100
+            )
+          : 0,
+      installmentMonths: activePackage.months,
       inStock: selectedVariant.isInStock,
       description: product.summary,
       specs: product.specs,
     };
 
     addToCart(cartItem, 1);
-    showToast(`เพิ่ม ${product.name} ลงในตะกร้าแล้ว`);
+    showToast(
+      `เพิ่ม ${product.name} ลงในตะกร้าแล้ว (เงินดาวน์ ฿${downPaymentInfo.downPayment.toLocaleString()})`
+    );
   };
-
-  const savingsMinor = selectedVariant.compareAtPriceMinor
-    ? selectedVariant.compareAtPriceMinor - selectedVariant.cashPriceMinor
-    : 0;
 
   return (
     <div className={styles.page}>
@@ -161,18 +176,28 @@ export default function ProductDetailView({ product, availableBranches = [] }: P
             <p className={styles.productSummary}>{product.summary}</p>
           </div>
 
-          {/* Cash Price Box */}
+          {/* Down Payment Box (Website never shows full cash price) */}
           <div className={styles.priceBox}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#FF6E00] uppercase tracking-wide">
+                เงินดาวน์รับเครื่อง (Down Payment)
+              </span>
+              <span className="text-[11px] font-semibold text-[#16A34A] bg-[#DCFCE7] px-2.5 py-0.5 rounded-full">
+                ผ่อน 0% เริ่มต้น {formatBaht(installmentPackages[installmentPackages.length - 1].monthlyAmountMinor)}/ด.
+              </span>
+            </div>
             <div className={styles.cashPriceRow}>
-              <span className={styles.cashPrice}>{formatBaht(selectedVariant.cashPriceMinor)}</span>
-              {selectedVariant.compareAtPriceMinor && (
+              <span className={styles.cashPrice}>
+                ดาวน์ {formatBaht(downPaymentInfo.downPaymentMinor)}
+              </span>
+              {downPaymentInfo.originalDownPaymentMinor > downPaymentInfo.downPaymentMinor && (
                 <span className={styles.compareAtPrice}>
-                  {formatBaht(selectedVariant.compareAtPriceMinor)}
+                  {formatBaht(downPaymentInfo.originalDownPaymentMinor)}
                 </span>
               )}
-              {savingsMinor > 0 && (
+              {downPaymentInfo.downDiscountMinor > 0 && (
                 <span className={styles.saveBadge}>
-                  ประหยัด {formatBaht(savingsMinor)}
+                  ลดค่าดาวน์ {formatBaht(downPaymentInfo.downDiscountMinor)}
                 </span>
               )}
             </div>
@@ -213,53 +238,79 @@ export default function ProductDetailView({ product, availableBranches = [] }: P
             </div>
           )}
 
-          {/* Immutable Versioned Offers Section */}
-          {product.offers.length > 0 && (
-            <div className={styles.offersContainer}>
-              <div className="flex items-center justify-between">
-                <span className={styles.selectorLabel}>แผนการผ่อนชำระ (ดอกเบี้ย 0%):</span>
-                <span className="text-xs font-semibold text-[#FF6E00]">ไม่ต้องใช้บัตรเครดิต</span>
+          {/* 6 Installment Packages Selection (6, 9, 12, 15, 18, 24 months) */}
+          <div className={styles.offersContainer}>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <span className={styles.selectorLabel}>เลือกแพ็กเกจผ่อนชำระ (ดอกเบี้ย 0%):</span>
+                <p className="text-xs text-[#64748B] mt-0.5">อนุมัติไว ไม่ต้องใช้บัตรเครดิต</p>
               </div>
+              <span className="text-[11px] font-bold text-[#FF6E00] bg-[#FFF6EF] border border-[#FFD9BD] px-2 py-0.5 rounded-md">
+                ค่างวดต่ำสุด 24 งวด
+              </span>
+            </div>
 
-              <div className="space-y-2">
-                {product.offers.map((offer, idx) => {
-                  const isSelected = idx === selectedOfferIndex;
-                  return (
-                    <div
-                      key={offer.id}
-                      className={`${styles.offerCard} ${isSelected ? styles.offerCardActive : ''}`}
-                      onClick={() => setSelectedOfferIndex(idx)}
-                      role="radio"
-                      aria-checked={isSelected}
-                    >
-                      <div className={styles.offerTop}>
-                        <span className={styles.offerTitle}>{offer.title}</span>
-                        <span className={styles.offerMonthly}>
-                          {formatBaht(offer.installmentAmountMinor)}/ด.
-                        </span>
-                      </div>
-                      <p className={styles.offerTerms}>{offer.terms}</p>
+            {/* Quick Term Selector: 6 9 12 15 18 24 months */}
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-3">
+              {installmentPackages.map((pkg) => {
+                const isSelected = pkg.months === selectedTerm;
+                return (
+                  <button
+                    key={pkg.months}
+                    type="button"
+                    onClick={() => setSelectedTerm(pkg.months)}
+                    className={`py-2 px-1 rounded-xl text-center border transition-all flex flex-col items-center justify-center relative ${
+                      isSelected
+                        ? 'border-[#FF6E00] bg-[#FFF6EF] text-[#FF6E00] font-bold shadow-xs ring-1 ring-[#FF6E00]'
+                        : 'border-[#CBD5E1] bg-white text-slate-700 hover:border-[#FF6E00]/60'
+                    }`}
+                  >
+                    {pkg.isLowestMonthly && (
+                      <span className="absolute -top-2 bg-[#FF6E00] text-white text-[9px] font-extrabold px-1.5 py-0.2 rounded-full shadow-xs">
+                        ต่ำสุด
+                      </span>
+                    )}
+                    <span className="text-xs font-black">{pkg.months} เดือน</span>
+                    <span className="text-[10px] mt-0.5 font-medium">
+                      {formatBaht(pkg.monthlyAmountMinor)}/ด.
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
-                      <div className={styles.offerBreakdown}>
-                        <div className={styles.breakdownItem}>
-                          <span>เงินดาวน์</span>
-                          <span>{formatBaht(offer.downPaymentMinor)}</span>
-                        </div>
-                        <div className={styles.breakdownItem}>
-                          <span>จำนวนงวด</span>
-                          <span>{offer.installmentCount} เดือน</span>
-                        </div>
-                        <div className={styles.breakdownItem}>
-                          <span>ยอดรวมทั้งสัญญา</span>
-                          <span>{formatBaht(offer.totalPayableMinor)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* Active Package Breakdown */}
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
+              <div className="flex items-center justify-between font-bold text-sm text-[#142B4A]">
+                <span>ค่างวดรายเดือน:</span>
+                <span className="text-base text-[#FF6E00] font-black">
+                  {formatBaht(activePackage.monthlyAmountMinor)} / เดือน
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 text-slate-600">
+                <div>
+                  เงินดาวน์รับเครื่อง:{' '}
+                  <strong className="text-slate-900 font-bold">
+                    {formatBaht(activePackage.downPaymentMinor)}
+                  </strong>
+                </div>
+                <div>
+                  ระยะเวลาสัญญา:{' '}
+                  <strong className="text-slate-900 font-bold">
+                    {activePackage.months} เดือน
+                  </strong>
+                </div>
+                <div>
+                  อัตราดอกเบี้ย:{' '}
+                  <strong className="text-[#16A34A] font-bold">0% ตลอดสัญญา</strong>
+                </div>
+                <div>
+                  เงื่อนไขสัญญา:{' '}
+                  <strong className="text-slate-900 font-bold">ไม่มีค่าธรรมเนียมแอบแฝง</strong>
+                </div>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Branch Availability Checker */}
           <div className={styles.branchSection}>
@@ -299,11 +350,13 @@ export default function ProductDetailView({ product, availableBranches = [] }: P
           {/* Primary Action Group */}
           <div className={styles.actionGroup}>
             <Link
-              href={`/apply?product=${product.slug}&variant=${selectedVariant.id}&offer=${activeOffer?.id || ''}`}
+              href={`/apply?product=${product.slug}&variant=${selectedVariant.id}&months=${activePackage.months}&down=${downPaymentInfo.downPayment}`}
               className={styles.applyButton}
             >
               <CreditCard size={20} />
-              <span>สมัครผ่อนสินค้าเครื่องนี้ (อนุมัติไว)</span>
+              <span>
+                สมัครผ่อนแพ็กเกจนี้ ({activePackage.months} เดือน • {formatBaht(activePackage.monthlyAmountMinor)}/ด.)
+              </span>
               <ArrowRight size={18} />
             </Link>
 

@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import { ProductShowcaseWidget as IProductShowcaseWidget, ProductItem } from '@/types/widget';
+import { calculateDownPayment, getLowestInstallmentPackage } from '@/lib/financing';
 import styles from './homeWidgets.module.css';
 
 interface Props {
@@ -79,22 +80,28 @@ export default function ProductShowcaseWidget({ widget }: Props) {
                   <div className={styles.productContent}>
                     <h3 className={styles.productName}>{product.name}</h3>
 
-                    <div className={styles.priceGroup}>
-                      <span className={styles.promoPrice}>
-                        ฿{product.promoPrice.toLocaleString()}
-                      </span>
-                      {product.originalPrice > product.promoPrice && (
-                        <span className={styles.originalPrice}>
-                          ฿{product.originalPrice.toLocaleString()}
-                        </span>
-                      )}
-                    </div>
+                    {(() => {
+                      const downInfo = calculateDownPayment(product.promoPrice);
+                      const lowestPkg = getLowestInstallmentPackage(product.promoPrice, downInfo.downPayment);
+                      return (
+                        <>
+                          <div className={styles.priceGroup}>
+                            <span className={styles.promoPrice}>
+                              ดาวน์ ฿{downInfo.downPayment.toLocaleString()}
+                            </span>
+                            {downInfo.originalDownPayment > downInfo.downPayment && (
+                              <span className={styles.originalPrice}>
+                                ฿{downInfo.originalDownPayment.toLocaleString()}
+                              </span>
+                            )}
+                          </div>
 
-                    {product.installmentMonths && (
-                      <span className={styles.installmentBadge}>
-                        ผ่อน 0% {product.installmentMonths} ด.
-                      </span>
-                    )}
+                          <span className={styles.installmentBadge}>
+                            ผ่อน ฿{lowestPkg.monthlyAmount.toLocaleString()}/ด. (0% {lowestPkg.months}ด.)
+                          </span>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               ))}

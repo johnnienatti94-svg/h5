@@ -24,6 +24,7 @@ import type {
 import type { PublicBranch } from '@/features/branches/types';
 import { formatBaht } from '@/features/catalog/types';
 import { useCart } from '@/context/CartContext';
+import { calculateDownPayment, getLowestInstallmentPackage } from '@/lib/financing';
 
 interface Props {
   initialData: PaginatedCatalogResult;
@@ -99,7 +100,12 @@ export default function ProductsCatalogView({ initialData, availableBranches = [
     setTimeout(() => setToastMessage(null), 2500);
   };
 
-  const handleQuickAdd = (e: React.MouseEvent, product: any) => {
+  const handleQuickAdd = (
+    e: React.MouseEvent,
+    product: any,
+    downInfo: { downPayment: number; originalDownPayment: number; downDiscount: number },
+    lowestPkg: { months: number; monthlyAmount: number }
+  ) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -111,16 +117,12 @@ export default function ProductsCatalogView({ initialData, availableBranches = [
         categoryName: product.categoryName || 'สมาร์ตโฟน',
         brand: product.brand || 'Apple',
         imageUrl: product.thumbnailUrl,
-        originalPrice: Math.round((product.compareAtPriceMinor || product.minCashPriceMinor) / 100),
-        promoPrice: Math.round(product.minCashPriceMinor / 100),
-        discountPercent: product.compareAtPriceMinor
-          ? Math.round(
-              ((product.compareAtPriceMinor - product.minCashPriceMinor) /
-                product.compareAtPriceMinor) *
-                100
-            )
+        originalPrice: downInfo.originalDownPayment,
+        promoPrice: downInfo.downPayment,
+        discountPercent: downInfo.downDiscount > 0
+          ? Math.round((downInfo.downDiscount / downInfo.originalDownPayment) * 100)
           : 0,
-        installmentMonths: product.bestInstallmentMonths || 10,
+        installmentMonths: lowestPkg.months,
         inStock: true,
         description: product.summary,
         specs: {},
@@ -128,7 +130,7 @@ export default function ProductsCatalogView({ initialData, availableBranches = [
       1
     );
 
-    showToast(`เพิ่ม ${product.name} ลงในตะกร้าแล้ว`);
+    showToast(`เพิ่ม ${product.name} ลงในตะกร้าแล้ว (เงินดาวน์ ฿${downInfo.downPayment.toLocaleString()})`);
   };
 
   return (
@@ -315,9 +317,12 @@ export default function ProductsCatalogView({ initialData, availableBranches = [
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
           {data.products.map((p) => {
-            const savings = p.compareAtPriceMinor
-              ? p.compareAtPriceMinor - p.minCashPriceMinor
-              : 0;
+            const downInfo = calculateDownPayment(
+              p.minCashPriceMinor,
+              (p as any).downPaymentMinor,
+              (p as any).originalDownPaymentMinor
+            );
+            const lowestPkg = getLowestInstallmentPackage(p.minCashPriceMinor, downInfo.downPayment);
 
             return (
               <Link
@@ -359,32 +364,30 @@ export default function ProductsCatalogView({ initialData, availableBranches = [
                   </div>
                 </div>
 
-                {/* Price & Installment */}
+                {/* Price & Installment: Down Payment & Lowest Monthly (Website never shows full price) */}
                 <div className="pt-3 mt-2 border-t border-[#F1F5F9] space-y-1.5">
                   <div className="flex items-baseline gap-1.5">
                     <span className="text-base sm:text-lg font-extrabold text-[#142B4A]">
-                      {formatBaht(p.minCashPriceMinor)}
+                      ดาวน์ {formatBaht(downInfo.downPaymentMinor)}
                     </span>
-                    {p.compareAtPriceMinor && (
+                    {downInfo.originalDownPaymentMinor > downInfo.downPaymentMinor && (
                       <span className="text-[11px] text-[#94A3B8] line-through">
-                        {formatBaht(p.compareAtPriceMinor)}
+                        {formatBaht(downInfo.originalDownPaymentMinor)}
                       </span>
                     )}
                   </div>
 
-                  {p.bestInstallmentMonthlyMinor && (
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FFF6EF] text-[#FF6E00] text-[11px] font-bold">
-                      <span>ผ่อน {formatBaht(p.bestInstallmentMonthlyMinor)}/ด.</span>
-                      <span className="text-[10px] text-[#C94F00]">
-                        (0% {p.bestInstallmentMonths}ด.)
-                      </span>
-                    </div>
-                  )}
+                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FFF6EF] text-[#FF6E00] text-[11px] font-bold">
+                    <span>ผ่อน {formatBaht(lowestPkg.monthlyAmountMinor)}/ด.</span>
+                    <span className="text-[10px] text-[#C94F00]">
+                      (0% {lowestPkg.months}ด.)
+                    </span>
+                  </div>
 
                   {/* Quick Actions */}
                   <button
                     type="button"
-                    onClick={(e) => handleQuickAdd(e, p)}
+                    onClick={(e) => handleQuickAdd(e, p, downInfo, lowestPkg)}
                     className="w-full mt-2 h-9 rounded-xl bg-[#F1F5F9] hover:bg-[#FF6E00] hover:text-white text-[#142B4A] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <ShoppingCart size={15} />
