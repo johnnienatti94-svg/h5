@@ -77,8 +77,10 @@ export async function requestCustomerOtp(phoneInput: string): Promise<{
     };
   }
 
-  // In production, reject if real SMS transport is not configured
-  if (isProduction && !process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SMS_PROVIDER_API_KEY && !process.env.SMS_KUB_API_KEY) {
+  const isBypassPhone = normalized.national === '0851780999';
+
+  // In production, reject if real SMS transport is not configured (unless bypass phone)
+  if (isProduction && !isBypassPhone && !process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SMS_PROVIDER_API_KEY && !process.env.SMS_KUB_API_KEY) {
     return {
       success: false,
       code: 'CONFIG_ERROR',
@@ -88,10 +90,10 @@ export async function requestCustomerOtp(phoneInput: string): Promise<{
 
   // Designated test numbers for automated e2e testing or explicit test flag
   const isTestPhone = normalized.national.startsWith('0891234') || normalized.national.startsWith('089333') || normalized.national.startsWith('081234');
-  const allowDevCode = !isProduction || process.env.ALLOW_TEST_OTP === 'true' || isTestPhone;
+  const allowDevCode = !isProduction || process.env.ALLOW_TEST_OTP === 'true' || isTestPhone || isBypassPhone;
 
-  // Generate 6-digit OTP code
-  const code = allowDevCode ? '123456' : crypto.randomInt(100000, 999999).toString();
+  // Generate 6-digit OTP code (000000 for 0851780999 bypass)
+  const code = isBypassPhone ? '000000' : (allowDevCode ? '123456' : crypto.randomInt(100000, 999999).toString());
 
   otpStore.set(normalized.e164, {
     phone: normalized.national,
@@ -111,7 +113,9 @@ export async function requestCustomerOtp(phoneInput: string): Promise<{
 
   return {
     success: true,
-    message: 'ระบบได้ส่งรหัส OTP 6 หลักไปยังหมายเลขโทรศัพท์ของคุณแล้ว',
+    message: isBypassPhone
+      ? 'ระบบได้ส่งรหัส OTP ไปยังหมายเลขของคุณแล้ว (รหัสบายพาส: 000000)'
+      : 'ระบบได้ส่งรหัส OTP 6 หลักไปยังหมายเลขโทรศัพท์ของคุณแล้ว',
     cooldownRemaining: OTP_COOLDOWN_SECONDS,
     devCode: allowDevCode ? code : undefined,
   };
@@ -145,10 +149,11 @@ export async function verifyCustomerOtp(
     };
   }
 
+  const isBypass = normalized.national === '0851780999' && otpCode.trim() === '000000';
   const now = Date.now();
   const challenge = otpStore.get(normalized.e164);
 
-  if (!challenge) {
+  if (!challenge && !isBypass) {
     return {
       success: false,
       code: 'NO_CHALLENGE',
@@ -156,7 +161,7 @@ export async function verifyCustomerOtp(
     };
   }
 
-  if (now > challenge.expiresAt) {
+  if (challenge && now > challenge.expiresAt && !isBypass) {
     otpStore.delete(normalized.e164);
     return {
       success: false,
@@ -165,7 +170,7 @@ export async function verifyCustomerOtp(
     };
   }
 
-  if (challenge.attempts >= challenge.maxAttempts) {
+  if (challenge && challenge.attempts >= challenge.maxAttempts && !isBypass) {
     otpStore.delete(normalized.e164);
     return {
       success: false,
@@ -175,22 +180,31 @@ export async function verifyCustomerOtp(
   }
 
   // Validate OTP code
-  const isMatch = challenge.code === otpCode.trim();
+  const isMatch = isBypass || (challenge ? challenge.code === otpCode.trim() : false);
   if (!isMatch) {
-    challenge.attempts += 1;
-    const remaining = challenge.maxAttempts - challenge.attempts;
+    if (challenge) {
+      challenge.attempts += 1;
+      const remaining = challenge.maxAttempts - challenge.attempts;
+      return {
+        success: false,
+        code: 'INVALID_OTP',
+        message: remaining > 0
+          ? `รหัส OTP ไม่ถูกต้อง (เหลือโอกาสอีก ${remaining} ครั้ง)`
+          : 'กรอกรหัสผิดเกินจำนวนครั้งที่กำหนด กรุณาขอรหัสใหม่อีกครั้ง',
+      };
+    }
     return {
       success: false,
       code: 'INVALID_OTP',
-      message: remaining > 0
-        ? `รหัส OTP ไม่ถูกต้อง (เหลือโอกาสอีก ${remaining} ครั้ง)`
-        : 'กรอกรหัสผิดเกินจำนวนครั้งที่กำหนด กรุณาขอรหัสใหม่อีกครั้ง',
+      message: 'รหัส OTP ไม่ถูกต้อง',
     };
   }
 
   // OTP verified successfully!
-  challenge.verified = true;
-  otpStore.delete(normalized.e164);
+  if (challenge) {
+    challenge.verified = true;
+    otpStore.delete(normalized.e164);
+  }
 
   // Generate or derive stable customer UUID based on normalized e164
   const userNamespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
