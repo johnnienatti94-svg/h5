@@ -123,13 +123,13 @@ export async function requestCustomerOtp(phoneInput: string): Promise<{
 export async function verifyCustomerOtp(
   phoneInput: string,
   otpCode: string,
-  _options?: {
+  options?: {
     privacyAccepted?: boolean;
     privacyPolicyVersion?: string;
     userAgent?: string;
     ipAddress?: string;
+    name?: string;
   }
-
 ): Promise<{
   success: boolean;
   code?: string;
@@ -197,11 +197,14 @@ export async function verifyCustomerOtp(
   const userId = crypto.createHash('sha256').update(`${userNamespace}:${normalized.e164}`).digest('hex').slice(0, 32);
   const formattedUserId = `${userId.slice(0, 8)}-${userId.slice(8, 12)}-4${userId.slice(13, 16)}-8${userId.slice(17, 20)}-${userId.slice(20, 32)}`;
 
+  const contactName = options?.name?.trim() || null;
+
   const user: CustomerSessionUser = {
     id: formattedUserId,
     phone: normalized.national,
     e164: normalized.e164,
     phoneVerified: true,
+    contactName,
     createdAt: new Date().toISOString(),
   };
 
@@ -210,6 +213,7 @@ export async function verifyCustomerOtp(
     userId: user.id,
     phone: user.phone,
     e164: user.e164,
+    contactName,
     issuedAt: now,
     expiresAt: now + SESSION_TTL_SECONDS * 1000,
   };
@@ -247,6 +251,7 @@ export async function getCurrentCustomer(): Promise<CustomerSessionUser | null> 
       phone: payload.phone,
       e164: payload.e164,
       phoneVerified: true,
+      contactName: payload.contactName || null,
       createdAt: new Date(payload.issuedAt).toISOString(),
     };
   } catch {

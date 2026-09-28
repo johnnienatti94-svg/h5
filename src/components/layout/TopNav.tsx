@@ -45,14 +45,6 @@ export default function TopNav() {
             </div>
           </Link>
 
-          <nav className={styles.desktopNav} aria-label="เมนูหลัก">
-            <Link href="/products">สินค้า</Link>
-            <Link href="/services">บริการ</Link>
-            <Link href="/promotions">โปรโมชั่น</Link>
-            <Link href="/stores">Store</Link>
-            <Link href="/account">บัญชี</Link>
-          </nav>
-
           {/* Right Action Icons: Notification & Shopping Cart */}
           <div className={styles.rightActions}>
             {/* Notification Bell */}

@@ -22,11 +22,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (
-      !PRIVACY_POLICY_CONFIGURED ||
-      body.privacyAccepted !== true ||
-      body.privacyPolicyVersion !== PRIVACY_POLICY_VERSION
-    ) {
+    const privacyAccepted = body.privacyAccepted === true || body.consent === true;
+    if (!privacyAccepted) {
       return NextResponse.json(
         {
           success: false,
@@ -40,8 +37,9 @@ export async function POST(req: NextRequest) {
     // 1. Try server customerAuth verification first
     const serverResult = await verifyCustomerOtp(normalizedPhone.national, body.code, {
       privacyAccepted: true,
-      privacyPolicyVersion: body.privacyPolicyVersion,
+      privacyPolicyVersion: body.privacyPolicyVersion || PRIVACY_POLICY_VERSION,
       userAgent: req.headers.get('user-agent') || undefined,
+      name: typeof body.name === 'string' ? body.name : undefined,
     });
 
     if (serverResult.success && serverResult.user) {
@@ -70,6 +68,7 @@ export async function POST(req: NextRequest) {
           id: serverResult.user.id,
           phone: formatThaiPhone(normalizedPhone.national),
           phone_verified: true,
+          contactName: serverResult.user.contactName || null,
         },
       });
     }

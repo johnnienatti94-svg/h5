@@ -22,6 +22,7 @@ export interface CustomerAuthPayload {
   userId: string;
   phone: string;
   e164: string;
+  contactName?: string | null;
   issuedAt: number;
   expiresAt: number;
 }

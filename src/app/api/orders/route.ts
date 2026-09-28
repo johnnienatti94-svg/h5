@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { token, customer, paymentMethod, installmentMonths } = body;
+    const { token, customer, fulfillment, paymentMethod, installmentMonths } = body;
 
     const result = createOrderWithIdempotency({
       idempotencyKey,
@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
         name: 'ลูกค้าทั่วไป (Customer)',
         phone: '081-234-5678',
       },
+      fulfillment,
       paymentMethod: paymentMethod || 'installment_kbank',
       installmentMonths,
     });

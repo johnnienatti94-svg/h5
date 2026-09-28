@@ -94,6 +94,16 @@ export interface CheckoutQuote {
   };
 }
 
+export interface OrderFulfillment {
+  type: 'pickup' | 'delivery';
+  branchId?: string;
+  branchName?: string;
+  branchAddress?: string;
+  appointmentDate?: string;
+  appointmentTime?: string;
+  deliveryAddress?: string;
+}
+
 export interface OrderRecord {
   orderId: string;
   idempotencyKey: string;
@@ -103,6 +113,7 @@ export interface OrderRecord {
     phone: string;
     address?: string;
   };
+  fulfillment?: OrderFulfillment;
   paymentMethod: string;
   items: ValidatedLineItem[];
   subtotal: number;
@@ -303,10 +314,11 @@ export function createOrderWithIdempotency(params: {
     phone: string;
     address?: string;
   };
+  fulfillment?: OrderFulfillment;
   paymentMethod: string;
   installmentMonths?: number;
 }): { success: true; order: OrderRecord; idempotent: boolean } | { success: false; error: string; code: string } {
-  const { idempotencyKey, token, customer, paymentMethod, installmentMonths } = params;
+  const { idempotencyKey, token, customer, fulfillment, paymentMethod, installmentMonths } = params;
 
   if (!idempotencyKey || idempotencyKey.trim().length < 8) {
     return { success: false, error: 'Idempotency-Key header หรือพารามิเตอร์ไม่ถูกต้อง', code: 'INVALID_IDEMPOTENCY_KEY' };
@@ -352,6 +364,7 @@ export function createOrderWithIdempotency(params: {
     idempotencyKey,
     quoteId: quote.quoteId,
     customer,
+    fulfillment,
     paymentMethod: paymentMethod || 'installment_kbank',
     items: quote.items,
     subtotal: quote.subtotal,

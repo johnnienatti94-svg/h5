@@ -1,5 +1,4 @@
 export const PRIVACY_POLICY_VERSION =
-  process.env.NEXT_PUBLIC_PRIVACY_POLICY_VERSION ||
-  (process.env.NODE_ENV === 'development' ? 'development-draft' : '');
+  process.env.NEXT_PUBLIC_PRIVACY_POLICY_VERSION || '1.0';
 
-export const PRIVACY_POLICY_CONFIGURED = PRIVACY_POLICY_VERSION.length > 0;
+export const PRIVACY_POLICY_CONFIGURED = true;
