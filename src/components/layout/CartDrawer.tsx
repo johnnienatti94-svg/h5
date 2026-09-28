@@ -143,6 +143,59 @@ export default function CartDrawer() {
     return () => window.clearTimeout(timer);
   }, [loginStep, loginCooldown]);
 
+  // Auto-sync customer details from logged-in session as default
+  useEffect(() => {
+    let active = true;
+
+    async function syncLoginUser() {
+      // 1. Check local storage cache for instant prefill
+      if (typeof window !== 'undefined') {
+        try {
+          const authRaw = localStorage.getItem('meepro_customer_auth');
+          if (authRaw) {
+            const parsed = JSON.parse(authRaw);
+            if (parsed.phone && active) {
+              const cleanP = parsed.phone.replace(/\D/g, '');
+              setCustomerPhone((prev) => prev || cleanP);
+              setLoginPhone((prev) => prev || cleanP);
+            }
+            if (parsed.contactName && active) {
+              setCustomerName((prev) => prev || parsed.contactName);
+              setLoginName((prev) => prev || parsed.contactName);
+            }
+          }
+          const storedName = localStorage.getItem('meepro_customer_name');
+          if (storedName && active) {
+            setCustomerName((prev) => prev || storedName);
+            setLoginName((prev) => prev || storedName);
+          }
+        } catch {}
+      }
+
+      // 2. Query session from server
+      const user = await getAuthUser();
+      if (active && user) {
+        if (user.phone) {
+          const cleanP = user.phone.replace(/\D/g, '');
+          setCustomerPhone((prev) => prev || cleanP);
+          setLoginPhone((prev) => prev || cleanP);
+        }
+        if (user.contactName) {
+          setCustomerName((prev) => prev || user.contactName || '');
+          setLoginName((prev) => prev || user.contactName || '');
+        }
+      }
+    }
+
+    if (isCartOpen) {
+      void syncLoginUser();
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [isCartOpen, checkoutStep]);
+
   if (!isCartOpen) return null;
 
   const handleApplyCoupon = (codeToApply?: string) => {
@@ -170,9 +223,15 @@ export default function CartDrawer() {
       return;
     }
 
-    // Prefill customer details
-    setCustomerName(user.contactName || (typeof window !== 'undefined' ? localStorage.getItem('meepro_customer_name') : '') || '');
-    setCustomerPhone(user.phone || '');
+    // Prefill customer details with login account info as default
+    const cleanUserPhone = (user.phone || '').replace(/\D/g, '');
+    const userDisplayName =
+      user.contactName ||
+      (typeof window !== 'undefined' ? localStorage.getItem('meepro_customer_name') : '') ||
+      'ลูกค้า MeePro';
+
+    setCustomerName((prev) => prev || userDisplayName);
+    setCustomerPhone(cleanUserPhone || customerPhone);
     setCheckoutStep('fulfillment');
   };
 
@@ -727,7 +786,12 @@ export default function CartDrawer() {
 
               {/* Customer Contact Details */}
               <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
-                <h4 className="text-xs font-bold text-slate-800">ข้อมูลผู้สั่งซื้อ (แอดมินจะโทรติดต่อกลับ)</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-800">ข้อมูลผู้สั่งซื้อ (แอดมินจะโทรติดต่อกลับ)</h4>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md font-semibold">
+                    ✓ ดึงเบอร์จากบัญชีเข้าสู่ระบบ
+                  </span>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
@@ -741,7 +805,10 @@ export default function CartDrawer() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] text-slate-500 mb-0.5">เบอร์โทรติดต่อกลับ</label>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <label className="text-[11px] text-slate-500">เบอร์โทรติดต่อกลับ</label>
+                      <span className="text-[10px] text-slate-400 font-normal">ค่าเริ่มต้นจากเบอร์ที่ล็อกอิน</span>
+                    </div>
                     <input
                       type="tel"
                       value={customerPhone}
