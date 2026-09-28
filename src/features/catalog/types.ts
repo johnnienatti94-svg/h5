@@ -56,6 +56,11 @@ export interface PublicBranchStock {
   publicNote?: string | null;
 }
 
+export interface ProductTag {
+  label: string;
+  icon?: string;
+}
+
 export interface PublicProductSummary {
   id: string;
   slug: string;
@@ -75,6 +80,8 @@ export interface PublicProductSummary {
   bestInstallmentMonthlyMinor?: number;
   hasZeroPercent: boolean;
   badge?: string | null;
+  badges?: string[];
+  tags?: ProductTag[];
   publishedAt: string;
 }
 
@@ -96,6 +103,9 @@ export interface PublicProductDetail {
   branchAvailability: Record<string, PublicBranchStock[]>; // variantId -> PublicBranchStock[]
   specs: Record<string, string>;
   warranty: string;
+  badge?: string | null;
+  badges?: string[];
+  tags?: ProductTag[];
   publishedAt: string;
 }
 

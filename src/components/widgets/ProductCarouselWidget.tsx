@@ -70,11 +70,32 @@ export default function ProductCarouselWidget({ widget }: Props) {
             >
               <div>
                 <div className="relative aspect-square rounded-xl bg-slate-50 flex items-center justify-center text-4xl mb-2 overflow-hidden">
-                  {p.badge && (
-                    <span className="absolute top-1.5 left-1.5 bg-[#FF6E00] text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-full">
-                      {p.badge}
-                    </span>
-                  )}
+                  {(() => {
+                    const anyP = p as any;
+                    const tagsList = (anyP.tags && anyP.tags.length > 0)
+                      ? anyP.tags
+                      : (anyP.badges && anyP.badges.length > 0)
+                      ? anyP.badges.map((b: string) => ({ label: b }))
+                      : p.badge
+                      ? [{ label: p.badge }]
+                      : [];
+
+                    if (tagsList.length === 0) return null;
+
+                    return (
+                      <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1 items-start max-w-[85%] pointer-events-none">
+                        {tagsList.slice(0, 3).map((tag: any, tIdx: number) => (
+                          <span
+                            key={tIdx}
+                            className="inline-flex items-center gap-0.5 bg-[#FF6E00] text-white text-[7px] sm:text-[8px] font-extrabold px-1.5 py-0.5 rounded-full shadow-xs whitespace-nowrap leading-tight"
+                          >
+                            {tag.icon && <span>{tag.icon}</span>}
+                            <span>{tag.label}</span>
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
                   <span>{p.imageUrl}</span>
                 </div>
                 <div className="text-[10px] font-bold text-[#FF6E00] uppercase tracking-wider">{p.brand}</div>

@@ -6,6 +6,7 @@ import type {
   CatalogFilterParams,
   PaginatedCatalogResult,
   ProductCondition,
+  ProductTag,
 } from '@/features/catalog/types';
 import { DEV_PRODUCTS, DEV_BRANDS, DEV_CATEGORIES } from '@/server/fixtures/devCatalog';
 
@@ -124,6 +125,18 @@ export function filterAndPaginateProducts(
     const maxCash = Math.max(...p.variants.map((v) => v.cashPriceMinor));
     const bestOffer = p.offers[0];
 
+    const tags: ProductTag[] = p.tags && p.tags.length > 0
+      ? p.tags
+      : p.badges && p.badges.length > 0
+      ? p.badges.map((b): ProductTag => ({ label: b }))
+      : p.variants[0]?.condition === 'used'
+      ? [{ label: 'มือสองเกรด A', icon: '⭐' }]
+      : [{ label: 'แนะนำ', icon: '🔥' }, { label: 'ประกันศูนย์', icon: '🛡️' }];
+
+    const badges = p.badges && p.badges.length > 0
+      ? p.badges
+      : tags.map((t) => (t.icon ? `${t.icon} ${t.label}` : t.label));
+
     return {
       id: p.id,
       slug: p.slug,
@@ -142,7 +155,9 @@ export function filterAndPaginateProducts(
       bestInstallmentMonths: bestOffer?.installmentCount,
       bestInstallmentMonthlyMinor: bestOffer?.installmentAmountMinor,
       hasZeroPercent: (p.offers || []).some((o) => o.installmentCount > 0),
-      badge: p.variants[0]?.condition === 'used' ? 'มือสองเกรด A' : 'ผ่อน 0%',
+      badge: badges[0] || null,
+      badges,
+      tags,
       publishedAt: p.publishedAt,
     };
   });
@@ -183,6 +198,8 @@ export interface CreateProductInput {
   monthlyFromBaht?: number;
   installmentMonths?: number[];
   inStock?: boolean;
+  tags?: (ProductTag | string)[];
+  badges?: string[];
 }
 
 export function createProduct(input: CreateProductInput): {
@@ -283,6 +300,13 @@ export function createProduct(input: CreateProductInput): {
     branchAvailability: {},
     specs: {},
     warranty: 'ประกันศูนย์ไทย 1 ปีเต็ม',
+    tags: ((input.tags || (input.badges ? input.badges.map((b) => ({ label: b })) : [])) as Array<ProductTag | string>)
+      .slice(0, 3)
+      .map((t: ProductTag | string): ProductTag => (typeof t === 'string' ? { label: t.trim() } : { label: t.label.trim(), icon: t.icon?.trim() }))
+      .filter((t) => t.label.length > 0),
+    badges: (input.badges || (input.tags ? (input.tags as Array<ProductTag | string>).map((t) => (typeof t === 'string' ? t.trim() : (t.icon ? `${t.icon} ${t.label}` : t.label))) : []))
+      .slice(0, 3)
+      .filter(Boolean),
     publishedAt: new Date().toISOString(),
   };
 
@@ -334,6 +358,25 @@ export function updateProduct(
     ? [{ url: input.imageUrl, alt: input.name || existing.name, displayOrder: 1 }]
     : existing.images;
 
+  const rawTags = input.tags !== undefined
+    ? input.tags
+    : input.badges !== undefined
+    ? input.badges.map((b) => ({ label: b }))
+    : existing.tags;
+
+  const normalizedTags: ProductTag[] | undefined = rawTags
+    ? (rawTags as Array<ProductTag | string>)
+        .slice(0, 3)
+        .map((t: ProductTag | string): ProductTag => (typeof t === 'string' ? { label: t.trim() } : { label: t.label.trim(), icon: t.icon?.trim() }))
+        .filter((t) => t.label.length > 0)
+    : undefined;
+
+  const updatedBadges = normalizedTags
+    ? normalizedTags.map((t) => (t.icon ? `${t.icon} ${t.label}` : t.label))
+    : input.badges !== undefined
+    ? input.badges.slice(0, 3).filter(Boolean)
+    : existing.badges;
+
   const updated: PublicProductDetail = {
     ...existing,
     name: input.name !== undefined ? input.name.trim() : existing.name,
@@ -343,6 +386,9 @@ export function updateProduct(
     summary: input.summary !== undefined ? input.summary.trim() : existing.summary,
     description: input.description !== undefined ? input.description.trim() : existing.description,
     images,
+    tags: normalizedTags !== undefined ? normalizedTags : existing.tags,
+    badges: updatedBadges !== undefined ? updatedBadges : existing.badges,
+    badge: (updatedBadges && updatedBadges[0]) || null,
     variants: existing.variants.map((v, i) =>
       i === 0
         ? {

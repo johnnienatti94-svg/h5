@@ -52,6 +52,11 @@ export const DEV_PRODUCTS: PublicProductDetail[] = [
     category: DEV_CATEGORIES[0], // smartphone
     summary: 'ดีไซน์ไทเทเนียมเกรด 5 ชิป A18 Pro ทรงพลัง ปุ่ม Camera Control ใหม่ และระบบกล้องระดับสตูดิโอ 48MP',
     description: 'iPhone 16 Pro มาพร้อมกับวัสดุไทเทเนียมสุดแกร่ง หน้าจอ Super Retina XDR 6.3 นิ้ว ProMotion 120Hz ชิปประมวลผล Apple A18 Pro กล้อง Fusion 48MP ซูมออปติคัล 5 เท่า รองรับ 0% นานสูงสุด 24 เดือน',
+    tags: [
+      { label: 'HOT', icon: '🔥' },
+      { label: 'แนะนำ', icon: '⭐' },
+      { label: 'ประกันศูนย์', icon: '🛡️' },
+    ],
     images: [
       { url: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=800&q=80', alt: 'iPhone 16 Pro Desert Titanium ด้านหน้า', displayOrder: 1 },
       { url: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=800&q=80', alt: 'iPhone 16 Pro มุมข้างไทเทเนียม', displayOrder: 2 },
@@ -467,6 +472,16 @@ export function toProductSummary(product: PublicProductDetail): PublicProductSum
   const maxCash = Math.max(...product.variants.map((v) => v.cashPriceMinor));
   const bestOffer = product.offers[0];
 
+  const tags = product.tags && product.tags.length > 0
+    ? product.tags
+    : product.variants[0]?.condition === 'used'
+    ? [{ label: 'มือสองเกรด A', icon: '⭐' }]
+    : [{ label: 'แนะนำ', icon: '🔥' }, { label: 'ประกันศูนย์', icon: '🛡️' }];
+
+  const badges = product.badges && product.badges.length > 0
+    ? product.badges
+    : tags.map((t) => (t.icon ? `${t.icon} ${t.label}` : t.label));
+
   return {
     id: product.id,
     slug: product.slug,
@@ -485,7 +500,9 @@ export function toProductSummary(product: PublicProductDetail): PublicProductSum
     bestInstallmentMonths: bestOffer?.installmentCount,
     bestInstallmentMonthlyMinor: bestOffer?.installmentAmountMinor,
     hasZeroPercent: product.offers.some((o) => o.installmentCount > 0),
-    badge: product.variants[0]?.condition === 'used' ? 'มือสองเกรด A' : 'ผ่อน 0%',
+    badge: badges[0] || null,
+    badges,
+    tags,
     publishedAt: product.publishedAt,
   };
 }

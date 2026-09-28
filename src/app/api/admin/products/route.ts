@@ -29,6 +29,8 @@ export async function GET() {
       monthlyFromMinor: minMonthlyMinor,
       isInStock: p.variants.some((v) => v.isInStock),
       variantsCount: p.variants.length,
+      tags: p.tags || [],
+      badges: p.badges || [],
       publishedAt: p.publishedAt,
     };
   });

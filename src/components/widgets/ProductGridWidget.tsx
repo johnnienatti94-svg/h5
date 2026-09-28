@@ -89,11 +89,32 @@ export default function ProductGridWidget({ widget }: Props) {
               <div>
                 {/* Media / Emoji Preview with Badge */}
                 <div className="relative aspect-square rounded-xl bg-slate-50 flex items-center justify-center text-5xl mb-2.5 overflow-hidden">
-                  {p.badge && (
-                    <span className="absolute top-2 left-2 bg-[#FF6E00] text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full shadow-xs">
-                      {p.badge}
-                    </span>
-                  )}
+                  {(() => {
+                    const anyP = p as any;
+                    const tagsList = (anyP.tags && anyP.tags.length > 0)
+                      ? anyP.tags
+                      : (anyP.badges && anyP.badges.length > 0)
+                      ? anyP.badges.map((b: string) => ({ label: b }))
+                      : p.badge
+                      ? [{ label: p.badge }]
+                      : [];
+
+                    if (tagsList.length === 0) return null;
+
+                    return (
+                      <div className="absolute top-2 left-2 z-10 flex flex-col gap-1 items-start max-w-[85%] pointer-events-none">
+                        {tagsList.slice(0, 3).map((tag: any, tIdx: number) => (
+                          <span
+                            key={tIdx}
+                            className="inline-flex items-center gap-1 bg-[#FF6E00] text-white text-[8px] sm:text-[9px] font-extrabold px-2 py-0.5 rounded-full shadow-xs whitespace-nowrap leading-tight"
+                          >
+                            {tag.icon && <span>{tag.icon}</span>}
+                            <span>{tag.label}</span>
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
                   <span className="group-hover:scale-110 transition-transform duration-300">
                     {p.imageUrl}
                   </span>

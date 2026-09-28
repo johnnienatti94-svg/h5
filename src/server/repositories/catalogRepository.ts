@@ -237,7 +237,17 @@ function filterAndPaginateDevProducts(
         bestInstallmentMonths: bestOffer?.installmentCount,
         bestInstallmentMonthlyMinor: bestOffer?.installmentAmountMinor,
         hasZeroPercent: p.offers.some((o) => o.installmentCount > 0),
-        badge: p.variants[0]?.condition === 'used' ? 'มือสองเกรด A' : 'ผ่อน 0%',
+        tags: p.tags && p.tags.length > 0
+          ? p.tags
+          : p.badges && p.badges.length > 0
+          ? p.badges.map((b) => ({ label: b }))
+          : p.variants[0]?.condition === 'used'
+          ? [{ label: 'มือสองเกรด A', icon: '⭐' }]
+          : [{ label: 'แนะนำ', icon: '🔥' }, { label: 'ประกันศูนย์', icon: '🛡️' }],
+        badges: p.badges && p.badges.length > 0
+          ? p.badges
+          : (p.tags || []).map((t) => (t.icon ? `${t.icon} ${t.label}` : t.label)),
+        badge: (p.badges && p.badges[0]) || (p.tags && p.tags[0]?.label) || null,
         publishedAt: p.publishedAt,
       };
     }),

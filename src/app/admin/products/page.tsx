@@ -17,8 +17,28 @@ import {
   Layers,
   ArrowUpDown,
   Image as ImageIcon,
+  Tag,
+  Sparkles,
 } from 'lucide-react';
 import { formatBaht } from '@/lib/currency';
+
+export interface ProductTag {
+  label: string;
+  icon?: string;
+}
+
+const PRESET_TAGS: ProductTag[] = [
+  { label: 'HOT', icon: '🔥' },
+  { label: 'แนะนำ', icon: '⭐' },
+  { label: 'ประกันศูนย์', icon: '🛡️' },
+  { label: 'พร้อมส่ง', icon: '📦' },
+  { label: 'ส่งฟรี', icon: '🚚' },
+  { label: 'เกรดพรีเมียม', icon: '💎' },
+  { label: 'สินค้าใหม่', icon: '⚡' },
+  { label: 'ลดพิเศษ', icon: '🏷️' },
+];
+
+const PRESET_ICONS = ['🔥', '⭐', '⚡', '🛡️', '📦', '🚚', '💎', '🏷️', '✨', '📱', '🎧', '💯'];
 
 interface ProductItem {
   id: string;
@@ -35,6 +55,8 @@ interface ProductItem {
   monthlyFromMinor?: number;
   isInStock?: boolean;
   variantsCount?: number;
+  tags?: ProductTag[];
+  badges?: string[];
 }
 
 interface ProductFormData {
@@ -49,6 +71,7 @@ interface ProductFormData {
   basePriceBaht: number;
   monthlyFromBaht: number;
   inStock: boolean;
+  tags: ProductTag[];
 }
 
 const EMPTY_PRODUCT_FORM: ProductFormData = {
@@ -62,6 +85,9 @@ const EMPTY_PRODUCT_FORM: ProductFormData = {
   basePriceBaht: 25900,
   monthlyFromBaht: 2590,
   inStock: true,
+  tags: [
+    { label: 'แนะนำ', icon: '🔥' },
+  ],
 };
 
 const BRANDS_LIST = [
@@ -129,6 +155,12 @@ export default function AdminProductsPage() {
     const priceBaht = Math.round(p.basePriceMinor / 100);
     const monthlyBaht = p.monthlyFromMinor ? Math.round(p.monthlyFromMinor / 100) : Math.round(priceBaht / 10);
 
+    const tags = (p.tags && p.tags.length > 0)
+      ? p.tags
+      : (p.badges && p.badges.length > 0)
+      ? p.badges.map((b) => ({ label: b }))
+      : [];
+
     setFormData({
       id: p.id,
       name: p.name,
@@ -141,6 +173,7 @@ export default function AdminProductsPage() {
       basePriceBaht: priceBaht,
       monthlyFromBaht: monthlyBaht,
       inStock: p.isInStock !== undefined ? p.isInStock : true,
+      tags: tags.slice(0, 3),
     });
     setIsModalOpen(true);
   };
@@ -156,6 +189,11 @@ export default function AdminProductsPage() {
     setStatusMsg(null);
 
     try {
+      const sanitizedTags = formData.tags
+        .slice(0, 3)
+        .filter((t) => t.label && t.label.trim().length > 0)
+        .map((t) => ({ label: t.label.trim(), icon: t.icon?.trim() || undefined }));
+
       const payload = {
         name: formData.name,
         slug: formData.slug || undefined,
@@ -167,6 +205,8 @@ export default function AdminProductsPage() {
         basePriceBaht: Number(formData.basePriceBaht),
         monthlyFromBaht: Number(formData.monthlyFromBaht),
         inStock: formData.inStock,
+        tags: sanitizedTags,
+        badges: sanitizedTags.map((t) => (t.icon ? `${t.icon} ${t.label}` : t.label)),
       };
 
       if (modalMode === 'create') {
@@ -461,6 +501,22 @@ export default function AdminProductsPage() {
                       <div>
                         <div className="text-sm font-bold text-[#142B4A]">{item.name}</div>
                         <div className="text-[11px] font-mono text-slate-400">slug: {item.slug}</div>
+                        {((item.tags && item.tags.length > 0) || (item.badges && item.badges.length > 0)) && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {(item.tags && item.tags.length > 0
+                              ? item.tags
+                              : (item.badges || []).map((b): ProductTag => ({ label: b }))
+                            ).slice(0, 3).map((tag: ProductTag, tIdx) => (
+                              <span
+                                key={tIdx}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-orange-50 text-[#FF6E00] border border-[#FF6E00]/20 text-[10px] font-bold"
+                              >
+                                {tag.icon && <span>{tag.icon}</span>}
+                                <span>{tag.label}</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -683,6 +739,156 @@ export default function AdminProductsPage() {
                   placeholder="เช่น ดีไซน์ไทเทเนียมเกรด 5 ชิป A18 Pro ทรงพลัง..."
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-[#FF6E00] outline-hidden text-xs"
                 />
+              </div>
+
+              {/* Product Tags / Badges (Up to 3) */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800 text-xs">
+                      <Tag size={14} className="text-[#FF6E00]" />
+                      <span>ป้ายแท็ก / ไอคอนสินค้า (Tag Icons)</span>
+                      <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold">
+                        {formData.tags.length}/3 ป้าย
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      แสดงที่มุมบนซ้ายของรูปสินค้า ใส่ได้สูงสุด 3 ป้าย (เลือกไอคอนและข้อความได้อิสระ)
+                    </p>
+                  </div>
+
+                  {formData.tags.length < 3 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (formData.tags.length < 3) {
+                          setFormData({
+                            ...formData,
+                            tags: [...formData.tags, { label: '', icon: '🔥' }],
+                          });
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#FF6E00] hover:bg-[#e56300] text-white text-xs font-bold transition-colors shadow-2xs"
+                    >
+                      <Plus size={13} />
+                      <span>เพิ่มแท็ก</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Current Tags List */}
+                {formData.tags.length === 0 ? (
+                  <div className="text-center py-4 text-slate-400 text-xs bg-white rounded-xl border border-dashed border-slate-200">
+                    ยังไม่มีป้ายแท็ก (กดเลือกจากแท็กด่วนด้านล่าง หรือกดปุ่มเพิ่มแท็ก)
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {formData.tags.map((tag, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs"
+                      >
+                        <span className="text-[11px] font-bold text-slate-400 w-5 text-center shrink-0">
+                          #{idx + 1}
+                        </span>
+
+                        {/* Icon Dropdown */}
+                        <div className="shrink-0">
+                          <select
+                            value={tag.icon || ''}
+                            onChange={(e) => {
+                              const newTags = [...formData.tags];
+                              newTags[idx] = { ...newTags[idx], icon: e.target.value };
+                              setFormData({ ...formData, tags: newTags });
+                            }}
+                            className="h-8 px-2 rounded-lg bg-slate-50 border border-slate-300 text-xs font-medium focus:border-[#FF6E00] outline-hidden cursor-pointer"
+                            title="เลือกไอคอน"
+                          >
+                            <option value="">ไม่มีไอคอน</option>
+                            {PRESET_ICONS.map((ico) => (
+                              <option key={ico} value={ico}>
+                                {ico}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Label Input */}
+                        <input
+                          type="text"
+                          required
+                          maxLength={25}
+                          value={tag.label}
+                          onChange={(e) => {
+                            const newTags = [...formData.tags];
+                            newTags[idx] = { ...newTags[idx], label: e.target.value };
+                            setFormData({ ...formData, tags: newTags });
+                          }}
+                          placeholder="ข้อความแท็ก เช่น HOT, แนะนำ, ประกันศูนย์"
+                          className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-[#FF6E00] outline-hidden text-xs"
+                        />
+
+                        {/* Mini Preview Pill */}
+                        <div className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FF6E00] text-white text-[10px] font-bold shrink-0">
+                          {tag.icon && <span>{tag.icon}</span>}
+                          <span>{tag.label || 'ตัวอย่าง'}</span>
+                        </div>
+
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newTags = formData.tags.filter((_, i) => i !== idx);
+                            setFormData({ ...formData, tags: newTags });
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+                          title="ลบแท็กนี้"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Quick Presets Bar */}
+                <div className="pt-1">
+                  <div className="text-[11px] font-bold text-slate-500 mb-1.5">
+                    กดเพื่อเพิ่มแท็กสำเร็จรูป (คลิกเลือกได้ทันที):
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PRESET_TAGS.map((preset, pIdx) => {
+                      const isAdded = formData.tags.some((t) => t.label === preset.label);
+                      const isMax = formData.tags.length >= 3;
+                      return (
+                        <button
+                          key={pIdx}
+                          type="button"
+                          disabled={isAdded || isMax}
+                          onClick={() => {
+                            if (formData.tags.length < 3 && !isAdded) {
+                              setFormData({
+                                ...formData,
+                                tags: [...formData.tags, preset],
+                              });
+                            }
+                          }}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+                            isAdded
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 opacity-60 cursor-default'
+                              : isMax
+                              ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                              : 'bg-white text-slate-700 border border-slate-200 hover:border-[#FF6E00] hover:text-[#FF6E00] cursor-pointer'
+                          }`}
+                        >
+                          <span>{preset.icon}</span>
+                          <span>{preset.label}</span>
+                          {isAdded && <span className="text-[9px]">✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center gap-2 pt-1">

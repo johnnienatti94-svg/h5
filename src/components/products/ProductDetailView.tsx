@@ -127,6 +127,30 @@ export default function ProductDetailView({ product, availableBranches = [] }: P
         {/* Left Column: Gallery */}
         <div className={styles.galleryCard}>
           <div className={styles.mainImageFrame}>
+            {(() => {
+              const anyP = product as any;
+              const tagsList = (anyP.tags && anyP.tags.length > 0)
+                ? anyP.tags
+                : (anyP.badges && anyP.badges.length > 0)
+                ? anyP.badges.map((b: string) => ({ label: b }))
+                : anyP.badge
+                ? [{ label: anyP.badge }]
+                : [];
+              if (tagsList.length === 0) return null;
+              return (
+                <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 items-start pointer-events-none">
+                  {tagsList.slice(0, 3).map((tag: any, idx: number) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-full bg-[#FF6E00] text-white shadow-sm leading-tight"
+                    >
+                      {tag.icon && <span>{tag.icon}</span>}
+                      <span>{tag.label}</span>
+                    </span>
+                  ))}
+                </div>
+              );
+            })()}
             {currentImage.url ? (
               <Image
                 src={currentImage.url}
@@ -169,6 +193,25 @@ export default function ProductDetailView({ product, availableBranches = [] }: P
             >
               {selectedVariant.condition === 'new' ? '✓ เครื่องใหม่แกะกล่อง' : '★ มือสองสภาพ 98%'}
             </span>
+            {(() => {
+              const anyP = product as any;
+              const tagsList = (anyP.tags && anyP.tags.length > 0)
+                ? anyP.tags
+                : (anyP.badges && anyP.badges.length > 0)
+                ? anyP.badges.map((b: string) => ({ label: b }))
+                : anyP.badge
+                ? [{ label: anyP.badge }]
+                : [];
+              return tagsList.slice(0, 3).map((tag: any, idx: number) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-orange-50 text-[#FF6E00] border border-[#FF6E00]/30"
+                >
+                  {tag.icon && <span>{tag.icon}</span>}
+                  <span>{tag.label}</span>
+                </span>
+              ));
+            })()}
           </div>
 
           <div>

@@ -333,11 +333,32 @@ export default function ProductsCatalogView({ initialData, availableBranches = [
                 <div>
                   {/* Media Frame */}
                   <div className="relative w-full aspect-square rounded-xl bg-[#F8FAFC] overflow-hidden mb-3">
-                    {p.badge && (
-                      <span className="absolute top-2 left-2 z-10 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF6E00] text-white shadow-xs">
-                        {p.badge}
-                      </span>
-                    )}
+                    {/* Tag Badges / Icons (Up to 3) */}
+                    {(() => {
+                      const tagsList: Array<{ label: string; icon?: string }> = (p.tags && p.tags.length > 0)
+                        ? p.tags
+                        : (p.badges && p.badges.length > 0)
+                        ? p.badges.map((b) => ({ label: b }))
+                        : p.badge
+                        ? [{ label: p.badge }]
+                        : [];
+
+                      if (tagsList.length === 0) return null;
+
+                      return (
+                        <div className="absolute top-2 left-2 z-10 flex flex-col gap-1 items-start max-w-[85%] pointer-events-none">
+                          {tagsList.slice(0, 3).map((tag, tIdx) => (
+                            <span
+                              key={tIdx}
+                              className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF6E00] text-white shadow-xs backdrop-blur-xs whitespace-nowrap leading-tight"
+                            >
+                              {tag.icon && <span className="text-[10px] sm:text-[11px]">{tag.icon}</span>}
+                              <span>{tag.label}</span>
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
                     {p.thumbnailUrl ? (
                       <Image
                         src={p.thumbnailUrl}
