@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PrivacyPolicyModal from '@/components/auth/PrivacyPolicyModal';
 import TurnstileWidget from '@/components/auth/TurnstileWidget';
+import CaptchaVerify from '@/components/auth/CaptchaVerify';
 import HeroBannerWidget from '@/components/home/HeroBannerWidget';
 import { DEFAULT_HOMEPAGE_WIDGETS } from '@/lib/homepageWidgets';
 import { HeroBannerWidget as IHeroBannerWidget } from '@/types/widget';
@@ -87,23 +88,10 @@ function LoginForm() {
     return () => window.clearTimeout(timer);
   }, [step, cooldown]);
 
-  const [humanVerifying, setHumanVerifying] = useState(false);
-  const [humanVerified, setHumanVerified] = useState(false);
-
-  const handleManualVerify = () => {
-    if (humanVerified || humanVerifying) return;
-    setHumanVerifying(true);
-    setTimeout(() => {
-      setHumanVerifying(false);
-      setHumanVerified(true);
-      setCaptchaToken(`human_verified_${Date.now()}`);
-    }, 400);
-  };
-
   const cleanPhoneDigits = phone.replace(/\D/g, '');
   const isBypassPhone = cleanPhoneDigits === '0851780999';
   const isPhoneValid = /^0[689]\d{8}$/.test(cleanPhoneDigits);
-  const isBotVerified = Boolean(captchaToken) || humanVerified || isBypassPhone;
+  const isBotVerified = Boolean(captchaToken) || isBypassPhone;
   const isReady = isPhoneValid && isBotVerified && consent;
 
   const requestOtp = async () => {
@@ -126,7 +114,6 @@ function LoginForm() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
       setCaptchaToken(null);
-      setHumanVerified(false);
       setTurnstileResetKey((value) => value + 1);
     } finally {
       setLoading(false);
@@ -190,7 +177,6 @@ function LoginForm() {
   const resendOtp = async () => {
     setOtp('');
     setCaptchaToken(null);
-    setHumanVerified(false);
     setTurnstileResetKey((value) => value + 1);
     setStep('phone');
   };
@@ -310,51 +296,12 @@ function LoginForm() {
                     />
                   </div>
                 ) : (
-                  <div
-                    id="human-verify-button"
-                    role="button"
-                    tabIndex={0}
-                    onClick={handleManualVerify}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleManualVerify();
-                      }
-                    }}
-                    className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${
-                      humanVerified
-                        ? 'bg-emerald-50/70 border-emerald-300 text-emerald-800'
-                        : 'bg-slate-50/80 border-slate-200 hover:border-slate-300 text-slate-700 shadow-xs'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
-                          humanVerified
-                            ? 'border-emerald-600 bg-emerald-600 text-white'
-                            : humanVerifying
-                            ? 'border-slate-400 bg-white'
-                            : 'border-slate-300 bg-white hover:border-slate-400'
-                        }`}
-                      >
-                        {humanVerifying ? (
-                          <span className="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                        ) : humanVerified ? (
-                          <span className="material-symbols-outlined text-[16px] font-bold">check</span>
-                        ) : null}
-                      </div>
-                      <span className="text-xs font-semibold">
-                        {humanVerified
-                          ? 'ยืนยันความปลอดภัยสำเร็จ (Human Verified)'
-                          : 'ฉันไม่ใช่โปรแกรมอัตโนมัติ (Human Verification)'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1 opacity-70 text-[11px] text-slate-500">
-                      <span className="material-symbols-outlined text-[16px] text-emerald-600">verified_user</span>
-                      <span className="font-medium text-[10px]">Security</span>
-                    </div>
-                  </div>
+                  <CaptchaVerify
+                    key={turnstileResetKey}
+                    primaryColor={primaryCol}
+                    isBypass={isBypassPhone}
+                    onVerify={(token) => setCaptchaToken(token)}
+                  />
                 )}
               </div>
 
