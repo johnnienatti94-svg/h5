@@ -102,7 +102,7 @@ export default function ProductGridWidget({ widget }: Props) {
                     if (tagsList.length === 0) return null;
 
                     return (
-                      <div className="absolute top-2 left-2 z-10 flex flex-col gap-1 items-start max-w-[85%] pointer-events-none">
+                      <div className="absolute top-2 left-2 z-10 flex flex-row flex-wrap gap-1 items-center max-w-[90%] pointer-events-none">
                         {tagsList.slice(0, 3).map((tag: any, tIdx: number) => (
                           <span
                             key={tIdx}

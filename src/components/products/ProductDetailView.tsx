@@ -138,7 +138,7 @@ export default function ProductDetailView({ product, availableBranches = [] }: P
                 : [];
               if (tagsList.length === 0) return null;
               return (
-                <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 items-start pointer-events-none">
+                <div className="absolute top-3 left-3 z-10 flex flex-row flex-wrap gap-1.5 items-center max-w-[90%] pointer-events-none">
                   {tagsList.slice(0, 3).map((tag: any, idx: number) => (
                     <span
                       key={idx}
