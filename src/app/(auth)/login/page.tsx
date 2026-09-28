@@ -199,12 +199,12 @@ function LoginForm() {
 
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-center p-3 sm:p-4 select-none py-6 sm:py-10 transition-colors duration-300"
+      className="min-h-screen flex flex-col items-center justify-start p-3 sm:p-4 select-none pt-3 sm:pt-6 pb-8 transition-colors duration-300"
       style={{ backgroundColor: bgCol }}
     >
-      <div className="w-full max-w-[440px] flex flex-col gap-3.5">
+      <div className="w-full max-w-[440px] flex flex-col gap-2.5 sm:gap-3">
         {/* Brand Logo - Top Center */}
-        <div className="flex flex-col items-center justify-center pt-1 pb-1">
+        <div className="flex flex-col items-center justify-center pt-0.5 pb-0.5">
           <div className="flex items-center gap-2.5">
             <div className="w-11 h-11 rounded-2xl bg-white p-1 border border-slate-200/80 flex items-center justify-center shadow-md">
               <img
