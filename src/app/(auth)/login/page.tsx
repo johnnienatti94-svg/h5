@@ -8,12 +8,14 @@ import HeroBannerWidget from '@/components/home/HeroBannerWidget';
 import { DEFAULT_HOMEPAGE_WIDGETS } from '@/lib/homepageWidgets';
 import { HeroBannerWidget as IHeroBannerWidget } from '@/types/widget';
 import { supabase } from '@/lib/supabase';
+import { getClientSiteSettings, SiteSettings, DEFAULT_SITE_SETTINGS } from '@/lib/siteSettings';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectParam = searchParams.get('redirect') || '/home';
 
+  const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phone, setPhone] = useState('');
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -25,6 +27,20 @@ function LoginForm() {
   const [cooldown, setCooldown] = useState(60);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Sync site settings (colors & branding)
+  useEffect(() => {
+    const syncSettings = () => {
+      setSettings(getClientSiteSettings());
+    };
+    syncSettings();
+    window.addEventListener('meepro_site_settings_updated', syncSettings);
+    window.addEventListener('storage', syncSettings);
+    return () => {
+      window.removeEventListener('meepro_site_settings_updated', syncSettings);
+      window.removeEventListener('storage', syncSettings);
+    };
+  }, []);
 
   // Hero banner state (same as home banner, with CMS sync)
   const [heroWidget, setHeroWidget] = useState<IHeroBannerWidget>(() => {
@@ -177,9 +193,40 @@ function LoginForm() {
     return val;
   };
 
+  const primaryCol = settings.loginPrimaryColor || '#FF6E00';
+  const secondaryCol = settings.loginSecondaryColor || '#007ACC';
+  const bgCol = settings.loginBgColor || '#F8FAFC';
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-slate-100 flex flex-col items-center justify-center p-3 sm:p-4 select-none py-6 sm:py-10">
+    <main
+      className="min-h-screen flex flex-col items-center justify-center p-3 sm:p-4 select-none py-6 sm:py-10 transition-colors duration-300"
+      style={{ backgroundColor: bgCol }}
+    >
       <div className="w-full max-w-[440px] flex flex-col gap-3.5">
+        {/* Brand Logo - Top Center */}
+        <div className="flex flex-col items-center justify-center pt-1 pb-1">
+          <div className="flex items-center gap-2.5">
+            <div className="w-11 h-11 rounded-2xl bg-white p-1 border border-slate-200/80 flex items-center justify-center shadow-md">
+              <img
+                src={settings.logoUrl || '/logo.jpg'}
+                alt="MeePro Logo"
+                className="w-full h-full object-contain rounded-xl"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-extrabold text-slate-900 text-2xl tracking-tight">
+                {settings.brandName?.replace(/\s*\(.*\)/, '') || 'มีโปรโฟน'}
+              </span>
+              <span
+                className="text-white text-[11px] font-black px-2 py-0.5 rounded-md shadow-xs transition-colors"
+                style={{ backgroundColor: primaryCol }}
+              >
+                MALL
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Slide Banner (Same as Home Banner, size optimized for Web & Mobile) */}
         {heroWidget && (
           <div className="w-full rounded-3xl overflow-hidden shadow-lg border border-slate-200/60 bg-[#0F172A]">
@@ -192,18 +239,6 @@ function LoginForm() {
           className="w-full bg-white rounded-3xl shadow-xl sm:shadow-2xl border border-slate-200/80 p-6 sm:p-8 flex flex-col"
           aria-label="การยืนยันตัวตน MeePro"
         >
-          {/* Top Brand Header */}
-          <div className="flex items-center gap-2.5 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-orange-50 p-1 border border-orange-100 flex items-center justify-center shadow-xs">
-              <img src="/logo.jpg" alt="MeePro Logo" className="w-full h-full object-contain rounded-lg" />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-slate-900 text-lg tracking-tight">มีโปรโฟน</span>
-              <span className="bg-[#FF6E00] text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-xs">
-                MALL
-              </span>
-            </div>
-          </div>
 
           {step === 'phone' ? (
             <div className="space-y-5">
@@ -272,7 +307,8 @@ function LoginForm() {
                     type="checkbox"
                     checked={consent}
                     onChange={(e) => setConsent(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-[#007ACC] focus:ring-0 mt-0.5 accent-[#007ACC]"
+                    style={{ accentColor: secondaryCol }}
+                    className="w-4 h-4 rounded border-slate-300 focus:ring-0 mt-0.5"
                   />
                   <div className="text-xs text-slate-700 leading-relaxed">
                     <span>ฉันได้อ่านและยอมรับ </span>
@@ -282,7 +318,8 @@ function LoginForm() {
                         e.preventDefault();
                         setShowPolicy(true);
                       }}
-                      className="text-[#007ACC] font-semibold hover:underline"
+                      style={{ color: secondaryCol }}
+                      className="font-semibold hover:underline"
                     >
                       นโยบายการคุ้มครองข้อมูลส่วนบุคคล (PDPA)
                     </button>
@@ -304,9 +341,14 @@ function LoginForm() {
                   id="request-otp-button"
                   disabled={!isReady || loading}
                   onClick={requestOtp}
+                  style={
+                    isReady && !loading
+                      ? { backgroundColor: primaryCol }
+                      : undefined
+                  }
                   className={`w-full h-[50px] rounded-xl font-bold text-[15px] flex items-center justify-center gap-2 transition-all shadow-md ${
                     isReady && !loading
-                      ? 'bg-[#FF6E00] hover:bg-[#E65100] text-white active:scale-98 cursor-pointer shadow-orange-500/20'
+                      ? 'text-white hover:opacity-90 active:scale-98 cursor-pointer shadow-orange-500/20'
                       : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
                   }`}
                 >
@@ -335,21 +377,28 @@ function LoginForm() {
                 <button
                   type="button"
                   onClick={() => setStep('phone')}
-                  className="inline-flex items-center gap-1.5 text-xs text-[#007ACC] font-semibold mb-4 hover:underline"
+                  style={{ color: secondaryCol }}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold mb-4 hover:underline"
                 >
                   <span className="material-symbols-outlined text-[16px]">arrow_back</span>
                   <span>เปลี่ยนหมายเลขโทรศัพท์</span>
                 </button>
 
                 <div className="text-center mb-5">
-                  <div className="w-12 h-12 rounded-2xl bg-orange-50 text-[#FF6E00] flex items-center justify-center mx-auto mb-2.5">
+                  <div
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-2.5 transition-colors"
+                    style={{ backgroundColor: `${primaryCol}18`, color: primaryCol }}
+                  >
                     <span className="material-symbols-outlined text-[26px]">sms</span>
                   </div>
                   <h2 className="text-2xl font-bold text-slate-900">ยืนยันรหัส OTP</h2>
                   <p className="text-xs text-slate-500 mt-1">
                     รหัส 6 หลักถูกส่งไปยังหมายเลข
                   </p>
-                  <p className="text-base font-bold text-[#007ACC] mt-0.5 tracking-wide">
+                  <p
+                    className="text-base font-bold mt-0.5 tracking-wide"
+                    style={{ color: secondaryCol }}
+                  >
                     {maskPhone(phone)}
                   </p>
                   <p className="text-[11px] text-slate-400 mt-1">
@@ -379,10 +428,13 @@ function LoginForm() {
                     return (
                       <div
                         key={i}
-                        className={`w-11 h-13 sm:w-12 sm:h-14 rounded-xl border-2 flex items-center justify-center text-2xl font-extrabold transition-all bg-white ${
+                        style={
                           isCurrent
-                            ? 'border-[#007ACC] ring-2 ring-[#007ACC]/20'
-                            : char
+                            ? { borderColor: secondaryCol, boxShadow: `0 0 0 3px ${secondaryCol}25` }
+                            : undefined
+                        }
+                        className={`w-11 h-13 sm:w-12 sm:h-14 rounded-xl border-2 flex items-center justify-center text-2xl font-extrabold transition-all bg-white ${
+                          char
                             ? 'border-slate-800 text-slate-900'
                             : 'border-slate-200 text-slate-300'
                         }`}
@@ -399,7 +451,8 @@ function LoginForm() {
                     type="button"
                     disabled={cooldown > 0 || loading}
                     onClick={resendOtp}
-                    className="flex items-center gap-1 font-semibold text-[#007ACC] disabled:opacity-40 disabled:cursor-not-allowed hover:underline"
+                    style={{ color: secondaryCol }}
+                    className="flex items-center gap-1 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:underline"
                   >
                     <span className="material-symbols-outlined text-[16px]">refresh</span>
                     <span>ขอรหัส OTP อีกครั้ง</span>
@@ -423,9 +476,14 @@ function LoginForm() {
                   id="verify-otp-button"
                   disabled={otp.length !== 6 || loading}
                   onClick={verifyOtp}
+                  style={
+                    otp.length === 6 && !loading
+                      ? { backgroundColor: secondaryCol }
+                      : undefined
+                  }
                   className={`w-full h-[50px] rounded-xl font-bold text-[15px] flex items-center justify-center gap-2 transition-all shadow-md ${
                     otp.length === 6 && !loading
-                      ? 'bg-[#007ACC] hover:bg-[#0061A3] text-white active:scale-98 cursor-pointer shadow-blue-500/20'
+                      ? 'text-white hover:opacity-90 active:scale-98 cursor-pointer shadow-blue-500/20'
                       : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
                   }`}
                 >

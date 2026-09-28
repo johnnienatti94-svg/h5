@@ -2,43 +2,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { Settings, Save, RotateCcw, Shield, Globe, Phone, Palette } from 'lucide-react';
-
-interface SiteSettings {
-  brandName: string;
-  logoUrl: string;
-  hotline: string;
-  lineOfficialId: string;
-  facebookUrl: string;
-  defaultSeoTitle: string;
-  defaultSeoDescription: string;
-  primaryColor: string;
-  secondaryColor: string;
-}
-
-const DEFAULT_SETTINGS: SiteSettings = {
-  brandName: 'MeePro (มีโปรโฟน)',
-  logoUrl: '/logo.jpg',
-  hotline: '02-000-0000',
-  lineOfficialId: '@meepro',
-  facebookUrl: 'https://facebook.com/meeprooficial',
-  defaultSeoTitle: 'MeePro — ผ่อนสมาร์ตโฟน 0% ดอกเบี้ยพิเศษ อนุมัติไวใน 3 นาที',
-  defaultSeoDescription:
-    'บริการผ่อนมือถือและแกดเจ็ตแท้ศูนย์ไทย ไม่ต้องมีบัตรเครดิต 45 สาขาทั่วประเทศ พร้อมบริการ Trade-in แลกเครื่องเก่าเป็นเงินสด',
-  primaryColor: '#FF6E00',
-  secondaryColor: '#142B4A',
-};
-
-const STORAGE_KEY = 'meepro_site_settings_v1';
+import {
+  SiteSettings,
+  DEFAULT_SITE_SETTINGS,
+  SITE_SETTINGS_STORAGE_KEY,
+} from '@/lib/siteSettings';
 
 export default function AdminSettingsPage() {
-  const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(SITE_SETTINGS_STORAGE_KEY);
       if (stored) {
-        setSettings(JSON.parse(stored));
+        setSettings({ ...DEFAULT_SITE_SETTINGS, ...JSON.parse(stored) });
       }
     } catch {
       // Fallback
@@ -48,7 +26,8 @@ export default function AdminSettingsPage() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      localStorage.setItem(SITE_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+      window.dispatchEvent(new Event('meepro_site_settings_updated'));
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
     } catch {
@@ -58,8 +37,9 @@ export default function AdminSettingsPage() {
 
   const handleReset = () => {
     if (confirm('ต้องการรีเซ็ตการตั้งค่ากลับเป็นค่าตั้งต้น?')) {
-      setSettings(DEFAULT_SETTINGS);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_SETTINGS));
+      setSettings(DEFAULT_SITE_SETTINGS);
+      localStorage.setItem(SITE_SETTINGS_STORAGE_KEY, JSON.stringify(DEFAULT_SITE_SETTINGS));
+      window.dispatchEvent(new Event('meepro_site_settings_updated'));
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
     }
@@ -216,6 +196,128 @@ export default function AdminSettingsPage() {
                 <label className="block text-xs font-bold text-slate-700">สีกรมท่า MeePro Navy</label>
                 <span className="text-xs font-mono text-slate-500">{settings.secondaryColor}</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Login Page Customization */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-[#142B4A] flex items-center gap-2">
+              <Palette size={16} className="text-[#007ACC]" />
+              <span>ปรับแต่งสีหน้าเข้าสู่ระบบ (Login Page Colors & Theme)</span>
+            </h2>
+            <span className="text-[11px] text-slate-500 font-medium">แสดงผลแบบเรียลไทม์ที่หน้า /login</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <input
+                type="color"
+                value={settings.loginPrimaryColor || settings.primaryColor || '#FF6E00'}
+                onChange={(e) => setSettings({ ...settings, loginPrimaryColor: e.target.value })}
+                className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300"
+              />
+              <div>
+                <label className="block text-xs font-bold text-slate-700">สีปุ่มขอรับรหัส OTP & MALL</label>
+                <span className="text-xs font-mono text-slate-500">{settings.loginPrimaryColor || settings.primaryColor}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <input
+                type="color"
+                value={settings.loginSecondaryColor || settings.secondaryColor || '#007ACC'}
+                onChange={(e) => setSettings({ ...settings, loginSecondaryColor: e.target.value })}
+                className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300"
+              />
+              <div>
+                <label className="block text-xs font-bold text-slate-700">สีปุ่มยืนยัน OTP & ลิงก์</label>
+                <span className="text-xs font-mono text-slate-500">{settings.loginSecondaryColor || settings.secondaryColor}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <input
+                type="color"
+                value={settings.loginBgColor || '#F8FAFC'}
+                onChange={(e) => setSettings({ ...settings, loginBgColor: e.target.value })}
+                className="w-10 h-10 rounded-xl cursor-pointer border border-slate-300"
+              />
+              <div>
+                <label className="block text-xs font-bold text-slate-700">สีพื้นหลังหน้า Login</label>
+                <span className="text-xs font-mono text-slate-500">{settings.loginBgColor || '#F8FAFC'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Color Presets */}
+          <div className="pt-2">
+            <span className="text-[11px] font-bold text-slate-600 block mb-2">ชุดสีแนะนำ (Quick Presets):</span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setSettings({
+                    ...settings,
+                    loginPrimaryColor: '#FF6E00',
+                    loginSecondaryColor: '#007ACC',
+                    loginBgColor: '#F8FAFC',
+                  })
+                }
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-orange-50 text-[#FF6E00] border border-orange-200 hover:bg-orange-100 flex items-center gap-1.5"
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-[#FF6E00]" />
+                <span>MeePro Classic</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setSettings({
+                    ...settings,
+                    loginPrimaryColor: '#4F46E5',
+                    loginSecondaryColor: '#0284C7',
+                    loginBgColor: '#F8FAFC',
+                  })
+                }
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 flex items-center gap-1.5"
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-[#4F46E5]" />
+                <span>Royal Indigo</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setSettings({
+                    ...settings,
+                    loginPrimaryColor: '#059669',
+                    loginSecondaryColor: '#0F172A',
+                    loginBgColor: '#F0FDF4',
+                  })
+                }
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 flex items-center gap-1.5"
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-[#059669]" />
+                <span>Emerald Forest</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setSettings({
+                    ...settings,
+                    loginPrimaryColor: '#E11D48',
+                    loginSecondaryColor: '#FF6E00',
+                    loginBgColor: '#FFF1F2',
+                  })
+                }
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 flex items-center gap-1.5"
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-[#E11D48]" />
+                <span>Sunset Ruby</span>
+              </button>
             </div>
           </div>
         </div>
