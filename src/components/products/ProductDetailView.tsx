@@ -279,37 +279,7 @@ export default function ProductDetailView({ product, availableBranches = [] }: P
               })}
             </div>
 
-            {/* Active Package Breakdown */}
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
-              <div className="flex items-center justify-between font-bold text-sm text-[#142B4A]">
-                <span>ค่างวดรายเดือน:</span>
-                <span className="text-base text-[#FF6E00] font-black">
-                  {formatBaht(activePackage.monthlyAmountMinor)} / เดือน
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 text-slate-600">
-                <div>
-                  เงินดาวน์รับเครื่อง:{' '}
-                  <strong className="text-slate-900 font-bold">
-                    {formatBaht(activePackage.downPaymentMinor)}
-                  </strong>
-                </div>
-                <div>
-                  ระยะเวลาสัญญา:{' '}
-                  <strong className="text-slate-900 font-bold">
-                    {activePackage.months} เดือน
-                  </strong>
-                </div>
-                <div>
-                  อัตราดอกเบี้ย:{' '}
-                  <strong className="text-[#16A34A] font-bold">0% ตลอดสัญญา</strong>
-                </div>
-                <div>
-                  เงื่อนไขสัญญา:{' '}
-                  <strong className="text-slate-900 font-bold">ไม่มีค่าธรรมเนียมแอบแฝง</strong>
-                </div>
-              </div>
-            </div>
+
           </div>
 
           {/* Branch Availability Checker */}

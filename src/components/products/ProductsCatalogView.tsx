@@ -377,12 +377,7 @@ export default function ProductsCatalogView({ initialData, availableBranches = [
                     )}
                   </div>
 
-                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FFF6EF] text-[#FF6E00] text-[11px] font-bold">
-                    <span>ผ่อน {formatBaht(lowestPkg.monthlyAmountMinor)}/ด.</span>
-                    <span className="text-[10px] text-[#C94F00]">
-                      (0% {lowestPkg.months}ด.)
-                    </span>
-                  </div>
+
 
                   {/* Quick Actions */}
                   <button
