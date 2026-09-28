@@ -148,7 +148,7 @@ export default function CartDrawer() {
     let active = true;
 
     async function syncLoginUser() {
-      // 1. Check local storage cache for instant prefill
+      // 1. Check local storage cache for instant phone sync
       if (typeof window !== 'undefined') {
         try {
           const authRaw = localStorage.getItem('meepro_customer_auth');
@@ -156,17 +156,15 @@ export default function CartDrawer() {
             const parsed = JSON.parse(authRaw);
             if (parsed.phone && active) {
               const cleanP = parsed.phone.replace(/\D/g, '');
-              setCustomerPhone((prev) => prev || cleanP);
+              setCustomerPhone(cleanP);
               setLoginPhone((prev) => prev || cleanP);
             }
             if (parsed.contactName && active) {
-              setCustomerName((prev) => prev || parsed.contactName);
               setLoginName((prev) => prev || parsed.contactName);
             }
           }
           const storedName = localStorage.getItem('meepro_customer_name');
           if (storedName && active) {
-            setCustomerName((prev) => prev || storedName);
             setLoginName((prev) => prev || storedName);
           }
         } catch {}
@@ -177,11 +175,10 @@ export default function CartDrawer() {
       if (active && user) {
         if (user.phone) {
           const cleanP = user.phone.replace(/\D/g, '');
-          setCustomerPhone((prev) => prev || cleanP);
+          setCustomerPhone(cleanP);
           setLoginPhone((prev) => prev || cleanP);
         }
         if (user.contactName) {
-          setCustomerName((prev) => prev || user.contactName || '');
           setLoginName((prev) => prev || user.contactName || '');
         }
       }
@@ -223,15 +220,12 @@ export default function CartDrawer() {
       return;
     }
 
-    // Prefill customer details with login account info as default
+    // Use logged-in phone number for customerPhone
     const cleanUserPhone = (user.phone || '').replace(/\D/g, '');
-    const userDisplayName =
-      user.contactName ||
-      (typeof window !== 'undefined' ? localStorage.getItem('meepro_customer_name') : '') ||
-      'ลูกค้า MeePro';
-
-    setCustomerName((prev) => prev || userDisplayName);
-    setCustomerPhone(cleanUserPhone || customerPhone);
+    if (cleanUserPhone) {
+      setCustomerPhone(cleanUserPhone);
+    }
+    // Name is left empty for customer to fill
     setCheckoutStep('fulfillment');
   };
 
@@ -289,9 +283,11 @@ export default function CartDrawer() {
         throw new Error(data.message || 'รหัส OTP ไม่ถูกต้อง');
       }
 
-      const assignedName = loginName.trim() || data.user?.contactName || 'ลูกค้า MeePro';
+      const assignedName = loginName.trim() || data.user?.contactName || '';
       if (typeof window !== 'undefined') {
-        localStorage.setItem('meepro_customer_name', assignedName);
+        if (assignedName) {
+          localStorage.setItem('meepro_customer_name', assignedName);
+        }
         localStorage.setItem(
           'meepro_customer_auth',
           JSON.stringify({
@@ -303,7 +299,6 @@ export default function CartDrawer() {
         );
       }
 
-      setCustomerName(assignedName);
       setCustomerPhone(clean);
       setCheckoutStep('fulfillment');
     } catch (err: any) {
@@ -786,35 +781,33 @@ export default function CartDrawer() {
 
               {/* Customer Contact Details */}
               <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-800">ข้อมูลผู้สั่งซื้อ (แอดมินจะโทรติดต่อกลับ)</h4>
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md font-semibold">
-                    ✓ ดึงเบอร์จากบัญชีเข้าสู่ระบบ
-                  </span>
-                </div>
+                <h4 className="text-xs font-bold text-slate-800">ข้อมูลผู้สั่งซื้อ (แอดมินจะโทรติดต่อกลับ)</h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
                   <div>
-                    <label className="block text-[11px] text-slate-500 mb-0.5">ชื่อ-นามสกุล</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      ชื่อ-นามสกุล <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
+                      required
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="ชื่อผู้สั่งซื้อ"
-                      className="w-full h-9 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:bg-white focus:outline-none"
+                      placeholder="กรุณากรอกชื่อ-นามสกุล"
+                      className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[#FF6E00] focus:ring-1 focus:ring-[#FF6E00] focus:outline-none transition-all"
                     />
                   </div>
                   <div>
-                    <div className="flex items-center justify-between mb-0.5">
-                      <label className="text-[11px] text-slate-500">เบอร์โทรติดต่อกลับ</label>
-                      <span className="text-[10px] text-slate-400 font-normal">ค่าเริ่มต้นจากเบอร์ที่ล็อกอิน</span>
-                    </div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      เบอร์โทรติดต่อกลับ
+                    </label>
                     <input
                       type="tel"
                       value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      placeholder="เบอร์โทรศัพท์ 10 หลัก"
-                      className="w-full h-9 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:bg-white focus:outline-none"
+                      readOnly
+                      disabled
+                      aria-readonly="true"
+                      className="w-full h-10 px-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 cursor-not-allowed select-none focus:outline-none"
                     />
                   </div>
                 </div>
