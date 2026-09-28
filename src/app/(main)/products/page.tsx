@@ -8,8 +8,8 @@ import type { ProductCondition } from '@/features/catalog/types';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'สินค้าทั้งหมด ผ่อน 0% ทุกรุ่น ไม่ใช้บัตรเครดิต | MeePro',
-  description: 'สมาร์ตโฟน แท็บเล็ต แล็ปท็อป และแกดเจ็ตเครื่องแท้ประกันศูนย์ไทย ผ่อนสบาย 0% นานสูงสุด 24 เดือน สมัครง่าย อนุมัติไวที่ MeePro',
+  title: 'สินค้าทั้งหมด ผ่อนทุกรุ่น ไม่ใช้บัตรเครดิต | MeePro',
+  description: 'สมาร์ตโฟน แท็บเล็ต แล็ปท็อป และแกดเจ็ตเครื่องแท้ประกันศูนย์ไทย ผ่อนสบายนานสูงสุด 24 เดือน สมัครง่าย อนุมัติไวที่ MeePro',
   alternates: { canonical: '/products' },
 };
 

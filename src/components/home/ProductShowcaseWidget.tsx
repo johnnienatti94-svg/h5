@@ -97,7 +97,7 @@ export default function ProductShowcaseWidget({ widget }: Props) {
                           </div>
 
                           <span className={styles.installmentBadge}>
-                            ผ่อน ฿{lowestPkg.monthlyAmount.toLocaleString()}/ด. (0% {lowestPkg.months}ด.)
+                            ผ่อน ฿{lowestPkg.monthlyAmount.toLocaleString()}/ด. ({lowestPkg.months}ด.)
                           </span>
                         </>
                       );

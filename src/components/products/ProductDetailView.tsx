@@ -183,7 +183,7 @@ export default function ProductDetailView({ product, availableBranches = [] }: P
                 เงินดาวน์รับเครื่อง (Down Payment)
               </span>
               <span className="text-[11px] font-semibold text-[#16A34A] bg-[#DCFCE7] px-2.5 py-0.5 rounded-full">
-                ผ่อน 0% เริ่มต้น {formatBaht(installmentPackages[installmentPackages.length - 1].monthlyAmountMinor)}/ด.
+                ผ่อนเริ่มต้น {formatBaht(installmentPackages[installmentPackages.length - 1].monthlyAmountMinor)}/ด.
               </span>
             </div>
             <div className={styles.cashPriceRow}>
@@ -242,7 +242,7 @@ export default function ProductDetailView({ product, availableBranches = [] }: P
           <div className={styles.offersContainer}>
             <div className="flex items-center justify-between mb-3">
               <div>
-                <span className={styles.selectorLabel}>เลือกแพ็กเกจผ่อนชำระ (ดอกเบี้ย 0%):</span>
+                <span className={styles.selectorLabel}>เลือกแพ็กเกจผ่อนชำระ:</span>
                 <p className="text-xs text-[#64748B] mt-0.5">อนุมัติไว ไม่ต้องใช้บัตรเครดิต</p>
               </div>
               <span className="text-[11px] font-bold text-[#FF6E00] bg-[#FFF6EF] border border-[#FFD9BD] px-2 py-0.5 rounded-md">
@@ -282,40 +282,7 @@ export default function ProductDetailView({ product, availableBranches = [] }: P
 
           </div>
 
-          {/* Branch Availability Checker */}
-          <div className={styles.branchSection}>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#142B4A] flex items-center gap-1.5">
-                <Store size={16} className="text-[#FF6E00]" />
-                ความพร้อมจำหน่ายที่สาขา (Click & Collect)
-              </span>
-              <span className="text-[11px] text-[#64748B]">รับเครื่องได้ภายในวัน</span>
-            </div>
 
-            <div className={styles.branchList}>
-              {currentBranchStocks.map((stock) => (
-                <div key={stock.branchId} className={styles.branchRow}>
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedBranchSlug(stock.branchSlug)}
-                      className="text-left font-bold text-[#142B4A] hover:text-[#FF6E00] hover:underline"
-                    >
-                      {stock.branchName}
-                    </button>
-                    <div className="text-[11px] text-[#64748B]">{stock.publicNote}</div>
-                  </div>
-                  <span
-                    className={
-                      stock.status === 'in_stock' ? styles.stockStatusIn : styles.stockStatusLow
-                    }
-                  >
-                    {stock.statusLabel}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Primary Action Group */}
           <div className={styles.actionGroup}>

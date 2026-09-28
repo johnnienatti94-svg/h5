@@ -143,7 +143,7 @@ export default function ProductsCatalogView({ initialData, availableBranches = [
               MEEPRO CATALOG
             </span>
             <span className="bg-[#142B4A] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-              ผ่อน 0% ทุกรุ่น
+              ผ่อนทุกรุ่น
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#142B4A]">

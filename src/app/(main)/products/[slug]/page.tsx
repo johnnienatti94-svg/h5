@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const p = result.data;
   return {
-    title: `${p.name} — ผ่อน 0% เริ่มต้น | MeePro`,
+    title: `${p.name} — ผ่อนเริ่มต้น | MeePro`,
     description: p.summary,
     alternates: { canonical: `/products/${p.slug}` },
     openGraph: {

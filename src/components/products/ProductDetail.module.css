@@ -46,9 +46,6 @@
   border-radius: var(--radius-dialog, 24px);
   padding: var(--space-4, 16px);
   box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
-  position: sticky;
-  top: 80px;
-  z-index: 1;
 }
 
 .mainImageFrame {
