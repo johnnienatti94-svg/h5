@@ -270,11 +270,6 @@ export default function CartDrawer() {
 
     const selectedBranch = branches.find((b) => b.id === selectedBranchId) || branches[0];
 
-    if (fulfillmentType === 'delivery' && !deliveryAddress.trim()) {
-      setErrorMessage('กรุณาระบุที่อยู่จัดส่งสินค้าให้ครบถ้วน');
-      return;
-    }
-
     setIsSubmitting(true);
     setErrorMessage(null);
 
@@ -304,7 +299,7 @@ export default function CartDrawer() {
 
       const customerAddress =
         fulfillmentType === 'delivery'
-          ? deliveryAddress.trim()
+          ? (deliveryAddress.trim() || 'จัดส่งถึงบ้าน (เจ้าหน้าที่จะโทรสอบถามที่อยู่จัดส่ง)')
           : `รับที่สาขา: ${selectedBranch.name} (${selectedBranch.address})`;
 
       const orderRes = await fetch('/api/orders', {
@@ -328,7 +323,10 @@ export default function CartDrawer() {
             branchAddress: selectedBranch.address,
             appointmentDate,
             appointmentTime,
-            deliveryAddress: fulfillmentType === 'delivery' ? deliveryAddress.trim() : undefined,
+            deliveryAddress:
+              fulfillmentType === 'delivery'
+                ? (deliveryAddress.trim() || 'จัดส่งถึงบ้าน (เจ้าหน้าที่จะโทรสอบถามที่อยู่จัดส่ง)')
+                : undefined,
           },
           paymentMethod: 'installment_0_percent',
           installmentMonths: 10,
@@ -351,7 +349,10 @@ export default function CartDrawer() {
         branchAddress: selectedBranch.address,
         appointmentDate,
         appointmentTime,
-        deliveryAddress: deliveryAddress.trim(),
+        deliveryAddress:
+          fulfillmentType === 'delivery'
+            ? (deliveryAddress.trim() || 'จัดส่งถึงบ้าน (เจ้าหน้าที่จะโทรสอบถามที่อยู่จัดส่ง)')
+            : '',
         totalPrice,
         monthlyPayment: estimatedMonthlyInstallment,
       });
@@ -703,20 +704,20 @@ export default function CartDrawer() {
                   </div>
                 </div>
               ) : (
-                /* Home Delivery Address Section */
-                <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-1">
-                      ที่อยู่จัดส่งพัสดุ (บ้านเลขที่, ถนน, ตำบล, อำเภอ, จังหวัด, รหัสไปรษณีย์)
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={deliveryAddress}
-                      onChange={(e) => setDeliveryAddress(e.target.value)}
-                      placeholder="ระบุที่อยู่จัดส่งสินค้าโดยละเอียด..."
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:border-[#007ACC] focus:outline-none resize-none"
-                    />
+                /* Home Delivery Section (Staff will contact for address) */
+                <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
+                  <div className="p-3 rounded-xl bg-orange-50/80 border border-orange-200/80 flex items-start gap-2.5">
+                    <span className="material-symbols-outlined text-[#FF6E00] text-[22px] shrink-0 mt-0.5">
+                      phone_in_talk
+                    </span>
+                    <div className="text-xs leading-relaxed">
+                      <p className="font-bold text-slate-900">ไม่ต้องระบุที่อยู่จัดส่งในระบบ</p>
+                      <p className="text-slate-600 mt-0.5 text-[11px]">
+                        เมื่อกดสั่งซื้อเรียบร้อย เจ้าหน้าที่ MeePro จะโทรติดต่อกลับหาคุณเพื่อยืนยันคำสั่งซื้อและสอบถามที่อยู่จัดส่งโดยตรง
+                      </p>
+                    </div>
                   </div>
+
                   <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-100 text-[11px] text-blue-800 flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px]">local_shipping</span>
                     <span>บริการส่งฟรีทั่วประเทศ จัดส่งด่วนถึงบ้านพร้อมประกันขนส่ง</span>
