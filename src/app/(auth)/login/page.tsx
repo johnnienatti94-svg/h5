@@ -517,6 +517,24 @@ function LoginForm() {
           )}
         </article>
 
+        {/* Contact Staff via LINE */}
+        <div className="flex items-center justify-center gap-2.5 pt-1 pb-3">
+          <a
+            href="https://lin.ee/y7CKptR"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center hover:opacity-90 active:scale-98 transition-all"
+          >
+            <img
+              src="https://scdn.line-apps.com/n/line_add_friends/btn/th.png"
+              alt="เพิ่มเพื่อน"
+              height={36}
+              className="h-[36px] w-auto shadow-xs rounded"
+            />
+          </a>
+          <span className="text-xs font-semibold text-slate-600">ติดต่อเจ้าหน้าที่</span>
+        </div>
+
         {/* PDPA Privacy Policy Modal */}
         {showPolicy && (
           <PrivacyPolicyModal
