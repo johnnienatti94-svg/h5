@@ -9,9 +9,11 @@ import styles from './homeWidgets.module.css';
 
 interface Props {
   widget: IHeroBannerWidget;
+  compact?: boolean;
+  noPadding?: boolean;
 }
 
-export default function HeroBannerWidget({ widget }: Props) {
+export default function HeroBannerWidget({ widget, compact, noPadding }: Props) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
@@ -73,10 +75,17 @@ export default function HeroBannerWidget({ widget }: Props) {
   if (!banners.length) return null;
 
   return (
-    <div className={styles.widgetSection} style={{ padding: '0 16px' }}>
-      <div className={styles.modernBannerWrapper}>
+    <div
+      className={styles.widgetSection}
+      style={{ padding: noPadding ? '0' : '0 16px', marginBottom: noPadding ? '0' : undefined }}
+    >
+      <div
+        className={styles.modernBannerWrapper}
+        style={noPadding ? { borderRadius: '24px' } : undefined}
+      >
         <div
           className={styles.bannerSliderContainer}
+          style={compact ? { height: '185px' } : undefined}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -110,21 +119,35 @@ export default function HeroBannerWidget({ widget }: Props) {
                 )}
 
                 {/* Banner Content Foreground */}
-                <div className={styles.bannerContentForeground}>
+                <div
+                  className={styles.bannerContentForeground}
+                  style={compact ? { padding: '14px 16px', gap: '5px' } : undefined}
+                >
                   {b.tag && (
-                    <span className={styles.modernBannerTag}>
-                      <Sparkles size={12} />
+                    <span
+                      className={styles.modernBannerTag}
+                      style={compact ? { padding: '2px 8px', fontSize: '10px' } : undefined}
+                    >
+                      <Sparkles size={11} />
                       {b.tag}
                     </span>
                   )}
-                  <h3 className={styles.modernBannerTitle}>{b.title}</h3>
+                  <h3
+                    className={styles.modernBannerTitle}
+                    style={compact ? { fontSize: '15px', lineHeight: 1.25 } : undefined}
+                  >
+                    {b.title}
+                  </h3>
                   {b.subtitle && (
                     <p className={styles.modernBannerSubtitle}>{b.subtitle}</p>
                   )}
 
-                  <div className={styles.modernBannerCta}>
+                  <div
+                    className={styles.modernBannerCta}
+                    style={compact ? { padding: '3px 10px', fontSize: '11px', marginTop: '2px' } : undefined}
+                  >
                     <span>ช้อปโปรโมชั่นเลย</span>
-                    <ArrowRight size={14} />
+                    <ArrowRight size={12} />
                   </div>
                 </div>
               </Link>
