@@ -77,6 +77,13 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           <span>คิวใบสมัคร (Applications)</span>
         </Link>
         <Link
+          href="/staff/trade-in"
+          className={`${styles.navLink} ${pathname.startsWith('/staff/trade-in') ? styles.navLinkActive : ''}`}
+        >
+          <span>📱</span>
+          <span>ตรวจสภาพเครื่อง (Trade-In)</span>
+        </Link>
+        <Link
           href="/staff/customer-lookup"
           className={`${styles.navLink} ${pathname === '/staff/customer-lookup' ? styles.navLinkActive : ''}`}
         >

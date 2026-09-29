@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Palette,
   ShoppingBag,
+  Smartphone,
   Settings,
   Shield,
   FileText,
@@ -85,6 +86,12 @@ export default function AdminSidebar({ collapsed, onToggle, adminUser }: Props) 
           label: 'ข้อเสนอผ่อน 0% (Offers)',
           href: '/admin/offers',
           icon: <ShoppingBag size={18} />,
+        },
+        {
+          label: 'มือถือแลกเงิน (Trade-in)',
+          href: '/admin/trade-in',
+          icon: <Smartphone size={18} />,
+          badge: 'NEW',
         },
         {
           label: 'ตั้งค่าเว็บไซต์ (Site Settings)',
