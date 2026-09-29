@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     branchId,
     maxSlotsPerHour: 4,
     openHour: 10,
-    closeHour: 20,
+    closeHour: 19,
   };
 
   // Generate slots for the next 7 days

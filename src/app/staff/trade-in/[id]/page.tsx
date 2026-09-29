@@ -29,6 +29,22 @@ import type {
 } from '@/features/tradein/types';
 import { TRADEIN_STATUS_LABELS } from '@/features/tradein/types';
 
+function formatThaiDateTime(isoString?: string | null): string {
+  if (!isoString) return '-';
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const yearBE = d.getFullYear() + 543;
+    const hours = String(d.getHours()).padStart(2, '0');
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${yearBE} เวลา ${hours}:${mins} น.`;
+  } catch {
+    return isoString;
+  }
+}
+
 export default function StaffTradeInInspectionPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -244,10 +260,8 @@ export default function StaffTradeInInspectionPage() {
             <span>ข้อมูลการนัดหมาย</span>
           </span>
           <p className="text-slate-700">{application.appointment?.branchName || 'ไม่ระบุสาขา'}</p>
-          <p className="text-slate-700">
-            {application.appointment?.startsAt
-              ? new Date(application.appointment.startsAt).toLocaleString('th-TH')
-              : '-'}
+          <p className="text-slate-700 font-semibold">
+            {formatThaiDateTime(application.appointment?.startsAt)}
           </p>
         </div>
       </div>

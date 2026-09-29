@@ -414,7 +414,7 @@ export interface BranchSlotCapacity {
 }
 
 export const DEV_BRANCH_CAPACITIES: BranchSlotCapacity[] = [
-  { branchId: '00000000-0000-4000-8000-000000000001', maxSlotsPerHour: 4, openHour: 10, closeHour: 21 },
-  { branchId: '00000000-0000-4000-8000-000000000002', maxSlotsPerHour: 4, openHour: 10, closeHour: 21 },
-  { branchId: '00000000-0000-4000-8000-000000000003', maxSlotsPerHour: 3, openHour: 10, closeHour: 21 },
+  { branchId: '00000000-0000-4000-8000-000000000001', maxSlotsPerHour: 4, openHour: 10, closeHour: 19 },
+  { branchId: '00000000-0000-4000-8000-000000000002', maxSlotsPerHour: 4, openHour: 10, closeHour: 19 },
+  { branchId: '00000000-0000-4000-8000-000000000003', maxSlotsPerHour: 3, openHour: 10, closeHour: 19 },
 ];

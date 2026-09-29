@@ -38,6 +38,25 @@ import { getAuthUser } from '@/lib/auth';
 
 const STORAGE_DRAFT_KEY = 'meepro_tradein_customer_draft_v1';
 
+const THAI_DAYS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+const THAI_MONTHS_FULL = [
+  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+];
+
+const TIME_SLOTS_10_TO_19 = [
+  '10:00',
+  '11:00',
+  '12:00',
+  '13:00',
+  '14:00',
+  '15:00',
+  '16:00',
+  '17:00',
+  '18:00',
+  '19:00',
+];
+
 export default function TradeInView() {
   const router = useRouter();
 
@@ -87,7 +106,54 @@ export default function TradeInView() {
   const [customerName, setCustomerName] = useState('');
   const [verifiedPhone, setVerifiedPhone] = useState('');
   const [selectedBranchId, setSelectedBranchId] = useState('00000000-0000-4000-8000-000000000001');
+
+  // Appointment Thai Date (วว/ดด/พ.ศ.) & Time Slots (10 am to 7 pm)
+  const availableDates = useMemo(() => {
+    const list = [];
+    const base = new Date();
+    for (let i = 1; i <= 14; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      const dayOfWeek = THAI_DAYS[d.getDay()];
+      const dayNum = String(d.getDate()).padStart(2, '0');
+      const monthNum = String(d.getMonth() + 1).padStart(2, '0');
+      const monthName = THAI_MONTHS_FULL[d.getMonth()];
+      const yearBE = d.getFullYear() + 543;
+      const isoDate = `${d.getFullYear()}-${monthNum}-${dayNum}`;
+      const thaiFormatted = `${dayNum}/${monthNum}/${yearBE}`;
+      const label = `วัน${dayOfWeek}ที่ ${dayNum}/${monthNum}/${yearBE} (${d.getDate()} ${monthName} ${yearBE})`;
+      list.push({
+        isoDate,
+        thaiFormatted,
+        dayOfWeek,
+        dayNum,
+        monthName,
+        yearBE,
+        label,
+        isTomorrow: i === 1,
+      });
+    }
+    return list;
+  }, []);
+
+  const [selectedThaiDate, setSelectedThaiDate] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const dd = String(tomorrow.getDate()).padStart(2, '0');
+    return `${tomorrow.getFullYear()}-${mm}-${dd}`;
+  });
+
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState('11:00');
   const [appointmentSlot, setAppointmentSlot] = useState('');
+
+  // Keep appointmentSlot synced to ISO string
+  useEffect(() => {
+    if (selectedThaiDate && selectedTimeSlot) {
+      setAppointmentSlot(`${selectedThaiDate}T${selectedTimeSlot}:00.000Z`);
+    }
+  }, [selectedThaiDate, selectedTimeSlot]);
+
   const [imeiOrSerial, setImeiOrSerial] = useState('');
   const [customerNote, setCustomerNote] = useState('');
   const [termsAgreed, setTermsAgreed] = useState(true);
@@ -1200,15 +1266,81 @@ export default function TradeInView() {
               </select>
             </div>
 
-            {/* Appointment Slot */}
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">วันและเวลาที่สะดวกนำเครื่องเข้าตรวจ</label>
-              <input
-                type="datetime-local"
-                value={appointmentSlot}
-                onChange={(e) => setAppointmentSlot(e.target.value)}
-                className="w-full p-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-slate-50 focus:border-[#007ACC] focus:outline-none"
-              />
+            {/* Appointment Thai Date (วว/ดด/พ.ศ.) & Time Slots (10 am to 7 pm) */}
+            <div className="space-y-3.5 p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200 shadow-2xs">
+              {/* 1. Date Selector in Thai (วว/ดด/พ.ศ.) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Calendar size={15} className="text-[#007ACC]" />
+                    <span>วันที่สะดวกนำเครื่องเข้าตรวจ (วว/ดด/พ.ศ.)</span>
+                  </label>
+                  <span className="text-[10px] font-semibold text-[#007ACC] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                    รูปแบบ วว/ดด/พ.ศ.
+                  </span>
+                </div>
+                <select
+                  value={selectedThaiDate}
+                  onChange={(e) => setSelectedThaiDate(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 bg-white focus:border-[#007ACC] focus:outline-none shadow-2xs"
+                >
+                  {availableDates.map((item) => (
+                    <option key={item.isoDate} value={item.isoDate}>
+                      {item.label} {item.isTomorrow ? ' (พรุ่งนี้)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 2. Time Slots (10 am to 7 pm / 10:00 - 19:00 น.) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Clock size={15} className="text-[#007ACC]" />
+                    <span>ช่วงเวลานัดหมาย (10:00 - 19:00 น.)</span>
+                  </label>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 font-bold">
+                    เวลาเปิดทำการ 10:00 - 19:00 น.
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-5">
+                  {TIME_SLOTS_10_TO_19.map((slot) => {
+                    const isSelected = selectedTimeSlot === slot;
+                    return (
+                      <button
+                        key={slot}
+                        type="button"
+                        onClick={() => setSelectedTimeSlot(slot)}
+                        className={`py-2 px-1 rounded-xl text-xs font-bold text-center border transition-all ${
+                          isSelected
+                            ? 'bg-[#007ACC] text-white border-[#007ACC] shadow-xs scale-[1.02]'
+                            : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        {slot} น.
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 3. Selected Summary Confirmation Badge */}
+              <div className="p-2.5 bg-blue-50/80 border border-blue-200 rounded-xl text-xs flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-[#007ACC] shrink-0" />
+                  <div>
+                    <span className="text-slate-600 text-[11px] block">ยืนยันวันและเวลานัดหมาย:</span>
+                    <span className="font-bold text-slate-900">
+                      {availableDates.find((d) => d.isoDate === selectedThaiDate)?.thaiFormatted || ''}{' '}
+                      ({availableDates.find((d) => d.isoDate === selectedThaiDate)?.dayOfWeek || ''}) เวลา {selectedTimeSlot} น.
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-slate-600 bg-white px-2 py-1 rounded-md border border-slate-200">
+                  วว/ดด/พ.ศ.
+                </span>
+              </div>
             </div>
 
             {/* Note */}

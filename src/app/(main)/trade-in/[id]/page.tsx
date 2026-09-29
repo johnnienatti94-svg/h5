@@ -19,6 +19,20 @@ import {
 } from 'lucide-react';
 import type { TradeInApplication } from '@/features/tradein/types';
 import { TRADEIN_STATUS_LABELS } from '@/features/tradein/types';
+function formatThaiDateTime(isoString: string): string {
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const yearBE = d.getFullYear() + 543;
+    const hours = String(d.getHours()).padStart(2, '0');
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${yearBE} เวลา ${hours}:${mins} น.`;
+  } catch {
+    return isoString;
+  }
+}
 
 export default function CustomerTradeInDetailPage() {
   const params = useParams<{ id: string }>();
@@ -244,7 +258,7 @@ export default function CustomerTradeInDetailPage() {
             </div>
             <div className="flex items-center gap-1.5 text-slate-600">
               <Clock size={13} className="text-slate-400" />
-              <span>{new Date(application.appointment.startsAt).toLocaleString('th-TH')}</span>
+              <span>{formatThaiDateTime(application.appointment.startsAt)}</span>
             </div>
           </div>
         </div>
