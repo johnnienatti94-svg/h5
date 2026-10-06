@@ -706,6 +706,14 @@
   width: 100%;
   height: 220px;
   overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.bannerSliderContainer:active {
+  cursor: grabbing;
 }
 
 @media (min-width: 640px) {
@@ -720,24 +728,22 @@
   }
 }
 
+.bannerSliderTrack {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+}
+
 .modernBannerSlide {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  visibility: hidden;
+  position: relative;
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: flex-end;
   text-decoration: none;
-  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s;
-  transform: scale(1.02);
-  z-index: 1;
-}
-
-.modernBannerSlideActive {
-  opacity: 1;
-  visibility: visible;
-  transform: scale(1);
-  z-index: 2;
+  overflow: hidden;
 }
 
 .bannerImageLayer {
