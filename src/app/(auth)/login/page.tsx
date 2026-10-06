@@ -207,27 +207,12 @@ function LoginForm() {
     >
       <div className="w-full max-w-[440px] flex flex-col gap-2.5 sm:gap-3">
         {/* Brand Logo - Top Center */}
-        <div className="flex flex-col items-center justify-center pt-0.5 pb-0.5">
-          <div className="flex items-center gap-2.5">
-            <div className="w-11 h-11 rounded-2xl bg-white p-1 border border-slate-200/80 flex items-center justify-center shadow-md">
-              <img
-                src={settings.logoUrl || '/logo.jpg'}
-                alt="MeePro Logo"
-                className="w-full h-full object-contain rounded-xl"
-              />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-slate-900 text-2xl tracking-tight">
-                {settings.brandName?.replace(/\s*\(.*\)/, '') || 'มีโปรโฟน'}
-              </span>
-              <span
-                className="text-white text-[11px] font-black px-2 py-0.5 rounded-md shadow-xs transition-colors"
-                style={{ backgroundColor: primaryCol }}
-              >
-                MALL
-              </span>
-            </div>
-          </div>
+        <div className="flex flex-col items-center justify-center py-1">
+          <img
+            src={settings.logoUrl && settings.logoUrl !== '/logo.jpg' ? settings.logoUrl : '/brand-logo.png'}
+            alt={settings.brandName || 'มีโปรโฟน'}
+            className="h-9 sm:h-10 w-auto object-contain"
+          />
         </div>
 
         {/* Slide Banner (Same as Home Banner, size optimized for Web & Mobile) */}

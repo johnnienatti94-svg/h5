@@ -18,8 +18,8 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-4">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-14 h-14 rounded-2xl bg-white shadow-md p-1 flex items-center justify-center border border-slate-100 animate-pulse">
-            <img src="/logo.jpg" alt="MeePro Logo" className="w-full h-full object-contain rounded-xl" />
+          <div className="flex items-center justify-center animate-pulse">
+            <img src="/brand-logo.png" alt="มีโปรโฟน" className="h-10 w-auto object-contain" />
           </div>
           <div className="flex items-center gap-2 text-slate-600 font-medium text-sm">
             <span className="inline-block w-4 h-4 border-2 border-[#FF6E00] border-t-transparent rounded-full animate-spin" />

@@ -37,12 +37,9 @@ export default function TopNav() {
           </button>
 
           {/* Logo & Mall Badge */}
-          <Link href="/home" className={styles.logoContainer}>
-            <img src="/logo.jpg" alt="MeePro Logo" className={styles.logoImg} />
-            <div className={styles.brandTitleBox}>
-              <span className={styles.logoText}>มีโปรโฟน</span>
-              <span className={styles.mallBadge}>MALL</span>
-            </div>
+          <Link href="/home" className={styles.logoContainer} aria-label="หน้าแรก มีโปรโฟน">
+            <img src="/brand-logo.png" alt="มีโปรโฟน" className={styles.brandLogoImg} />
+            <span className={styles.mallBadge}>MALL</span>
           </Link>
 
           {/* Right Action Icons: Notification & Shopping Cart */}

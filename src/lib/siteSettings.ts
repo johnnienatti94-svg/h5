@@ -17,7 +17,7 @@ export interface SiteSettings {
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   brandName: 'มีโปรโฟน',
-  logoUrl: '/logo.jpg',
+  logoUrl: '/brand-logo.png',
   hotline: '02-000-0000',
   lineOfficialId: '@meepro',
   facebookUrl: 'https://facebook.com/meeprooficial',

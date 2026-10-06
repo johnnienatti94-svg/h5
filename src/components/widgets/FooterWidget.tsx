@@ -40,7 +40,7 @@ export default function FooterWidget({ widget }: Props) {
         {/* Brand & Hotline */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-lg font-black text-[#0F172A] tracking-tight">มีโปรโฟน</span>
+            <img src="/brand-logo.png" alt="มีโปรโฟน" className="h-6 w-auto object-contain" />
             <span className="bg-[#FF6E00] text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded">MALL</span>
           </div>
           <div className="flex items-center gap-2 text-xs font-semibold text-[#0F172A]">

@@ -37,7 +37,7 @@ export const actionLinkSchema = z.object({
 // ============================================================================
 
 export const headerLogoSchema = z.object({
-  logoUrl: z.string().default('/logo.jpg'),
+  logoUrl: z.string().default('/brand-logo.png'),
   brandName: z.string().default('มีโปรโฟน'),
   mallBadgeText: z.string().default('MALL'),
   showMallBadge: z.boolean().default(true),

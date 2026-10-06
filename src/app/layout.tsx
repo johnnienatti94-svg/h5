@@ -5,6 +5,10 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://www.meeprochat.online"),
   title: "MeePro — ผ่อนมือถือ สมาร์ทโฟน แกดเจ็ต",
   description: "MeePro ร้านมือถือครบวงจร ผ่อน 0% ทุกรุ่น สมัครง่าย อนุมัติไว บริการหลังการขายครบ",
+  icons: {
+    icon: '/brand-icon.png',
+    apple: '/brand-icon.png',
+  },
 };
 
 export const viewport: Viewport = {
