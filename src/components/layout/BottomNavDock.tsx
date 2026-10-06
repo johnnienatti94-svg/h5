@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Home,
@@ -59,30 +58,26 @@ interface BottomNavDockProps {
   className?: string;
   items?: NavItemConfig[];
   variant?: 'floating' | 'bar';
-  sound?: boolean;
 }
 
 export default function BottomNavDock({
   className,
   items = DOCK_NAV_ITEMS,
   variant = 'floating',
-  sound = true,
 }: BottomNavDockProps) {
   const pathname = usePathname();
 
   const dockItems: GooeyDockItem[] = items.map((item) => {
-    const Icon = item.icon;
     const isActive =
       pathname === item.href ||
       (item.href !== '/' && pathname?.startsWith(item.href + '/'));
 
     return {
-      id: item.id,
+      icon: item.icon,
       label: item.label,
       href: item.href,
       active: isActive,
       badge: item.badge,
-      icon: <Icon className="w-5 h-5" />,
     };
   });
 
@@ -97,13 +92,7 @@ export default function BottomNavDock({
         className
       )}
     >
-      <GooeyDock
-        items={dockItems}
-        sound={sound}
-        fullWidth={true}
-        glowColor="lightblue"
-        className="w-full flex items-center justify-around px-2 sm:px-3 rounded-2xl bg-[#E2E8F0]/95 backdrop-blur-xl border border-slate-300/90 shadow-[0_8px_30px_rgba(15,23,42,0.12)]"
-      />
+      <GooeyDock items={dockItems} />
     </nav>
   );
 }

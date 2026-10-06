@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { Dock, DockIcon, DockItem, DockLabel } from '@/components/ui/dock';
 import { GooeyDock, type GooeyDockItem } from '@/components/ui/gooey-dock';
+import DemoOne from '@/components/ui/gooey-dock-demo';
 import BottomNavDock, { DOCK_NAV_ITEMS } from '@/components/layout/BottomNavDock';
 import BottomNav from '@/components/layout/BottomNav';
 import { Volume2, VolumeX } from 'lucide-react';
@@ -415,6 +416,32 @@ export default function DockPreviewPage() {
                 className="w-full bg-[#E2E8F0]/95 backdrop-blur-xl border border-slate-300/90 shadow-[0_8px_30px_rgba(15,23,42,0.12)]"
               />
             </div>
+          </div>
+        </section>
+
+        {/* Section 2.8: DemoOne from 21st.dev prompt */}
+        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400">
+                  Exact Prompt Demo
+                </span>
+                <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+                  DemoOne Component (@/components/ui/gooey-dock-demo.tsx)
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Rendered with Home, Search, Bell, Profile, Settings action triggers and SVG Goo filter:
+              </p>
+            </div>
+            <span className="text-xs font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-600 dark:text-slate-300">
+              @/components/ui/gooey-dock-demo.tsx
+            </span>
+          </div>
+
+          <div className="py-8 bg-slate-100/70 dark:bg-slate-950 rounded-xl relative overflow-hidden flex items-center justify-center min-h-[140px] px-4">
+            <DemoOne />
           </div>
         </section>
 
