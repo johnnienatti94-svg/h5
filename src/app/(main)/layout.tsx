@@ -2,7 +2,7 @@
 
 import React from 'react';
 import TopNav from "@/components/layout/TopNav";
-import BottomNav from "@/components/layout/BottomNav";
+import BottomNavDock from "@/components/layout/BottomNavDock";
 import MobileContainer from "@/components/layout/MobileContainer";
 import CartDrawer from "@/components/layout/CartDrawer";
 import CategoryDrawer from "@/components/layout/CategoryDrawer";
@@ -36,7 +36,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       <MobileContainer>
         {children}
       </MobileContainer>
-      <BottomNav />
+      <BottomNavDock />
       <CartDrawer />
       <CategoryDrawer
         isOpen={isDrawerOpen}
