@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight, Sparkles, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowRight } from 'lucide-react';
 import { HeroBannerWidget as IHeroBannerWidget } from '@/types/widget';
 import styles from './homeWidgets.module.css';
 
@@ -58,18 +58,6 @@ export default function HeroBannerWidget({ widget, compact, noPadding }: Props) 
     }
     touchStartX.current = null;
     touchEndX.current = null;
-  };
-
-  const handlePrev = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setCurrentIdx((prev) => (prev - 1 + banners.length) % banners.length);
-  };
-
-  const handleNext = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setCurrentIdx((prev) => (prev + 1) % banners.length);
   };
 
   if (!banners.length) return null;
@@ -153,28 +141,6 @@ export default function HeroBannerWidget({ widget, compact, noPadding }: Props) 
               </Link>
             );
           })}
-
-          {/* Desktop Left / Right Controls */}
-          {banners.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={handlePrev}
-                className={`${styles.bannerNavBtn} ${styles.bannerNavBtnLeft}`}
-                aria-label="Previous Slide"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <button
-                type="button"
-                onClick={handleNext}
-                className={`${styles.bannerNavBtn} ${styles.bannerNavBtnRight}`}
-                aria-label="Next Slide"
-              >
-                <ChevronRight size={20} />
-              </button>
-            </>
-          )}
         </div>
 
         {/* Modern Pill Pagination */}
