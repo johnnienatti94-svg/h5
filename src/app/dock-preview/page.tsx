@@ -23,12 +23,16 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Dock, DockIcon, DockItem, DockLabel } from '@/components/ui/dock';
+import { GooeyDock, type GooeyDockItem } from '@/components/ui/gooey-dock';
 import BottomNavDock, { DOCK_NAV_ITEMS } from '@/components/layout/BottomNavDock';
 import BottomNav from '@/components/layout/BottomNav';
+import { Volume2, VolumeX } from 'lucide-react';
 
 export default function DockPreviewPage() {
   const [activeTab, setActiveTab] = useState('/home');
   const [previewMode, setPreviewMode] = useState<'comparison' | 'dock-only' | 'classic-only'>('comparison');
+  const [dockStyle, setDockStyle] = useState<'gooey' | 'apple'>('gooey');
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [magnification, setMagnification] = useState(70);
   const [distance, setDistance] = useState(120);
   const [panelHeight, setPanelHeight] = useState(60);
@@ -266,59 +270,80 @@ export default function DockPreviewPage() {
                     </div>
                   </div>
 
-                  {/* Floating Apple Dock inside phone frame - Enlarged edge-to-edge, Light Grey, Lightblue Glow */}
+                  {/* Floating Dock inside phone frame - Powered by Ruixen UI GooeyDock */}
                   <div className="absolute bottom-3 left-2.5 right-2.5 z-30 flex justify-center pointer-events-auto">
-                    <Dock
-                      magnification={magnification}
-                      distance={distance}
-                      panelHeight={panelHeight}
-                      className="w-full flex items-center justify-around px-2 rounded-2xl border transition-all bg-[#E2E8F0]/95 backdrop-blur-xl border-slate-300/90 shadow-[0_8px_30px_rgba(15,23,42,0.12)] dark:bg-[#CBD5E1]/95 dark:border-slate-400/80"
-                    >
-                      {DOCK_NAV_ITEMS.map((item) => {
-                        const Icon = item.icon;
-                        const isCurrentActive = activeTab === item.href;
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => setActiveTab(item.href)}
-                            className="flex-1 flex justify-center items-center outline-none rounded-xl"
-                            aria-label={item.label}
-                          >
-                            <DockItem
-                              className={`aspect-square rounded-xl transition-all duration-200 relative flex items-center justify-center ${
-                                isCurrentActive
-                                  ? 'bg-white/95 text-sky-500 font-semibold shadow-[0_0_16px_rgba(56,189,248,0.5)] border border-sky-300/80'
-                                  : 'bg-white/50 hover:bg-white/80 text-slate-500 hover:text-sky-500 hover:shadow-[0_0_12px_rgba(56,189,248,0.35)]'
-                              }`}
+                    {dockStyle === 'gooey' ? (
+                      <GooeyDock
+                        items={DOCK_NAV_ITEMS.map((item) => {
+                          const Icon = item.icon;
+                          const isCurrentActive = activeTab === item.href;
+                          return {
+                            id: item.id,
+                            label: item.label,
+                            active: isCurrentActive,
+                            badge: item.badge,
+                            onClick: () => setActiveTab(item.href),
+                            icon: <Icon className="w-5 h-5" />,
+                          };
+                        })}
+                        sound={soundEnabled}
+                        fullWidth={true}
+                        glowColor="lightblue"
+                        className="w-full flex items-center justify-around px-2 rounded-2xl bg-[#E2E8F0]/95 backdrop-blur-xl border border-slate-300/90 shadow-[0_8px_30px_rgba(15,23,42,0.12)] dark:bg-[#CBD5E1]/95 dark:border-slate-400/80"
+                      />
+                    ) : (
+                      <Dock
+                        magnification={magnification}
+                        distance={distance}
+                        panelHeight={panelHeight}
+                        className="w-full flex items-center justify-around px-2 rounded-2xl border transition-all bg-[#E2E8F0]/95 backdrop-blur-xl border-slate-300/90 shadow-[0_8px_30px_rgba(15,23,42,0.12)] dark:bg-[#CBD5E1]/95 dark:border-slate-400/80"
+                      >
+                        {DOCK_NAV_ITEMS.map((item) => {
+                          const Icon = item.icon;
+                          const isCurrentActive = activeTab === item.href;
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => setActiveTab(item.href)}
+                              className="flex-1 flex justify-center items-center outline-none rounded-xl"
+                              aria-label={item.label}
                             >
-                              <DockLabel className="bg-slate-900/95 text-sky-200 border-sky-400/30 font-medium text-[11px] shadow-[0_0_10px_rgba(56,189,248,0.25)] px-2 py-0.5">
-                                {item.label}
-                              </DockLabel>
+                              <DockItem
+                                className={`aspect-square rounded-xl transition-all duration-200 relative flex items-center justify-center ${
+                                  isCurrentActive
+                                    ? 'bg-white/95 text-sky-500 font-semibold shadow-[0_0_16px_rgba(56,189,248,0.5)] border border-sky-300/80'
+                                    : 'bg-white/50 hover:bg-white/80 text-slate-500 hover:text-sky-500 hover:shadow-[0_0_12px_rgba(56,189,248,0.35)]'
+                                }`}
+                              >
+                                <DockLabel className="bg-slate-900/95 text-sky-200 border-sky-400/30 font-medium text-[11px] shadow-[0_0_10px_rgba(56,189,248,0.25)] px-2 py-0.5">
+                                  {item.label}
+                                </DockLabel>
 
-                              {item.badge && (
-                                <span className="absolute -top-1 -right-1 z-10 px-1.5 py-0.5 bg-gradient-to-r from-sky-400 to-blue-500 text-white text-[9px] font-bold rounded-full shadow-[0_0_8px_rgba(56,189,248,0.8)] leading-tight animate-pulse">
-                                  {item.badge}
-                                </span>
-                              )}
+                                {item.badge && (
+                                  <span className="absolute -top-1 -right-1 z-10 px-1.5 py-0.5 bg-gradient-to-r from-sky-400 to-blue-500 text-white text-[9px] font-bold rounded-full shadow-[0_0_8px_rgba(56,189,248,0.8)] leading-tight animate-pulse">
+                                    {item.badge}
+                                  </span>
+                                )}
 
-                              <DockIcon className="flex items-center justify-center">
-                                <Icon
-                                  className={`w-5 h-5 transition-all duration-200 ${
-                                    isCurrentActive
-                                      ? 'stroke-[2.5px] text-sky-500 [filter:drop-shadow(0_0_6px_#38BDF8)_drop-shadow(0_0_12px_rgba(56,189,248,0.75))]'
-                                      : 'stroke-[1.8px] hover:[filter:drop-shadow(0_0_6px_#38BDF8)]'
-                                  }`}
-                                />
-                              </DockIcon>
+                                <DockIcon className="flex items-center justify-center">
+                                  <Icon
+                                    className={`w-5 h-5 transition-all duration-200 ${
+                                      isCurrentActive
+                                        ? 'stroke-[2.5px] text-sky-500 [filter:drop-shadow(0_0_6px_#38BDF8)_drop-shadow(0_0_12px_rgba(56,189,248,0.75))]'
+                                        : 'stroke-[1.8px] hover:[filter:drop-shadow(0_0_6px_#38BDF8)]'
+                                    }`}
+                                  />
+                                </DockIcon>
 
-                              {isCurrentActive && (
-                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-sky-400 shadow-[0_0_8px_#38BDF8,0_0_14px_#0EA5E9]" />
-                              )}
-                            </DockItem>
-                          </button>
-                        );
-                      })}
-                    </Dock>
+                                {isCurrentActive && (
+                                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-sky-400 shadow-[0_0_8px_#38BDF8,0_0_14px_#0EA5E9]" />
+                                )}
+                              </DockItem>
+                            </button>
+                          );
+                        })}
+                      </Dock>
+                    )}
                   </div>
 
                   {/* Phone Home Bar */}
@@ -326,6 +351,70 @@ export default function DockPreviewPage() {
                 </div>
               </div>
             )}
+          </div>
+        </section>
+
+        {/* Section 2.5: Ruixen UI Gooey Dock Showcase */}
+        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-600 dark:bg-sky-950/60 dark:text-sky-400">
+                  21st.dev Component
+                </span>
+                <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+                  Ruixen UI: Gooey Dock (@ruixen.ui/gooey-dock)
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Cosine falloff curve, Y-axis arch lifting, Web Audio proximity haptics, edge-to-edge light grey theme with lightblue neon glow.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition ${
+                  soundEnabled
+                    ? 'border-sky-300 bg-sky-50 text-sky-600 dark:bg-sky-950/50 dark:text-sky-400'
+                    : 'border-slate-200 text-slate-500'
+                }`}
+              >
+                {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+                <span>Sound: {soundEnabled ? 'ON' : 'OFF'}</span>
+              </button>
+
+              <button
+                onClick={() => setDockStyle(dockStyle === 'gooey' ? 'apple' : 'gooey')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition text-slate-700 dark:text-slate-200"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Switch Style: {dockStyle === 'gooey' ? 'Gooey Arch' : 'Apple Zoom'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="py-12 bg-slate-100/70 dark:bg-slate-950 rounded-xl relative overflow-hidden flex items-center justify-center min-h-[160px] px-4">
+            <div className="w-full max-w-[480px]">
+              <GooeyDock
+                items={DOCK_NAV_ITEMS.map((item) => {
+                  const Icon = item.icon;
+                  const isCurrentActive = activeTab === item.href;
+                  return {
+                    id: item.id,
+                    label: item.label,
+                    active: isCurrentActive,
+                    badge: item.badge,
+                    onClick: () => setActiveTab(item.href),
+                    icon: <Icon className="w-5 h-5" />,
+                  };
+                })}
+                sound={soundEnabled}
+                fullWidth={true}
+                glowColor="lightblue"
+                className="w-full bg-[#E2E8F0]/95 backdrop-blur-xl border border-slate-300/90 shadow-[0_8px_30px_rgba(15,23,42,0.12)]"
+              />
+            </div>
           </div>
         </section>
 
