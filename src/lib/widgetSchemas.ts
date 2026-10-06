@@ -40,7 +40,7 @@ export const headerLogoSchema = z.object({
   logoUrl: z.string().default('/brand-logo.png'),
   brandName: z.string().default('มีโปรโฟน'),
   mallBadgeText: z.string().default('MALL'),
-  showMallBadge: z.boolean().default(true),
+  showMallBadge: z.boolean().default(false),
   showNotificationBell: z.boolean().default(true),
   showCartButton: z.boolean().default(true),
 });

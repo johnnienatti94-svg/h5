@@ -36,10 +36,9 @@ export default function TopNav() {
             <span className="material-symbols-outlined text-[24px]">menu</span>
           </button>
 
-          {/* Logo & Mall Badge */}
+          {/* Brand Logo */}
           <Link href="/home" className={styles.logoContainer} aria-label="หน้าแรก มีโปรโฟน">
             <img src="/brand-logo.png" alt="มีโปรโฟน" className={styles.brandLogoImg} />
-            <span className={styles.mallBadge}>MALL</span>
           </Link>
 
           {/* Right Action Icons: Notification & Shopping Cart */}
