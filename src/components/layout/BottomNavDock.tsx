@@ -74,20 +74,19 @@ export default function BottomNavDock({
       id="bottom-nav"
       className={cn(
         variant === 'floating'
-          ? 'fixed bottom-[calc(10px+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-[200] w-auto max-w-[calc(100vw-24px)] pointer-events-auto'
-          : 'relative w-full py-2 bg-white border-t border-slate-200 z-[200]',
+          ? 'fixed bottom-[calc(10px+env(safe-area-inset-bottom,0px))] left-2.5 right-2.5 sm:left-1/2 sm:-translate-x-1/2 sm:w-[480px] sm:max-w-[calc(100vw-20px)] z-[200] pointer-events-auto'
+          : 'relative w-full py-2 bg-[#E2E8F0] border-t border-slate-300 z-[200]',
         className
       )}
     >
       <Dock
-        magnification={66}
-        distance={110}
+        magnification={64}
+        distance={100}
         panelHeight={58}
         className={cn(
-          'border shadow-lg transition-all',
-          'bg-white/92 backdrop-blur-xl border-slate-200/80 shadow-slate-900/10',
-          'dark:bg-slate-900/90 dark:border-slate-800 dark:shadow-black/30',
-          'px-3 py-1 rounded-2xl flex items-center justify-center gap-2'
+          'w-full flex items-center justify-around px-2 sm:px-3 rounded-2xl border transition-all',
+          'bg-[#E2E8F0]/95 backdrop-blur-xl border-slate-300/90 shadow-[0_8px_30px_rgba(15,23,42,0.12)]',
+          'dark:bg-[#CBD5E1]/95 dark:border-slate-400/80 dark:shadow-[0_8px_30px_rgba(0,0,0,0.18)]'
         )}
       >
         {items.map((item) => {
@@ -99,45 +98,47 @@ export default function BottomNavDock({
               key={item.id}
               href={item.href}
               id={`nav-${item.id}`}
-              className="outline-none focus-visible:ring-2 focus-visible:ring-[#FF6E00] rounded-xl"
+              className="flex-1 flex justify-center items-center outline-none focus-visible:ring-2 focus-visible:ring-sky-400 rounded-xl"
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
             >
               <DockItem
                 className={cn(
-                  'aspect-square rounded-xl transition-colors relative flex items-center justify-center',
+                  'aspect-square rounded-xl transition-all duration-200 relative flex items-center justify-center',
                   isActive
-                    ? 'bg-orange-50 text-[#FF6E00] dark:bg-orange-950/40 dark:text-[#FF6E00] font-semibold'
-                    : 'bg-slate-100/80 hover:bg-slate-200/80 text-slate-600 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 dark:text-slate-300'
+                    ? 'bg-white/95 text-sky-500 font-semibold shadow-[0_0_16px_rgba(56,189,248,0.5)] border border-sky-300/80'
+                    : 'bg-white/50 hover:bg-white/80 text-slate-500 hover:text-sky-500 hover:shadow-[0_0_12px_rgba(56,189,248,0.35)]'
                 )}
               >
                 {/* Floating tooltip label (Apple-dock style) */}
-                <DockLabel className="bg-[#142B4A] text-white border-slate-700 font-medium text-[11px] shadow-md px-2 py-0.5">
+                <DockLabel className="bg-slate-900/95 text-sky-200 border-sky-400/30 font-medium text-[11px] shadow-[0_0_10px_rgba(56,189,248,0.25)] px-2.5 py-0.5">
                   {item.label}
                 </DockLabel>
 
-                {/* Badge if present (e.g. HOT) */}
+                {/* Badge if present (e.g. HOT) with lightblue glow accent */}
                 {item.badge && (
-                  <span className="absolute -top-1 -right-1 z-10 px-1 py-0.2 bg-[#FF6E00] text-white text-[9px] font-bold rounded-full shadow-sm leading-tight pointer-events-none animate-pulse">
+                  <span className="absolute -top-1 -right-1 z-10 px-1.5 py-0.5 bg-gradient-to-r from-sky-400 to-blue-500 text-white text-[9px] font-bold rounded-full shadow-[0_0_8px_rgba(56,189,248,0.8)] leading-tight pointer-events-none animate-pulse">
                     {item.badge}
                   </span>
                 )}
 
-                {/* Center Icon */}
+                {/* Center Icon with Lightblue Glow */}
                 <DockIcon className="flex items-center justify-center">
                   <Icon
                     className={cn(
-                      'w-5 h-5 transition-transform duration-150',
-                      isActive ? 'stroke-[2.5px] scale-105' : 'stroke-[1.8px]'
+                      'w-5 h-5 transition-all duration-200',
+                      isActive
+                        ? 'stroke-[2.5px] text-sky-500 [filter:drop-shadow(0_0_6px_#38BDF8)_drop-shadow(0_0_12px_rgba(56,189,248,0.75))]'
+                        : 'stroke-[1.8px] hover:[filter:drop-shadow(0_0_6px_#38BDF8)]'
                     )}
                   />
                 </DockIcon>
 
-                {/* Active Indicator Dot (macOS style app indicator) */}
+                {/* Active Indicator Dot with Lightblue Glow */}
                 {isActive && (
                   <span
                     aria-hidden="true"
-                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#FF6E00] shadow-[0_0_6px_rgba(255,110,0,0.8)]"
+                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-sky-400 shadow-[0_0_8px_#38BDF8,0_0_14px_#0EA5E9]"
                   />
                 )}
               </DockItem>
