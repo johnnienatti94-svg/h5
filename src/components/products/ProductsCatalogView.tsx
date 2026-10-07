@@ -179,6 +179,36 @@ export default function ProductsCatalogView({ initialData, availableBranches = [
         </form>
       </header>
 
+      {/* Switching Tab: มือถือ มือ1 / มือถือ มือ2 */}
+      <section aria-label="สวิตช์เลือกสภาพสินค้า" className="w-full max-w-lg mx-auto">
+        <div className="w-full h-12 bg-white rounded-2xl border border-[#E2E8F0] p-1 flex items-center shadow-xs">
+          <button
+            type="button"
+            id="catalog-tab-new"
+            onClick={() => updateParam({ condition: 'new' })}
+            className={`flex-1 h-full rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center transition-all ${
+              currentCondition !== 'used'
+                ? 'bg-[#007ACC] text-white shadow-sm'
+                : 'text-[#64748B] hover:text-[#0F172A]'
+            }`}
+          >
+            มือถือ มือ1
+          </button>
+          <button
+            type="button"
+            id="catalog-tab-used"
+            onClick={() => updateParam({ condition: 'used' })}
+            className={`flex-1 h-full rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center transition-all ${
+              currentCondition === 'used'
+                ? 'bg-[#007ACC] text-white shadow-sm'
+                : 'text-[#64748B] hover:text-[#0F172A]'
+            }`}
+          >
+            มือถือ มือ2
+          </button>
+        </div>
+      </section>
+
       {/* Category Pills Bar */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none" role="tablist">
         <button
@@ -232,8 +262,8 @@ export default function ProductsCatalogView({ initialData, availableBranches = [
             className="h-9 px-3 rounded-lg bg-[#F8FAFC] border border-[#CBD5E1] text-[#142B4A] font-medium focus:outline-none focus:border-[#FF6E00]"
           >
             <option value="all">สภาพเครื่องทั้งหมด</option>
-            <option value="new">เครื่องใหม่แกะกล่อง</option>
-            <option value="used">เครื่องมือสองคัดเกรด</option>
+            <option value="new">มือถือ มือ1 (ใหม่ศูนย์)</option>
+            <option value="used">มือถือ มือ2 (คัดเกรด)</option>
           </select>
 
           {/* Storage Filter */}

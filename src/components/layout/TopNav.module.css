@@ -17,29 +17,47 @@
 
 .topNavInner {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   max-width: var(--max-content-width, 1280px);
   margin: 0 auto;
-  padding: 8px 16px 10px 16px;
+  padding: 8px 16px;
   background: #FFFFFF;
 }
 
 @media (min-width: 768px) {
   .topNavInner {
-    padding: 10px 24px 12px 24px;
-  }
-  .tierSearch {
-    max-width: 680px;
-    margin: 8px auto 0 auto;
+    padding: 10px 24px;
+    gap: 18px;
   }
 }
 
-/* Tier 1: Brand & Action row */
-.tierPrimary {
+@media (max-width: 480px) {
+  .topNavInner {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+  .brandLogoImg {
+    height: 24px;
+    max-width: 105px;
+  }
+  .iconBtn {
+    width: 34px;
+    height: 34px;
+  }
+  .searchSubmitBtn {
+    padding: 0 8px;
+    font-size: 11px;
+  }
+}
+
+.navLeft {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: 44px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .iconBtn {
@@ -182,10 +200,12 @@
   .tierPrimary > .iconBtn:first-child { display: none; }
 }
 
-/* Tier 2: Search Bar */
+/* Center Search Bar - Same Level */
 .tierSearch {
-  margin-top: 8px;
-  width: 100%;
+  flex: 1;
+  max-width: 620px;
+  min-width: 0;
+  margin: 0 4px;
 }
 
 .searchBarWrapper {
