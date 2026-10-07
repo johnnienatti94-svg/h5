@@ -5,14 +5,44 @@ import { useSearchParams } from 'next/navigation';
 import { AnyWidget } from '@/types/widget';
 import { getHomepageWidgets } from '@/lib/homepageWidgets';
 import WidgetRenderer from '@/components/home/WidgetRenderer';
+import UsedPhonesView from '@/components/home/UsedPhonesView';
 import TradeInView from '@/components/home/TradeInView';
+
+type HomeTab = 'new' | 'used' | 'tradein';
 
 function HomeContent() {
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') === 'tradein' ? 'tradein' : 'installment';
-  const [activeTab, setActiveTab] = useState<'installment' | 'tradein'>(initialTab);
+  const rawTab = searchParams.get('tab');
+  const initialTab: HomeTab =
+    rawTab === 'tradein'
+      ? 'tradein'
+      : rawTab === 'used' || rawTab === 'hand2'
+      ? 'used'
+      : 'new';
+
+  const [activeTab, setActiveTab] = useState<HomeTab>(initialTab);
   const [widgets, setWidgets] = useState<AnyWidget[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    const currentRawTab = searchParams.get('tab');
+    if (currentRawTab === 'tradein') {
+      setActiveTab('tradein');
+    } else if (currentRawTab === 'used' || currentRawTab === 'hand2') {
+      setActiveTab('used');
+    } else if (currentRawTab === 'new' || currentRawTab === 'installment') {
+      setActiveTab('new');
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab: HomeTab) => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -75,24 +105,38 @@ function HomeContent() {
 
   return (
     <div className="page-enter w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-24">
-      {/* 1. Segmented Service Switch (สวิตช์เลือกบริการ - Stitch Screen 06 & 07) */}
+      {/* 1. Segmented Service Switch (สวิตช์เลือกบริการ 3 ตัวเลือก: 1.มือถือ มือ1  2.มือถือ มือ2  3.มือถือแลกเงิน) */}
       <section aria-label="สวิตช์เลือกบริการ" className="w-full max-w-2xl mx-auto mb-3">
         <div className="w-full h-12 bg-white rounded-xl border border-[#E2E8F0] p-1 flex items-center shadow-xs">
           <button
             type="button"
-            onClick={() => setActiveTab('installment')}
-            className={`flex-1 h-full rounded-lg text-xs font-bold flex items-center justify-center transition-all ${
-              activeTab === 'installment'
+            id="tab-btn-new-phone"
+            onClick={() => handleTabChange('new')}
+            className={`flex-1 h-full rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center transition-all ${
+              activeTab === 'new'
                 ? 'bg-[#007ACC] text-white shadow-sm'
                 : 'text-[#64748B] hover:text-[#0F172A]'
             }`}
           >
-            ผ่อนมือถือ
+            มือถือ มือ1
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('tradein')}
-            className={`flex-1 h-full rounded-lg text-xs font-bold flex items-center justify-center transition-all ${
+            id="tab-btn-used-phone"
+            onClick={() => handleTabChange('used')}
+            className={`flex-1 h-full rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center transition-all ${
+              activeTab === 'used'
+                ? 'bg-[#007ACC] text-white shadow-sm'
+                : 'text-[#64748B] hover:text-[#0F172A]'
+            }`}
+          >
+            มือถือ มือ2
+          </button>
+          <button
+            type="button"
+            id="tab-btn-tradein"
+            onClick={() => handleTabChange('tradein')}
+            className={`flex-1 h-full rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center transition-all ${
               activeTab === 'tradein'
                 ? 'bg-[#007ACC] text-white shadow-sm'
                 : 'text-[#64748B] hover:text-[#0F172A]'
@@ -104,8 +148,10 @@ function HomeContent() {
       </section>
 
       {/* 2. Tab Content */}
-      {activeTab === 'installment' ? (
+      {activeTab === 'new' ? (
         <WidgetRenderer widgets={widgets} />
+      ) : activeTab === 'used' ? (
+        <UsedPhonesView onSwitchToTradeIn={() => handleTabChange('tradein')} />
       ) : (
         <TradeInView />
       )}
@@ -127,5 +173,3 @@ export default function HomePage() {
     </Suspense>
   );
 }
-
-

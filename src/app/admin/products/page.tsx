@@ -48,6 +48,8 @@ interface ProductItem {
   brandSlug?: string;
   category: string;
   categorySlug?: string;
+  condition?: 'new' | 'used';
+  conditionDescription?: string | null;
   summary?: string;
   description?: string;
   imageUrl?: string;
@@ -65,6 +67,8 @@ interface ProductFormData {
   slug: string;
   brandSlug: string;
   categorySlug: string;
+  condition: 'new' | 'used';
+  conditionDescription: string;
   summary: string;
   description: string;
   imageUrl: string;
@@ -79,6 +83,8 @@ const EMPTY_PRODUCT_FORM: ProductFormData = {
   slug: '',
   brandSlug: 'apple',
   categorySlug: 'smartphone',
+  condition: 'new',
+  conditionDescription: '',
   summary: '',
   description: '',
   imageUrl: '',
@@ -116,6 +122,7 @@ export default function AdminProductsPage() {
   const [search, setSearch] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('ALL');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [conditionFilter, setConditionFilter] = useState<'ALL' | 'NEW' | 'USED'>('ALL');
   const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK' | 'OUT_OF_STOCK'>('ALL');
   const [sortBy, setSortBy] = useState<'custom' | 'price_asc' | 'price_desc' | 'name'>('custom');
 
@@ -167,6 +174,8 @@ export default function AdminProductsPage() {
       slug: p.slug,
       brandSlug: p.brandSlug || p.brand.toLowerCase(),
       categorySlug: p.categorySlug || 'smartphone',
+      condition: p.condition || 'new',
+      conditionDescription: p.conditionDescription || '',
       summary: p.summary || '',
       description: p.description || '',
       imageUrl: p.imageUrl || '',
@@ -199,6 +208,8 @@ export default function AdminProductsPage() {
         slug: formData.slug || undefined,
         brandSlug: formData.brandSlug,
         categorySlug: formData.categorySlug,
+        condition: formData.condition,
+        conditionDescription: formData.conditionDescription || undefined,
         summary: formData.summary,
         description: formData.description,
         imageUrl: formData.imageUrl || undefined,
@@ -291,11 +302,14 @@ export default function AdminProductsPage() {
       p.slug.toLowerCase().includes(search.toLowerCase());
     const matchesBrand = selectedBrand === 'ALL' || p.brand === selectedBrand;
     const matchesCategory = selectedCategory === 'ALL' || p.categorySlug === selectedCategory || p.category === selectedCategory;
+    const matchesCondition =
+      conditionFilter === 'ALL' ||
+      (conditionFilter === 'NEW' ? (p.condition === 'new' || !p.condition) : p.condition === 'used');
     const matchesStock =
       stockFilter === 'ALL' ||
       (stockFilter === 'IN_STOCK' ? p.isInStock : !p.isInStock);
 
-    return matchesSearch && matchesBrand && matchesCategory && matchesStock;
+    return matchesSearch && matchesBrand && matchesCategory && matchesCondition && matchesStock;
   });
 
   if (sortBy === 'price_asc') {
@@ -408,6 +422,17 @@ export default function AdminProductsPage() {
                   {c.name}
                 </option>
               ))}
+            </select>
+
+            {/* Condition Dropdown (มือถือ มือ1 / มือถือ มือ2) */}
+            <select
+              value={conditionFilter}
+              onChange={(e) => setConditionFilter(e.target.value as any)}
+              className="px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-bold bg-white text-slate-700"
+            >
+              <option value="ALL">ทุกสภาพสินค้า</option>
+              <option value="NEW">มือถือ มือ1 (ใหม่ศูนย์)</option>
+              <option value="USED">มือถือ มือ2 (คัดเกรด)</option>
             </select>
           </div>
         </div>
@@ -522,7 +547,18 @@ export default function AdminProductsPage() {
                   </td>
 
                   <td className="py-4 px-4 text-xs">
-                    <span className="font-bold text-slate-800">{item.brand}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-slate-800">{item.brand}</span>
+                      {item.condition === 'used' ? (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-300 text-[10px] font-bold">
+                          มือ 2
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold">
+                          มือ 1
+                        </span>
+                      )}
+                    </div>
                     <div className="text-slate-400 text-[11px]">{item.category}</div>
                   </td>
 
@@ -647,6 +683,50 @@ export default function AdminProductsPage() {
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-[#FF6E00] outline-hidden text-xs font-mono"
                   />
                 </div>
+              </div>
+
+              {/* สภาพสินค้า: มือ 1 vs มือ 2 */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-2">
+                <label className="block font-bold text-slate-700 text-xs">
+                  สภาพสินค้า (Condition) <span className="text-rose-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, condition: 'new' })}
+                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      formData.condition === 'new'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>✓</span>
+                    <span>มือถือ มือ1 (ใหม่ศูนย์)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, condition: 'used' })}
+                    className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                      formData.condition === 'used'
+                        ? 'bg-[#FF6E00] text-white border-[#FF6E00] shadow-xs'
+                        : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>★</span>
+                    <span>มือถือ มือ2 (คัดเกรด A)</span>
+                  </button>
+                </div>
+                {formData.condition === 'used' && (
+                  <div className="pt-1">
+                    <input
+                      type="text"
+                      value={formData.conditionDescription}
+                      onChange={(e) => setFormData({ ...formData, conditionDescription: e.target.value })}
+                      placeholder="เช่น สภาพนางฟ้า 98% แบตเตอรี่ 92% ผ่านการเช็ก 40 รายการ..."
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white focus:ring-1 focus:ring-[#FF6E00]"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

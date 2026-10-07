@@ -191,6 +191,8 @@ export interface CreateProductInput {
   slug?: string;
   brandSlug: string;
   categorySlug: string;
+  condition?: ProductCondition;
+  conditionDescription?: string;
   summary?: string;
   description?: string;
   imageUrl?: string;
@@ -255,6 +257,11 @@ export function createProduct(input: CreateProductInput): {
         },
       ];
 
+  const condition: ProductCondition = input.condition || 'new';
+  const isUsed = condition === 'used';
+  const warrantyDescription = isUsed ? 'ประกันร้าน MeePro Care 6 เดือนเต็ม' : 'ประกันศูนย์ไทย 1 ปีเต็ม';
+  const conditionDescription = input.conditionDescription || (isUsed ? 'เครื่องมือสองคัดเกรด 98% ตรวจเช็กมาตรฐาน' : 'เครื่องใหม่แท้ 100%');
+
   const newProduct: PublicProductDetail = {
     id,
     slug,
@@ -269,14 +276,14 @@ export function createProduct(input: CreateProductInput): {
         id: `var-${id.substring(0, 8)}`,
         sku: `${slug.toUpperCase()}-STD`,
         name: `${input.name} Standard`,
-        condition: 'new',
+        condition,
         storageLabel: '128GB',
         colorLabel: 'Standard',
         colorHex: '#142B4A',
         cashPriceMinor,
         compareAtPriceMinor: Math.round(cashPriceMinor * 1.1),
-        warrantyDescription: 'ประกันศูนย์ไทย 1 ปีเต็ม',
-        conditionDescription: 'เครื่องใหม่แท้ 100%',
+        warrantyDescription,
+        conditionDescription,
         isInStock: input.inStock !== undefined ? input.inStock : true,
         attributes: {},
       },
@@ -395,6 +402,19 @@ export function updateProduct(
             ...v,
             cashPriceMinor,
             isInStock: input.inStock !== undefined ? input.inStock : v.isInStock,
+            condition: input.condition !== undefined ? input.condition : v.condition,
+            conditionDescription: input.conditionDescription !== undefined
+              ? input.conditionDescription
+              : (input.condition === 'used' && v.condition !== 'used'
+                  ? 'เครื่องมือสองคัดเกรด 98% ตรวจเช็กมาตรฐาน'
+                  : input.condition === 'new' && v.condition !== 'new'
+                  ? 'เครื่องใหม่แท้ 100%'
+                  : v.conditionDescription),
+            warrantyDescription: input.condition === 'used' && v.condition !== 'used'
+              ? 'ประกันร้าน MeePro Care 6 เดือนเต็ม'
+              : input.condition === 'new' && v.condition !== 'new'
+              ? 'ประกันศูนย์ไทย 1 ปีเต็ม'
+              : v.warrantyDescription,
           }
         : v
     ),
