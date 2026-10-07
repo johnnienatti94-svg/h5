@@ -31,8 +31,6 @@ export async function GET() {
       variantsCount: p.variants.length,
       tags: p.tags || [],
       badges: p.badges || [],
-      condition: p.variants[0]?.condition || 'new',
-      conditionDescription: p.variants[0]?.conditionDescription || null,
       publishedAt: p.publishedAt,
     };
   });

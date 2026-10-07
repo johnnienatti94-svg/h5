@@ -19,8 +19,6 @@ const CATEGORIES = [
 ];
 
 const QUICK_SERVICES = [
-  { href: '/home?tab=new', label: 'มือถือ มือ1 (เครื่องใหม่ศูนย์)', icon: 'smartphone', badge: 'แท้ 100%' },
-  { href: '/home?tab=used', label: 'มือถือ มือ2 (คัดเกรดพรีเมียม)', icon: 'verified', badge: 'เกรด A+' },
   { href: '/home?tab=tradein', label: 'มือถือแลกเงิน (Trade-In)', icon: 'currency_exchange', badge: 'ตีราคาสูง' },
   { href: '/promotion', label: 'Flash Sale & คูปองลดราคา', icon: 'local_fire_department', badge: 'HOT' },
   { href: '/billing', label: 'ตรวจสอบและชำระบิลค่างวด', icon: 'receipt_long' },
