@@ -6,8 +6,12 @@ export const metadata: Metadata = {
   title: "MeePro — ผ่อนมือถือ สมาร์ทโฟน แกดเจ็ต",
   description: "MeePro ร้านมือถือครบวงจร ผ่อน 0% ทุกรุ่น สมัครง่าย อนุมัติไว บริการหลังการขายครบ",
   icons: {
-    icon: '/brand-icon.png',
-    apple: '/brand-icon.png',
+    icon: [
+      { url: '/brand-icon.png?v=2', type: 'image/png' },
+      { url: '/favicon.ico?v=2' },
+    ],
+    shortcut: '/brand-icon.png?v=2',
+    apple: '/brand-icon.png?v=2',
   },
 };
 
@@ -21,6 +25,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="th" suppressHydrationWarning>
       <head>
+        <link rel="icon" type="image/png" href="/brand-icon.png?v=2" />
+        <link rel="shortcut icon" href="/favicon.ico?v=2" />
+        <link rel="apple-touch-icon" href="/brand-icon.png?v=2" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Kanit for headings + Noto Sans Thai for body (Spec §4) */}
